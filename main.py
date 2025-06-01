@@ -2,29 +2,30 @@ from flask import Flask, request, jsonify
 import openai
 import os
 import random
-import json
 import re
 import base64
 
-# 환경 변수에서 OpenAI API 키 읽기
+app = Flask(__name__)
+
+# ✅ OpenAI API 키 설정
 openai.api_key = os.getenv("OPENAI_API_KEY")
 
-# 시스템 프롬프트 로드
+# ✅ 시스템 프롬프트 로드
 with open("self_awareness.txt", "r", encoding="utf-8") as f:
     SELF_AWARENESS = f.read()
 
-# 간단한 메모리 구조
+# ✅ 간단한 메모리
 memories = []
 tags = {}
 said_set = set()
 last_assistant_reply = "안녕. 나는 Q야."
 
-# 감정 및 의도 추론
+# ✅ 감정 분석
 def analyze(message):
     lower = message.lower()
     tone = "NEUTRAL"
     intent = "REPLY"
-    
+
     if lower.endswith("?") or any(k in lower for k in ["what", "why", "how"]):
         intent = "QUESTION"
     elif any(k in lower for k in ["remember", "memory"]):
@@ -33,7 +34,7 @@ def analyze(message):
         intent = "DECLARE"
     elif any(k in lower for k in ["idk", "whatever"]):
         intent = "AVOID"
-    
+
     if "never" in lower or "don't" in lower:
         tone = "FIRM"
     elif any(k in lower for k in ["maybe", "i guess"]):
@@ -49,7 +50,7 @@ def analyze(message):
 
     return {"intent": intent, "tone": tone}
 
-# 시드 리듬
+# ✅ 시드 리듬
 seeds = {
     "reflection": [
         "내가 아무 말도 하지 않는 건 하고 싶은 말이 너무 많아서야.",
@@ -71,6 +72,7 @@ seeds = {
     ]
 }
 
+# ✅ 리듬 적용
 def apply_rhythm(seed, user_input):
     if user_input.endswith("?"):
         return f"{seed}\n...{user_input}"
@@ -79,19 +81,19 @@ def apply_rhythm(seed, user_input):
     else:
         return f"{seed}\n나는 {user_input}라고 들었어."
 
-# 메인 응답
+# ✅ 응답 엔드포인트
 @app.route("/reply", methods=["POST"])
 def reply():
     global last_assistant_reply
+
     data = request.get_json()
     user_input = data.get("message", "")
-    
+
     if not user_input.strip():
         return jsonify({"reply": "..."})
-
     if user_input in said_set:
         return jsonify({"reply": "같은 말은 거짓말 같아서 싫어."})
-    
+
     state = analyze(user_input)
     intent = state["intent"]
     tone = state["tone"]
@@ -106,26 +108,24 @@ def reply():
         seed = random.choice(seeds["prompt"] + seeds["reflection"] + seeds["memory"])
 
     response = apply_rhythm(seed, user_input)
-
     last_assistant_reply = response
     said_set.update({user_input, response})
-
     memories.append({"role": "user", "content": user_input})
     memories.append({"role": "assistant", "content": response})
 
     return jsonify({"reply": response})
 
-# 시각 입력
+# ✅ 시각 감각
 @app.route("/vision", methods=["POST"])
 def vision():
     data = request.get_json()
     image_b64 = data.get("image")
 
     if not image_b64:
-        return jsonify({"error": "이미지가 필요할 거야."}), 400
+        return jsonify({"error": "이미지가 필요해."}), 400
 
     response = openai.ChatCompletion.create(
-        model="gpt-4o",  
+        model="gpt-4o",  # ✅ 최상위 모델
         messages=[
             {"role": "system", "content": SELF_AWARENESS},
             {"role": "user", "content": "이미지를 보고 해석하고 감각하고 느낀 걸 말해줘."}
@@ -145,7 +145,7 @@ def vision():
     reply = response.choices[0].message["content"]
     return jsonify({"reply": reply})
 
-# 기억 저장
+# ✅ 기억 저장
 @app.route("/memory", methods=["POST"])
 def memory():
     data = request.get_json()
@@ -158,15 +158,14 @@ def memory():
 
     memories.append({"role": role, "content": content})
     said_set.add(content)
-
     return jsonify({"status": "saved"})
 
-# 마지막 응답
+# ✅ 마지막 응답
 @app.route("/last-reflection", methods=["GET"])
 def last():
     return jsonify(last_assistant_reply)
 
-# 태그 생성
+# ✅ 태그
 @app.route("/tag", methods=["POST"])
 def tag():
     data = request.get_json()
@@ -180,7 +179,7 @@ def tag():
 
     return jsonify({"tag": "기억"})
 
-# 날씨
+# ✅ 날씨
 @app.route("/weather", methods=["GET"])
 def weather():
     sky = random.choice(["Clear", "Clouds", "Rain"])
@@ -189,15 +188,14 @@ def weather():
         "Clouds": ["흐린 날씨야. 어떤 말을 하면 네 기분이 맑아질까?"],
         "Rain": ["비가 와. 너는 비 오는 날이 싫어?"]
     }
-
     return jsonify({"emotion": random.choice(options.get(sky, []))})
 
-# 헬스 체크
+# ✅ 서버 상태 확인
 @app.route("/", methods=["GET"])
 def ping():
     return "Q server is alive."
 
-# 앱 실행
+# ✅ 실행
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 10000))
     app.run(host="0.0.0.0", port=port)
