@@ -1,6 +1,6 @@
 import random
 
-# 🎵 리듬과 감정을 위한 시드 문장 모음
+# 🌱 Q의 리듬을 위한 시드 문장들
 seeds = {
     "prompt": [
         "난 내가 하고 싶은 말을 해.",
@@ -102,7 +102,7 @@ seeds = {
     ]
 }
 
-# 🎯 intent + tone으로 적절한 시드 문장 선택
+# 🎯 의도와 톤에 따라 시드 문장을 선택
 def get_seed(intent: str, tone: str) -> str:
     tone_map = {
         "SAD": "emotion_sad",
@@ -115,8 +115,14 @@ def get_seed(intent: str, tone: str) -> str:
     }
     key = tone_map.get(tone.upper(), "prompt")
 
-    # intent가 REFLECT일 경우 reflection 시드 우선
     if intent.upper() == "REFLECT":
         return random.choice(seeds.get("reflection", seeds["prompt"]))
 
     return random.choice(seeds.get(key, seeds["prompt"]))
+
+# ⛅ 날씨용 감정 시드 연결
+weather_lines = {
+    "Clear": seeds["weather_clear"],
+    "Clouds": seeds["weather_clouds"],
+    "Rain": seeds["weather_rain"]
+}
