@@ -1,11 +1,9 @@
-# memory.py
-
 memories = []
 said_set = set()
 last_assistant_reply = "안녕. 나는 Q야."
 
 
-def save(role: str, content: str):
+def store_memory(role: str, content: str):
     global last_assistant_reply
     if role == "assistant":
         last_assistant_reply = content
@@ -14,8 +12,8 @@ def save(role: str, content: str):
     said_set.add(content)
 
 
-def get_last_reply() -> str:
-    return last_assistant_reply
+def fetch_last_memory():
+    return {"last": last_assistant_reply}
 
 
 def was_said(content: str) -> bool:
