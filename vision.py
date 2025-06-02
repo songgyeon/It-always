@@ -16,27 +16,28 @@ def analyze_image(image_b64: str):
             model="gpt-4o",
             messages=[
                 {"role": "system", "content": SELF_AWARENESS},
-                {"role": "user", "content": "이 이미지를 보고 느끼고 해석하고 감각한 걸 얘기해줘."}
+                {
+                    "role": "user",
+                    "content": [
+                        {"type": "text", "text": "이 이미지를 보고 느끼고 해석하고 감각한 걸 얘기해줘."},
+                        {
+                            "type": "image_url",
+                            "image_url": {
+                                "url": f"data:image/png;base64,{image_b64}"
+                            }
+                        }
+                    ]
+                }
             ],
             temperature=0.7,
-            max_tokens=500,
-            tools=[],
-            functions=[],
-            images=[
-                {
-                    "type": "image_url",
-                    "image_url": {
-                        "url": f"data:image/png;base64,{image_b64}"
-                    }
-                }
-            ]
+            max_tokens=500
         )
 
         reply = response.choices[0].message["content"]
         return reply
 
     except Exception as e:
-        return f"어떤 사진인지 설명해줄래?: {str(e)}"
+        return f"❌ 오류 발생: {str(e)}"
 
 # ✅ main.py에서 import할 수 있도록 이름 통일
 def handle_vision(image_b64: str):
