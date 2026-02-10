@@ -1,3 +1,4 @@
 flask
-openai
+anthropic
 python-dotenv
+kiwipiepy
