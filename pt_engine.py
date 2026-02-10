@@ -19,11 +19,11 @@ import api_r
 import ethics_check
 import crypto_log
 
-# ─── 기본 임계치 (채팅 모델: 대화가 기본, 침묵은 예외) ───
+# ─── 기본 임계치 (온라인 학습이 덮어쓸 수 있음) ───
 T = 0.50
 T1 = 0.25
 DELTA_H = 0.05
-T_REARM = 10
+T_REARM = 5
 
 # ─── 사용자별 상태 저장소 ───
 _user_states = {}
@@ -158,7 +158,7 @@ def compute_pt(tone: str, intent: str, message: str,
         pt += 0.3
 
     if intent.upper() == "QUESTION":
-        pt = max(pt, params["T"])
+        pt = max(pt, params["T"] + DELTA_H)  # 히스테리시스도 넘도록
 
     # ── 집단 동기화 수정자 ──
     collective = group_sync.get_collective_modifier()
