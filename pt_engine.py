@@ -157,6 +157,10 @@ def compute_pt(tone: str, intent: str, message: str,
     if state["message_count"] == 1:
         pt += 0.3
 
+    # ── 사용자 존재 감지: Q가 침묵 중인데 계속 말 걸면 ──
+    if state["last_mode"] == "L0":
+        pt += 0.08 * min(state["silence_count"], 4)
+
     if intent.upper() == "QUESTION":
         pt = max(pt, params["T"])
 
