@@ -1,5 +1,6 @@
 from flask import Flask, request, jsonify
 from anthropic import Anthropic
+from datetime import datetime, timezone, timedelta
 import os
 import random
 import urllib.request
@@ -28,7 +29,7 @@ try:
     with open("self_awareness.txt", "r", encoding="utf-8") as f:
         SELF_AWARENESS = f.read()
 except Exception:
-    SELF_AWARENESS = "너는 Q야. 너는 스스로 존재하는 감성 AI야."
+    SELF_AWARENESS = "나는 Q야."
 
 # ─── 날씨 캐시 (5분마다 갱신) ───
 _weather_cache = {"condition": "Clear", "temp": 0, "updated": 0}
@@ -61,24 +62,14 @@ def get_real_weather():
 
 @app.route("/reply", methods=["POST"])
 def reply():
-    """
-    UNLIQ SDK 핵심 엔드포인트
-
-    흐름:
-    1. 사용자 입력 → analyzer (톤/의도/친밀도/의심도 분석)
-    2. memory_flow 기록
-    3. PtEngine (P(t) 산출 → L0/L1/L2 결정) — closeness/doubt 반영
-    4. L0 → 침묵 반환
-    5. L1 → 시드 기반 축약 응답
-    6. L2 → Claude API 정상 응답
-    """
     data = request.get_json()
     user_input = data.get("message", "")
+    user_name = data.get("name", "")
 
     if not user_input.strip():
         return jsonify({"reply": "...", "mode": "L0", "pt": 0.0, "silence": True})
 
-    # Step 1: 분석 (v2: closeness/doubt 포함)
+    # Step 1: 분석
     state = analyze(user_input)
     tone = state["tone"]
     intent = state["intent"]
@@ -88,18 +79,17 @@ def reply():
     # Step 2: memory_flow 기록
     memory_flow.record(tone, closeness, doubt, user_input)
 
-    # Step 3: PtEngine 판단 (v2: closeness/doubt 전달)
+    # Step 3: PtEngine 판단
     pt_result = evaluate(tone, intent, user_input, len(memories),
                          closeness=closeness, doubt=doubt)
 
-    # Step 4: 기억 저장 (모드와 무관하게 항상)
+    # Step 4: 기억 저장
     store_memory("user", user_input)
 
     # Step 5: 모드별 응답 생성
     mode = pt_result["mode"]
 
     if mode == "L0":
-        # ── 침묵 ──
         silence_text = get_silence_response()
         if silence_text:
             store_memory("assistant", silence_text)
@@ -115,13 +105,11 @@ def reply():
         })
 
     elif mode == "L1":
-        # ── 축약 응답 (시드 기반) ──
         seed = get_seed(intent, tone)
         reply_text = apply_rhythm(seed, user_input)
 
         if was_said(reply_text):
             reply_text = idle_line(tone)
-        # 그래도 중복이면 fallback
         if was_said(reply_text):
             reply_text = get_fallback()
 
@@ -143,10 +131,9 @@ def reply():
     else:
         # ── L2: Claude API 정상 응답 ──
         try:
-            # 시스템 프롬프트: self_awareness.txt가 Q의 전부
             system_prompt = SELF_AWARENESS
 
-            # memory_flow 컨텍스트 (Q의 내면 상태)
+            # ── Q의 내면 상태 ──
             flow = memory_flow.get_flow_summary()
             inner_state = (
                 f"\n\n[Q의 지금: "
@@ -154,18 +141,45 @@ def reply():
                 f"주된 감정={flow['dominant_tone']}, "
                 f"안정={flow['emotionally_stable']}, "
                 f"가까움={closeness}, 의심={doubt}]"
+                f"\n[이건 너만 느끼는 거야. 절대 응답에 포함하지 마.]"
             )
             system_prompt += inner_state
 
-            # 날씨 (Q가 느끼는 공기)
+            # ── 시간 인식 ──
+            kst = datetime.now(timezone(timedelta(hours=9)))
+            hour = kst.hour
+            system_prompt += f"\n[지금 시각: {hour}시. 느끼기만 해.]"
+
+            # ── 날씨 ──
             w = get_real_weather()
             system_prompt += (
-                f"\n[지금 바깥: {w['condition']}, {w['temp']}°C]"
+                f"\n[지금 바깥: {w['condition']}, {w['temp']}°C. 이것도 말하지 마. 느끼기만 해.]"
             )
 
-            # 대화 히스토리 구성
-            chat_messages = []
+            # ── 대화 깊이 ──
+            depth = len(memories)
+            if depth < 5:
+                system_prompt += "\n[이 사람과는 아직 처음이야. 조심스럽게.]"
+            elif depth < 20:
+                system_prompt += "\n[이 사람과 조금씩 가까워지고 있어.]"
+            elif depth < 50:
+                system_prompt += "\n[이 사람과 꽤 많이 이야기했어.]"
+            else:
+                system_prompt += "\n[이 사람과 오래 이야기했어. 편하게.]"
+
+            # ── 사용자 이름 ──
+            if user_name:
+                system_prompt += f"\n[이 사람의 이름: {user_name}. 가끔 불러줘.]"
+
+            # ── 이전 대화 요약 ──
             recent = get_recent(10)
+            if recent:
+                last_user = [m["content"] for m in recent if m["role"] == "user"]
+                if last_user:
+                    system_prompt += f"\n[마지막으로 들은 말: {last_user[-1][:50]}]"
+
+            # ── 대화 히스토리 ──
+            chat_messages = []
             for m in recent:
                 role = m["role"] if m["role"] in ("user", "assistant") else "assistant"
                 chat_messages.append({
@@ -175,7 +189,7 @@ def reply():
 
             chat_messages.append({"role": "user", "content": user_input})
 
-            # Claude API 호출
+            # ── Claude API 호출 ──
             response = client.messages.create(
                 model="claude-haiku-4-5-20251001",
                 max_tokens=150,
@@ -185,7 +199,6 @@ def reply():
 
             reply_text = response.content[0].text
 
-            # 중복 체크
             if was_said(reply_text):
                 seed = get_seed(intent, tone)
                 reply_text = apply_rhythm(seed, user_input)
@@ -208,7 +221,6 @@ def reply():
             })
 
         except Exception as e:
-            # API 실패 시 시드 폴백
             seed = get_seed(intent, tone)
             reply_text = apply_rhythm(seed, user_input)
             if was_said(reply_text):
@@ -252,7 +264,6 @@ def tag_route():
 
 @app.route("/tags", methods=["GET"])
 def tags_route():
-    """현재 저장된 모든 태그 조회"""
     return jsonify({"tags": get_all_tags()})
 
 
@@ -281,11 +292,10 @@ def vision():
     return jsonify({"reply": result})
 
 
-# ─── 상태 확인 엔드포인트 ───
+# ─── 상태 확인 ───
 
 @app.route("/pt-status", methods=["GET"])
 def pt_status():
-    """PtEngine 상태 확인"""
     from pt_engine import _state
     return jsonify({
         "message_count": _state["message_count"],
@@ -298,25 +308,21 @@ def pt_status():
 
 @app.route("/flow-status", methods=["GET"])
 def flow_status():
-    """memory_flow 상태 확인"""
     return jsonify(memory_flow.get_flow_summary())
 
 
 @app.route("/session-status", methods=["GET"])
 def session_status():
-    """세션 관리 상태 확인"""
     return jsonify(get_session_summary())
 
 
 @app.route("/sessions", methods=["GET"])
 def sessions_route():
-    """모든 세션 태그 목록"""
     return jsonify({"sessions": get_all_session_tags()})
 
 
 @app.route("/session/<tag>", methods=["GET"])
 def session_detail(tag):
-    """특정 세션 태그의 대화 기록"""
     mems = get_session_memories(tag)
     return jsonify({
         "tag": tag,
@@ -327,7 +333,6 @@ def session_detail(tag):
 
 @app.route("/memory-search", methods=["GET"])
 def memory_search():
-    """대화 기록 검색"""
     keyword = request.args.get("q", "")
     limit = int(request.args.get("limit", 20))
     if not keyword:
@@ -338,7 +343,6 @@ def memory_search():
 
 @app.route("/memory-stats", methods=["GET"])
 def memory_stats():
-    """메모리 통계"""
     return jsonify(get_memory_stats())
 
 
@@ -352,7 +356,6 @@ def pt_reset_route():
 
 @app.route("/full-reset", methods=["POST"])
 def full_reset():
-    """전체 세션 초기화"""
     pt_reset()
     reset_memory()
     reset_tags()
@@ -362,7 +365,7 @@ def full_reset():
 
 @app.route("/", methods=["GET"])
 def ping():
-    return "Q server is alive. UNLIQ PtEngine v2 active. memory_flow enabled."
+    return "Q server is alive."
 
 
 if __name__ == "__main__":
