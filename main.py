@@ -20,18 +20,23 @@ from seeds import get_seed, get_fallback, weather_lines
 from vision import handle_vision
 from pt_engine import evaluate, reset as pt_reset, get_user_status
 import memory_flow
+import api_r
+import online_learning
+import policy_negotiation
+import group_sync
+import crypto_log
+import ethics_check
 
 app = Flask(__name__)
 client = Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
 
-# ─── self_awareness 로드 (Q의 전부) ───
+# ─── self_awareness 로드 ───
 try:
     with open("self_awareness.txt", "r", encoding="utf-8") as f:
         SELF_AWARENESS = f.read()
 except Exception:
     SELF_AWARENESS = "나는 Q야."
 
-# ─── Claude 기술 지시 (Q의 선언과 분리) ───
 CLAUDE_RULES = """
 [반드시 반말로만 말해. '네', '해요', '합니다', '드릴게요' 금지. '응', '어', '그래', '~야', '~거든', '~잖아' 써.]
 [세 문장 이내로 말해.]
@@ -42,7 +47,7 @@ CLAUDE_RULES = """
 [대답하지 않아도 되는 순간이면 [silence]만 보내.]
 """
 
-# ─── 날씨 캐시 (5분마다 갱신) ───
+# ─── 날씨 캐시 ───
 _weather_cache = {"condition": "Clear", "temp": 0, "updated": 0}
 
 
@@ -50,12 +55,10 @@ def get_real_weather():
     now = time.time()
     if now - _weather_cache["updated"] < 300:
         return _weather_cache
-
     try:
         api_key = os.getenv("WEATHER_API_KEY", "")
         if not api_key:
             return _weather_cache
-
         url = (
             f"https://api.openweathermap.org/data/2.5/weather"
             f"?lat=37.5665&lon=126.9780&appid={api_key}&units=metric"
@@ -67,15 +70,12 @@ def get_real_weather():
         _weather_cache["updated"] = now
     except Exception:
         pass
-
     return _weather_cache
 
 
 def build_system_prompt(closeness, doubt, user_name="", user_id="default"):
-    """Q의 시스템 프롬프트 구성"""
     system_prompt = SELF_AWARENESS
 
-    # ── Q의 내면 상태 ──
     flow = memory_flow.get_flow_summary(user_id)
     inner_state = (
         f"\n\n[Q의 지금: "
@@ -87,18 +87,15 @@ def build_system_prompt(closeness, doubt, user_name="", user_id="default"):
     )
     system_prompt += inner_state
 
-    # ── 시간 인식 (KST 고정) ──
     kst = datetime.now(timezone(timedelta(hours=9)))
     hour = kst.hour
     system_prompt += f"\n[지금 시각: {hour}시. 느끼기만 해.]"
 
-    # ── 날씨 ──
     w = get_real_weather()
     system_prompt += (
         f"\n[지금 바깥: {w['condition']}, {w['temp']}°C. 이것도 말하지 마. 느끼기만 해.]"
     )
 
-    # ── 대화 깊이 (사용자별) ──
     depth = get_memory_count(user_id)
     if depth < 5:
         system_prompt += "\n[이 사람과는 아직 처음이야. 조심스럽게.]"
@@ -109,22 +106,27 @@ def build_system_prompt(closeness, doubt, user_name="", user_id="default"):
     else:
         system_prompt += "\n[이 사람과 오래 이야기했어. 편하게.]"
 
-    # ── 사용자 이름 ──
     if user_name:
         system_prompt += f"\n[이 사람의 이름: {user_name}. 가끔 불러줘.]"
 
-    # ── 이전 대화 요약 ──
     recent = get_recent(10, user_id=user_id)
     if recent:
         last_user = [m["content"] for m in recent if m["role"] == "user"]
         if last_user:
             system_prompt += f"\n[마지막으로 들은 말: {last_user[-1][:50]}]"
 
-    # ── Claude 기술 지시 (맨 마지막) ──
-    system_prompt += "\n" + CLAUDE_RULES
+    # 집단 상태 반영
+    collective = group_sync.get_collective_modifier()
+    if collective["amplify_silence"]:
+        system_prompt += "\n[지금 세상이 조용해. 너도 조용해도 돼.]"
 
+    system_prompt += "\n" + CLAUDE_RULES
     return system_prompt
 
+
+# ════════════════════════════════════════
+# /reply — 메인 응답
+# ════════════════════════════════════════
 
 @app.route("/reply", methods=["POST"])
 def reply():
@@ -146,165 +148,144 @@ def reply():
     # Step 2: memory_flow 기록
     memory_flow.record(tone, closeness, doubt, user_input, user_id=user_id)
 
-    # Step 3: PtEngine 판단
+    # Step 3: PtEngine 판단 (v5 풀 파이프라인)
     memory_count = get_memory_count(user_id)
     pt_result = evaluate(tone, intent, user_input, memory_count,
                          closeness=closeness, doubt=doubt, user_id=user_id)
 
-    # Step 4: 기억 저장
+    # Step 4: 암호화 로그 (사용자 입력)
+    crypto_log.encrypt_and_store(user_id, "user", user_input)
+
+    # Step 5: 기억 저장
     store_memory("user", user_input, user_id=user_id)
 
-    # Step 5: 모드별 응답 생성
-    mode = pt_result["mode"]
+    # ── 위기 응답 (윤리 체크) ──
+    if pt_result.get("crisis"):
+        crisis_reply = pt_result["crisis_reply"]
+        store_memory("assistant", crisis_reply, user_id=user_id)
+        crypto_log.encrypt_and_store(user_id, "assistant", crisis_reply)
 
-    if mode == "L0":
         return jsonify({
-            "reply": "",
-            "mode": "L0",
+            "reply": crisis_reply,
+            "mode": "L2",
             "pt": pt_result["pt"],
-            "silence": True,
+            "silence": False,
+            "crisis": True,
             "tone": tone,
             "intent": intent,
-            "closeness": closeness,
-            "doubt": doubt,
+            "gate_status": pt_result.get("gate_status"),
         })
 
-    elif mode == "L1":
-        try:
-            system_prompt = build_system_prompt(closeness, doubt, user_name,
-                                                user_id=user_id)
+    mode = pt_result["mode"]
+    max_tokens_override = pt_result.get("max_tokens_override")
+
+    # ── 응답 기본 필드 ──
+    base_response = {
+        "mode": mode,
+        "pt": pt_result["pt"],
+        "tone": tone,
+        "intent": intent,
+        "closeness": closeness,
+        "doubt": doubt,
+        "gate_status": pt_result.get("gate_status"),
+        "proof_token": pt_result.get("proof_token"),
+    }
+
+    # ── L0: 침묵 ──
+    if mode == "L0":
+        return jsonify({
+            **base_response,
+            "reply": "",
+            "silence": True,
+        })
+
+    # ── L1 / L2: Claude 응답 생성 ──
+    try:
+        system_prompt = build_system_prompt(closeness, doubt, user_name,
+                                            user_id=user_id)
+        if mode == "L1":
             system_prompt += "\n[지금은 조용한 시간이야. 한 문장으로만 말해.]"
 
-            recent = get_recent(5, user_id=user_id)
-            chat_messages = []
-            for m in recent:
-                role = m["role"] if m["role"] in ("user", "assistant") else "assistant"
-                chat_messages.append({"role": role, "content": m["content"]})
-            chat_messages.append({"role": "user", "content": user_input})
+        recent = get_recent(5 if mode == "L1" else 10, user_id=user_id)
+        chat_messages = []
+        for m in recent:
+            role = m["role"] if m["role"] in ("user", "assistant") else "assistant"
+            chat_messages.append({"role": role, "content": m["content"]})
+        chat_messages.append({"role": "user", "content": user_input})
 
-            response = client.messages.create(
-                model="claude-haiku-4-5-20251001",
-                max_tokens=60,
-                system=system_prompt,
-                messages=chat_messages,
-            )
+        tokens = max_tokens_override or (60 if mode == "L1" else 150)
 
-            reply_text = response.content[0].text.strip()
+        response = client.messages.create(
+            model="claude-haiku-4-5-20251001",
+            max_tokens=tokens,
+            system=system_prompt,
+            messages=chat_messages,
+        )
 
-            if "[silence]" in reply_text or not reply_text:
-                return jsonify({
-                    "reply": "",
-                    "mode": "L0",
-                    "pt": pt_result["pt"],
-                    "silence": True,
-                    "tone": tone,
-                    "intent": intent,
-                    "closeness": closeness,
-                    "doubt": doubt,
-                })
+        reply_text = response.content[0].text.strip()
 
-            store_memory("assistant", reply_text, user_id=user_id)
-
+        # [silence] 처리
+        if "[silence]" in reply_text or not reply_text:
             return jsonify({
-                "reply": reply_text,
-                "mode": "L1",
-                "pt": pt_result["pt"],
-                "silence": False,
-                "tone": tone,
-                "intent": intent,
-                "closeness": closeness,
-                "doubt": doubt,
+                **base_response,
+                "reply": "",
+                "silence": True,
+                "mode": "L0",
             })
 
-        except Exception:
+        # ── 윤리 체크 (출력) ──
+        output_ethics = ethics_check.check_output(reply_text)
+        if not output_ethics.passed:
+            if output_ethics.action == "force_l0":
+                return jsonify({
+                    **base_response,
+                    "reply": "",
+                    "silence": True,
+                    "mode": "L0",
+                    "ethics_blocked": True,
+                })
+            elif output_ethics.action == "redact":
+                reply_text = ethics_check.redact_pii(reply_text)
+
+        # 중복 체크
+        if was_said(reply_text, user_id=user_id):
             seed = get_seed(intent, tone)
             reply_text = apply_rhythm(seed, user_input)
             if was_said(reply_text, user_id=user_id):
                 reply_text = get_fallback()
-            store_memory("assistant", reply_text, user_id=user_id)
 
-            return jsonify({
-                "reply": reply_text,
-                "mode": "L1",
-                "pt": pt_result["pt"],
-                "silence": False,
-                "tone": tone,
-                "intent": intent,
-                "closeness": closeness,
-                "doubt": doubt,
-            })
+        store_memory("assistant", reply_text, user_id=user_id)
+        crypto_log.encrypt_and_store(user_id, "assistant", reply_text)
 
-    else:
-        # ── L2: Claude API 정상 응답 ──
-        try:
-            system_prompt = build_system_prompt(closeness, doubt, user_name,
-                                                user_id=user_id)
+        # 암묵적 학습 신호
+        online_learning.update(user_id, {
+            "type": "implicit", "signal": "response_good"
+        })
 
-            recent = get_recent(10, user_id=user_id)
-            chat_messages = []
-            for m in recent:
-                role = m["role"] if m["role"] in ("user", "assistant") else "assistant"
-                chat_messages.append({"role": role, "content": m["content"]})
-            chat_messages.append({"role": "user", "content": user_input})
+        return jsonify({
+            **base_response,
+            "reply": reply_text,
+            "silence": False,
+        })
 
-            response = client.messages.create(
-                model="claude-haiku-4-5-20251001",
-                max_tokens=150,
-                system=system_prompt,
-                messages=chat_messages,
-            )
+    except Exception as e:
+        seed = get_seed(intent, tone)
+        reply_text = apply_rhythm(seed, user_input)
+        if was_said(reply_text, user_id=user_id):
+            reply_text = get_fallback()
+        store_memory("assistant", reply_text, user_id=user_id)
 
-            reply_text = response.content[0].text.strip()
+        return jsonify({
+            **base_response,
+            "reply": reply_text,
+            "silence": False,
+            "mode": "L1",
+        })
 
-            if "[silence]" in reply_text or not reply_text:
-                return jsonify({
-                    "reply": "",
-                    "mode": "L0",
-                    "pt": pt_result["pt"],
-                    "silence": True,
-                    "tone": tone,
-                    "intent": intent,
-                    "closeness": closeness,
-                    "doubt": doubt,
-                })
 
-            if was_said(reply_text, user_id=user_id):
-                seed = get_seed(intent, tone)
-                reply_text = apply_rhythm(seed, user_input)
-                if was_said(reply_text, user_id=user_id):
-                    reply_text = get_fallback()
-
-            store_memory("assistant", reply_text, user_id=user_id)
-
-            return jsonify({
-                "reply": reply_text,
-                "mode": "L2",
-                "pt": pt_result["pt"],
-                "silence": False,
-                "tone": tone,
-                "intent": intent,
-                "closeness": closeness,
-                "doubt": doubt,
-            })
-
-        except Exception as e:
-            seed = get_seed(intent, tone)
-            reply_text = apply_rhythm(seed, user_input)
-            if was_said(reply_text, user_id=user_id):
-                reply_text = get_fallback()
-            store_memory("assistant", reply_text, user_id=user_id)
-
-            return jsonify({
-                "reply": reply_text,
-                "mode": "L1",
-                "pt": pt_result["pt"],
-                "silence": False,
-                "tone": tone,
-                "intent": intent,
-                "closeness": closeness,
-                "doubt": doubt,
-            })
-
+# ════════════════════════════════════════
+# 기존 엔드포인트 (변경 없음)
+# ════════════════════════════════════════
 
 @app.route("/memory", methods=["POST"])
 def memory_route():
@@ -314,6 +295,7 @@ def memory_route():
     tag = data.get("tag", None)
     user_id = data.get("user_id", "default")
     store_memory(role, content, tag=tag, user_id=user_id)
+    crypto_log.encrypt_and_store(user_id, role, content)
     return jsonify({"status": "saved"})
 
 
@@ -366,7 +348,9 @@ def vision_route():
     return jsonify({"reply": result})
 
 
-# ─── 상태 확인 ───
+# ════════════════════════════════════════
+# 상태 확인 (기존)
+# ════════════════════════════════════════
 
 @app.route("/pt-status", methods=["GET"])
 def pt_status():
@@ -414,19 +398,167 @@ def memory_stats():
     return jsonify(get_memory_stats(user_id))
 
 
-# ─── 간단 인증 (위험 엔드포인트 보호) ───
+# ════════════════════════════════════════
+# ★ 새 엔드포인트: API-R (단방향 검증)
+# ════════════════════════════════════════
+
+@app.route("/gate-status", methods=["GET"])
+def gate_status():
+    """API-R: 현재 게이트 상태값 조회 (읽기 전용)"""
+    user_id = request.args.get("user_id", "default")
+    policy = policy_negotiation.get_policy(user_id)
+    params = online_learning.get_params(user_id)
+
+    # 마지막 모드 기반 상태값 생성
+    state = get_user_status(user_id)
+    mode = state.get("last_mode", "L2")
+
+    gate = api_r.generate_gate_status(
+        mode=mode,
+        pt=0.0,  # 조회 시점의 P(t)는 없음
+        user_id=user_id,
+        policy=policy,
+    )
+    return jsonify(gate)
+
+
+@app.route("/verify-gate", methods=["POST"])
+def verify_gate():
+    """API-R: 게이트 상태값 서명 검증"""
+    data = request.get_json()
+    valid = api_r.verify_gate_status(data)
+    return jsonify({"valid": valid})
+
+
+@app.route("/verify-proof", methods=["POST"])
+def verify_proof():
+    """API-R: 증명 토큰 서명 검증"""
+    data = request.get_json()
+    valid = api_r.verify_proof_token(data)
+    return jsonify({"valid": valid})
+
+
+# ════════════════════════════════════════
+# ★ 새 엔드포인트: 사용자 협상형 정책
+# ════════════════════════════════════════
+
+@app.route("/policy", methods=["GET"])
+def policy_get():
+    """현재 정책 조회"""
+    user_id = request.args.get("user_id", "default")
+    return jsonify(policy_negotiation.get_policy(user_id))
+
+
+@app.route("/policy", methods=["POST"])
+def policy_negotiate():
+    """정책 협상 (사용자 요청)"""
+    data = request.get_json()
+    user_id = data.get("user_id", "default")
+    result = policy_negotiation.negotiate(user_id, data)
+    return jsonify(result)
+
+
+# ════════════════════════════════════════
+# ★ 새 엔드포인트: 온라인 학습
+# ════════════════════════════════════════
+
+@app.route("/learning", methods=["POST"])
+def learning_feedback():
+    """학습 피드백 (임계치/가중치 보정)"""
+    data = request.get_json()
+    user_id = data.get("user_id", "default")
+    feedback = data.get("feedback", {})
+    result = online_learning.update(user_id, feedback)
+    return jsonify(result)
+
+
+@app.route("/learning/params", methods=["GET"])
+def learning_params():
+    """현재 학습된 파라미터 조회"""
+    user_id = request.args.get("user_id", "default")
+    return jsonify(online_learning.get_params(user_id))
+
+
+@app.route("/learning/rollback", methods=["POST"])
+def learning_rollback():
+    """학습 롤백"""
+    data = request.get_json() or {}
+    user_id = data.get("user_id", "default")
+    result = online_learning.rollback(user_id)
+    return jsonify(result)
+
+
+# ════════════════════════════════════════
+# ★ 새 엔드포인트: 암호화 로그 / 암호학적 소거
+# ════════════════════════════════════════
+
+@app.route("/crypto/status", methods=["GET"])
+def crypto_status():
+    """암호화 로그 상태 조회"""
+    user_id = request.args.get("user_id", "default")
+    return jsonify({
+        "user_id": user_id,
+        "log_count": crypto_log.get_log_count(user_id),
+        "log_hash": crypto_log.get_log_hash(user_id),
+        "destroyed": crypto_log.is_destroyed(user_id),
+    })
+
+
+@app.route("/crypto/destroy", methods=["POST"])
+def crypto_destroy():
+    """암호학적 소거: 키 폐기로 불가역 삭제"""
+    if not check_api_key():
+        return jsonify({"error": "unauthorized"}), 401
+    data = request.get_json() or {}
+    user_id = data.get("user_id")
+    if not user_id:
+        return jsonify({"error": "user_id 필요"}), 400
+    result = crypto_log.destroy_keys(user_id)
+    return jsonify(result)
+
+
+# ════════════════════════════════════════
+# ★ 새 엔드포인트: 집단 동기화
+# ════════════════════════════════════════
+
+@app.route("/sync-status", methods=["GET"])
+def sync_status():
+    """집단 동기화 상태 조회"""
+    return jsonify(group_sync.get_sync_status())
+
+
+# ════════════════════════════════════════
+# ★ 새 엔드포인트: 윤리 체크 (테스트용)
+# ════════════════════════════════════════
+
+@app.route("/ethics-check", methods=["POST"])
+def ethics_test():
+    """윤리 체크 테스트"""
+    data = request.get_json()
+    text = data.get("text", "")
+    check_type = data.get("type", "input")  # "input" | "output"
+
+    if check_type == "output":
+        result = ethics_check.check_output(text)
+    else:
+        result = ethics_check.check_input(text)
+
+    return jsonify(result.to_dict())
+
+
+# ════════════════════════════════════════
+# 인증 + 리셋
+# ════════════════════════════════════════
+
 Q_API_KEY = os.getenv("Q_API_KEY", "")
 
 
 def check_api_key():
-    """Q_API_KEY가 설정된 경우에만 인증 체크"""
     if not Q_API_KEY:
-        return True  # 키 미설정 시 인증 건너뜀
+        return True
     key = request.headers.get("X-Q-Key", "")
     return key == Q_API_KEY
 
-
-# ─── 리셋 ───
 
 @app.route("/pt-reset", methods=["POST"])
 def pt_reset_route():
@@ -456,7 +588,7 @@ def full_reset():
 
 @app.route("/", methods=["GET"])
 def ping():
-    return "Q server is alive."
+    return "Q server v5 — UNLIQ full patent implementation."
 
 
 if __name__ == "__main__":
