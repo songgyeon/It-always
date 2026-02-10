@@ -1,5 +1,4 @@
 flask
 anthropic
 python-dotenv
-konlpy
 kiwipiepy
