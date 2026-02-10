@@ -356,7 +356,8 @@ def weather():
 def vision():
     data = request.get_json()
     image_b64 = data.get("image", "")
-    result = handle_vision(image_b64)
+    media_type = data.get("media_type", None) 
+    result = handle_vision(image_b64, media_type) 
     return jsonify({"reply": result})
 
 
