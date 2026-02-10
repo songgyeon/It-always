@@ -1,5 +1,4 @@
 flask
 openai
 python-dotenv
-konlpy
 kiwipiepy
