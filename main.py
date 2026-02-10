@@ -212,7 +212,7 @@ def reply():
             chat_messages.append({"role": role, "content": m["content"]})
         chat_messages.append({"role": "user", "content": user_input})
 
-        tokens = max_tokens_override or (60 if mode == "L1" else 150)
+        tokens = max_tokens_override or (80 if mode == "L1" else 200)
 
         response = client.messages.create(
             model="claude-haiku-4-5-20251001",
