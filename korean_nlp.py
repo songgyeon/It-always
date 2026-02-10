@@ -29,7 +29,7 @@ def _init():
     # 1차: kiwipiepy
     try:
         from kiwipiepy import Kiwi
-        _analyzer = Kiwi()
+        _analyzer = Kiwi(num_workers=0, load_default_dict=False)
         _backend = "kiwi"
         logger.info("✅ korean_nlp: kiwipiepy 로드 성공")
         return
