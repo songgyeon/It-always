@@ -1,5 +1,5 @@
 from flask import Flask, request, jsonify
-import openai
+from openai import OpenAI
 import os
 import random
 
@@ -12,7 +12,7 @@ from vision import handle_vision
 from pt_engine import evaluate, get_silence_response, reset as pt_reset
 
 app = Flask(__name__)
-openai.api_key = os.getenv("OPENAI_API_KEY")
+client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 # ─── self_awareness 로드 ───
 try:
@@ -104,14 +104,14 @@ def reply():
             # 현재 입력
             chat_messages.append({"role": "user", "content": user_input})
 
-            response = openai.ChatCompletion.create(
+            response = client.chat.completions.create(
                 model="gpt-4o-mini",
                 messages=chat_messages,
                 temperature=0.8,
                 max_tokens=300
             )
 
-            reply_text = response.choices[0].message["content"]
+            reply_text = response.choices[0].message.content
 
             # 이미 말한 내용이면 시드로 대체
             if was_said(reply_text):
