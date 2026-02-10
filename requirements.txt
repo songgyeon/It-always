@@ -1,4 +1,5 @@
 flask
-anthropic
+openai
 python-dotenv
+konlpy
 kiwipiepy
