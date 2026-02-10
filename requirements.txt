@@ -1,4 +1,3 @@
 flask
 openai
 python-dotenv
-kiwipiepy
