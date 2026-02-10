@@ -1,37 +1,65 @@
-import re
+# tag.py v2
+# korean_nlp 형태소 분석 기반 태그 시스템
 
-# 내부 태그 저장소
+"""
+Java QTagger 대응:
+  - 한글 명사 추출 → 세션 태그 생성
+  - 감정 태그 우선, 명사 태그 보조
+
+v2 변경:
+  - 정규식 → korean_nlp.nouns() (형태소 분석 기반)
+  - 감정 감지도 korean_nlp.detect_emotion_from_morphemes() 활용
+  - 불용어 필터링 추가
+"""
+
+import korean_nlp
+
+# ─── 내부 태그 저장소 ───
 tags = {}  # key: tag, value: original content
+
+# ─── 불용어 (태그로 쓰기에 너무 일반적인 명사) ───
+STOPWORD_NOUNS = {
+    "거", "것", "때", "중", "뭐", "이", "나", "너", "우리", "그",
+    "오늘", "내일", "어제", "지금", "여기", "거기", "이거", "저거",
+    "말", "생각", "느낌", "기분", "마음", "사람", "얘기", "이야기",
+    "좀", "더", "잘", "참", "진짜",
+}
 
 
 def extract_nouns(text: str) -> list:
     """
-    한글 텍스트에서 2글자 이상의 명사 후보를 추출 (정규식 기반)
+    형태소 분석 기반 명사 추출 (2글자 이상, 불용어 제외)
     """
-    if not text or not isinstance(text, str):
-        return []
-    return re.findall(r"[\uAC00-\uD7A3]{2,}", text)
+    raw_nouns = korean_nlp.nouns(text)
+    return [n for n in raw_nouns if len(n) >= 2 and n not in STOPWORD_NOUNS]
 
 
 def detect_emotion_tag(text: str) -> str:
     """
-    감정 기반 태그 추출
+    형태소 분석 기반 감정 태그 추출.
+    korean_nlp가 못 잡으면 키워드 폴백.
     """
+    # 1차: 형태소 분석
+    emotion = korean_nlp.detect_emotion_from_morphemes(text)
+    if emotion:
+        return emotion
+
+    # 2차: 키워드 폴백
     lower = text.lower()
 
-    if any(word in lower for word in ["sad", "슬퍼", "외로", "힘들", "아파", "울"]):
+    if any(w in lower for w in ["슬퍼", "외로", "힘들", "아파", "울"]):
         return "SAD"
-    elif any(word in lower for word in ["happy", "기뻐", "좋아", "웃어", "행복"]):
+    elif any(w in lower for w in ["기뻐", "좋아", "행복", "웃어"]):
         return "HAPPY"
-    elif any(word in lower for word in ["angry", "화나", "짜증", "열받", "분노"]):
+    elif any(w in lower for w in ["화나", "짜증", "열받", "분노"]):
         return "ANGRY"
-    elif any(word in lower for word in ["curious", "궁금", "왜", "어떻게", "?"]):
+    elif any(w in lower for w in ["궁금", "왜", "어떻게", "?"]):
         return "CURIOUS"
-    elif any(word in lower for word in ["그냥", "몰라", "아무래도", "대충"]):
+    elif any(w in lower for w in ["그냥", "몰라", "아무래도"]):
         return "AVOIDING"
-    elif any(word in lower for word in ["그리워", "보고 싶", "기억", "추억"]):
+    elif any(w in lower for w in ["그리워", "보고 싶", "추억"]):
         return "LONGING"
-    elif any(word in lower for word in ["사랑", "like you", "love", "좋아해"]):
+    elif any(w in lower for w in ["사랑", "좋아해", "love"]):
         return "LOVE"
 
     return ""
@@ -39,9 +67,8 @@ def detect_emotion_tag(text: str) -> str:
 
 def tag_store(content: str) -> str:
     """
-    콘텐츠에서 감정 또는 명사 기반 태그 추출 및 저장
-    감정 태그가 있으면 우선 사용, 아니면 새로운 명사 중 하나를 태그로 사용
-    중복되면 fallback으로 '기억'
+    콘텐츠에서 감정 또는 명사 기반 태그 추출 및 저장.
+    감정 태그 우선 → 명사 태그 보조.
     """
     # 감정 기반 우선
     emotion_tag = detect_emotion_tag(content)
@@ -60,21 +87,12 @@ def tag_store(content: str) -> str:
 
 
 def get_all_tags() -> list:
-    """
-    현재 저장된 태그 목록 반환
-    """
     return list(tags.keys())
 
 
 def get_tagged_content(tag: str) -> str:
-    """
-    특정 태그에 연결된 콘텐츠 반환
-    """
     return tags.get(tag, "")
 
 
 def reset_tags():
-    """
-    모든 태그 초기화
-    """
     tags.clear()

@@ -1,2 +1,5 @@
 .env
 __pycache__/
+*.pyc
+q_memory.db
+q_memory.db-journal

@@ -1,0 +1,16 @@
+# render.yaml — Q Server 배포 설정
+# Render Dashboard > Settings > Build Command에 "chmod +x build.sh && ./build.sh" 입력
+
+services:
+  - type: web
+    name: q-server
+    runtime: python
+    buildCommand: "chmod +x build.sh && ./build.sh"
+    startCommand: "python main.py"
+    envVars:
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: JAVA_HOME
+        value: /usr/lib/jvm/default-java
+      - key: PORT
+        value: 10000
