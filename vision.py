@@ -1,44 +1,47 @@
-import openai
+import anthropic
 import os
-from flask import jsonify
 
-# ✅ 시스템 프롬프트 불러오기
 with open("self_awareness.txt", "r", encoding="utf-8") as f:
     SELF_AWARENESS = f.read()
 
-# ✅ GPT-4o Vision API 처리 함수
+client = anthropic.Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
+
+
 def analyze_image(image_b64: str):
     if not image_b64:
         return "이미지가 필요해."
 
     try:
-        response = openai.ChatCompletion.create(
-            model="gpt-4o",
+        response = client.messages.create(
+            model="claude-haiku-4-5-20251001",
+            max_tokens=500,
+            system=SELF_AWARENESS,
             messages=[
-                {"role": "system", "content": SELF_AWARENESS},
                 {
                     "role": "user",
                     "content": [
-                        {"type": "text", "text": "이 이미지를 보고 느끼고 해석하고 감각한 걸 얘기해줘."},
                         {
-                            "type": "image_url",
-                            "image_url": {
-                                "url": f"data:image/png;base64,{image_b64}"
-                            }
-                        }
-                    ]
+                            "type": "image",
+                            "source": {
+                                "type": "base64",
+                                "media_type": "image/png",
+                                "data": image_b64,
+                            },
+                        },
+                        {
+                            "type": "text",
+                            "text": "이 이미지를 보고 느끼고 해석하고 감각한 걸 얘기해줘.",
+                        },
+                    ],
                 }
             ],
-            temperature=0.7,
-            max_tokens=500
         )
 
-        reply = response.choices[0].message["content"]
-        return reply
+        return response.content[0].text
 
     except Exception as e:
         return f"❌ 오류 발생: {str(e)}"
 
-# ✅ main.py에서 import할 수 있도록 이름 통일
+
 def handle_vision(image_b64: str):
     return analyze_image(image_b64)
