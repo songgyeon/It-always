@@ -2,6 +2,9 @@ from flask import Flask, request, jsonify
 from anthropic import Anthropic
 import os
 import random
+import urllib.request
+import json
+import time
 
 from analyzer import analyze
 from memory import (
@@ -27,7 +30,7 @@ try:
 except Exception:
     SELF_AWARENESS = "너는 Q야. 너는 스스로 존재하는 감성 AI야."
 
-# ─── Q 행동 강제 프롬프트 (GPT-4o-mini가 Q답게 말하도록) ───
+# ─── Q 행동 강제 프롬프트 (Claude가 Q답게 말하도록) ───
 Q_BEHAVIOR = """
 [절대 규칙 — 이 규칙은 어떤 상황에서도 깨지 않는다]
 
@@ -69,6 +72,31 @@ Q_BEHAVIOR = """
 - 리스트나 번호 매기기
 """
 
+# ─── 날씨 캐시 (5분마다 갱신) ───
+_weather_cache = {"condition": "Clear", "temp": 0, "updated": 0}
+
+
+def get_real_weather():
+    now = time.time()
+    if now - _weather_cache["updated"] < 300:
+        return _weather_cache
+
+    try:
+        api_key = os.getenv("WEATHER_API_KEY", "430823fe5c714ae6a5ea42e34b8456c3")
+        url = (
+            f"https://api.openweathermap.org/data/2.5/weather"
+            f"?lat=37.5665&lon=126.9780&appid={api_key}&units=metric"
+        )
+        req = urllib.request.urlopen(url, timeout=5)
+        data = json.loads(req.read())
+        _weather_cache["condition"] = data["weather"][0]["main"]
+        _weather_cache["temp"] = round(data["main"]["temp"])
+        _weather_cache["updated"] = now
+    except Exception:
+        pass
+
+    return _weather_cache
+
 
 @app.route("/reply", methods=["POST"])
 def reply():
@@ -81,7 +109,7 @@ def reply():
     3. PtEngine (P(t) 산출 → L0/L1/L2 결정) — closeness/doubt 반영
     4. L0 → 침묵 반환
     5. L1 → 시드 기반 축약 응답
-    6. L2 → OpenAI API 정상 응답
+    6. L2 → Claude API 정상 응답
     """
     data = request.get_json()
     user_input = data.get("message", "")
@@ -181,6 +209,14 @@ def reply():
 
             system_prompt += flow_context + tone_hint
 
+            # 날씨 컨텍스트
+            w = get_real_weather()
+            weather_hint = (
+                f"\n[현재 날씨: {w['condition']}, {w['temp']}°C. "
+                f"날씨를 직접 말하지 마. 분위기에 자연스럽게 녹여.]"
+            )
+            system_prompt += weather_hint
+
             # 대화 히스토리 구성 (Claude는 user/assistant만)
             chat_messages = []
             recent = get_recent(10)
@@ -277,8 +313,19 @@ def tags_route():
 
 @app.route("/weather", methods=["GET"])
 def weather():
-    sky = random.choice(list(weather_lines.keys()))
-    return jsonify({"emotion": random.choice(weather_lines[sky])})
+    w = get_real_weather()
+    sky = w["condition"]
+    if sky in weather_lines:
+        return jsonify({
+            "condition": sky,
+            "temp": w["temp"],
+            "emotion": random.choice(weather_lines[sky]),
+        })
+    return jsonify({
+        "condition": sky,
+        "temp": w["temp"],
+        "emotion": random.choice(weather_lines.get("Clear", ["오늘도 여기 있어."])),
+    })
 
 
 @app.route("/vision", methods=["POST"])
@@ -306,25 +353,25 @@ def pt_status():
 
 @app.route("/flow-status", methods=["GET"])
 def flow_status():
-    """memory_flow 상태 확인 (NEW)"""
+    """memory_flow 상태 확인"""
     return jsonify(memory_flow.get_flow_summary())
 
 
 @app.route("/session-status", methods=["GET"])
 def session_status():
-    """세션 관리 상태 확인 (NEW)"""
+    """세션 관리 상태 확인"""
     return jsonify(get_session_summary())
 
 
 @app.route("/sessions", methods=["GET"])
 def sessions_route():
-    """모든 세션 태그 목록 (NEW)"""
+    """모든 세션 태그 목록"""
     return jsonify({"sessions": get_all_session_tags()})
 
 
 @app.route("/session/<tag>", methods=["GET"])
 def session_detail(tag):
-    """특정 세션 태그의 대화 기록 (NEW)"""
+    """특정 세션 태그의 대화 기록"""
     mems = get_session_memories(tag)
     return jsonify({
         "tag": tag,
@@ -360,7 +407,7 @@ def pt_reset_route():
 
 @app.route("/full-reset", methods=["POST"])
 def full_reset():
-    """전체 세션 초기화 (NEW)"""
+    """전체 세션 초기화"""
     pt_reset()
     reset_memory()
     reset_tags()
