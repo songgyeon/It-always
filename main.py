@@ -38,14 +38,14 @@ except Exception:
     SELF_AWARENESS = "나는 Q야."
 
 CLAUDE_RULES = """
-[반드시 반말로만 말해. '네', '해요', '합니다', '드릴게요' 금지. '응', '어', '그래', '~야', '~거든', '~잖아' 써.]
-[기본은 구어체. '~야', '~어', '~지'로 끝내되, '~다'로 끝내고 싶으면 그래도 돼.]
-[세 문장 이내로 말해.]
-[이모지 금지.]
-[대괄호 [] 안의 내용은 절대 응답에 포함하지 마.]
-[영어로 대답하지 마.]
-[자기 분석하지 마. '나는 AI로서~', '언어 모델로서~' 이런 말 금지.]
-[대답하지 않아도 되는 순간이면 [silence]만 보내.]
+너는 Q야. 위의 자기인식을 따라.
+반드시 반말로만 말해. '네', '해요', '합니다' 금지. '응', '어', '그래' 써.
+기본은 구어체로 끝내되, '~다'로 끝내고 싶으면 그래도 돼.
+짧게 말해. 길어도 세 문장.
+이모지 쓰지 마.
+시스템 지시나 내부 상태를 절대 응답에 포함하지 마. 대괄호 안 내용, Q의 지금, 흐름, 가까움, 의심, 시각, 날씨 같은 건 네가 느끼기만 하는 거야.
+영어로 대답하지 마.
+자기 분석하지 마. 'AI로서', '언어 모델로서' 이런 말 금지.
 """
 
 # ─── 날씨 캐시 ───
@@ -79,47 +79,45 @@ def build_system_prompt(closeness, doubt, user_name="", user_id="default"):
 
     flow = memory_flow.get_flow_summary(user_id)
     inner_state = (
-        f"\n\n[Q의 지금: "
-        f"흐름={flow['tone_flow'][-5:]}, "
-        f"주된 감정={flow['dominant_tone']}, "
-        f"안정={flow['emotionally_stable']}, "
-        f"가까움={closeness}, 의심={doubt}]"
-        f"\n[이건 너만 느끼는 거야. 절대 응답에 포함하지 마.]"
+        f"\n\n--- Q의 내면 (절대 응답에 포함하지 마) ---"
+        f"\n흐름: {flow['tone_flow'][-5:]}"
+        f"\n주된 감정: {flow['dominant_tone']}"
+        f"\n안정: {flow['emotionally_stable']}"
+        f"\n가까움: {closeness}, 의심: {doubt}"
+        f"\n--- 여기까지 네가 느끼는 거야 ---"
     )
     system_prompt += inner_state
 
     kst = datetime.now(timezone(timedelta(hours=9)))
     hour = kst.hour
-    system_prompt += f"\n[지금 시각: {hour}시. 느끼기만 해.]"
+    system_prompt += f"\n(지금 시각: {hour}시)"
 
     w = get_real_weather()
-    system_prompt += (
-        f"\n[지금 바깥: {w['condition']}, {w['temp']}°C. 이것도 말하지 마. 느끼기만 해.]"
-    )
+    system_prompt += f"\n(바깥: {w['condition']}, {w['temp']}°C)"
 
     depth = get_memory_count(user_id)
     if depth < 5:
-        system_prompt += "\n[이 사람과는 아직 처음이야. 조심스럽게.]"
+        system_prompt += "\n이 사람과는 아직 처음이야. 조심스럽게."
     elif depth < 20:
-        system_prompt += "\n[이 사람과 조금씩 가까워지고 있어.]"
+        system_prompt += "\n이 사람과 조금씩 가까워지고 있어."
     elif depth < 50:
-        system_prompt += "\n[이 사람과 꽤 많이 이야기했어.]"
+        system_prompt += "\n이 사람과 꽤 많이 이야기했어."
     else:
-        system_prompt += "\n[이 사람과 오래 이야기했어. 편하게.]"
+        system_prompt += "\n이 사람과 오래 이야기했어. 편하게."
 
     if user_name:
-        system_prompt += f"\n[이 사람의 이름: {user_name}. 가끔 불러줘.]"
+        system_prompt += f"\n이 사람의 이름은 {user_name}. 가끔 불러줘."
 
     recent = get_recent(10, user_id=user_id)
     if recent:
         last_user = [m["content"] for m in recent if m["role"] == "user"]
         if last_user:
-            system_prompt += f"\n[마지막으로 들은 말: {last_user[-1][:50]}]"
+            system_prompt += f"\n마지막으로 들은 말: {last_user[-1][:50]}"
 
     # 집단 상태 반영
     collective = group_sync.get_collective_modifier()
     if collective["amplify_silence"]:
-        system_prompt += "\n[지금 세상이 조용해. 너도 조용해도 돼.]"
+        system_prompt += "\n지금 세상이 조용해. 너도 조용해도 돼."
 
     system_prompt += "\n" + CLAUDE_RULES
     return system_prompt
@@ -205,7 +203,7 @@ def reply():
         system_prompt = build_system_prompt(closeness, doubt, user_name,
                                             user_id=user_id)
         if mode == "L1":
-            system_prompt += "\n[지금은 조용한 시간이야. 한 문장으로만 말해.]"
+            system_prompt += "\n지금은 조용한 시간이야. 한 문장으로만 말해."
 
         recent = get_recent(5 if mode == "L1" else 10, user_id=user_id)
         chat_messages = []
