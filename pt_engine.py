@@ -19,9 +19,9 @@ import api_r
 import ethics_check
 import crypto_log
 
-# ─── 기본 임계치 (온라인 학습이 덮어쓸 수 있음) ───
-T = 0.60
-T1 = 0.35
+# ─── 기본 임계치 (채팅 모델: 대화가 기본, 침묵은 예외) ───
+T = 0.50
+T1 = 0.25
 DELTA_H = 0.05
 T_REARM = 10
 
