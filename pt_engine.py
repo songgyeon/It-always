@@ -19,11 +19,11 @@ import api_r
 import ethics_check
 import crypto_log
 
-# ─── 기본 임계치 (온라인 학습이 덮어쓸 수 있음) ───
+# ─── 기본 임계치 (채팅 모델: 대화가 기본, 침묵은 예외) ───
 T = 0.50
 T1 = 0.25
 DELTA_H = 0.05
-T_REARM = 5
+T_REARM = 10
 
 # ─── 사용자별 상태 저장소 ───
 _user_states = {}
@@ -158,7 +158,7 @@ def compute_pt(tone: str, intent: str, message: str,
         pt += 0.3
 
     if intent.upper() == "QUESTION":
-        pt = max(pt, params["T"] + DELTA_H)  # 히스테리시스도 넘도록
+        pt = max(pt, params["T"])
 
     # ── 집단 동기화 수정자 ──
     collective = group_sync.get_collective_modifier()
@@ -181,6 +181,11 @@ def decide_mode(pt: float, user_id: str = "default") -> str:
     params = policy_negotiation.apply_to_params(user_id, params)
     t = params["T"]
     t1 = params["T1"]
+
+    # 톤 시프트 → 히스테리시스 리셋 (Q가 다시 말할 이유)
+    if last == "L0" and memory_flow.is_tone_shifting(user_id):
+        state["last_mode"] = "L1"
+        last = "L1"
 
     # 정책 cooldown 오버라이드
     policy = policy_negotiation.get_policy(user_id)
