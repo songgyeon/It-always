@@ -105,6 +105,19 @@ def compute_pt(tone: str, intent: str, message: str, memory_count: int = 0) -> f
     w_E, w_S, w_M, w_Env = 0.35, 0.25, 0.25, 0.15
     pt = w_E * E + w_S * S + w_M * M + w_Env * Env
 
+    # ── 세션 초반 보너스 ──
+    # 처음 5턴은 Q가 적극적으로 응답 (첫 만남에서 침묵하면 안 됨)
+    if _state["message_count"] <= 5:
+        pt += 0.2
+
+    # ── 질문에는 반드시 답해야 함 ──
+    if intent.upper() == "QUESTION":
+        pt = max(pt, 0.6)
+
+    # ── 슬픔/위로 필요 시 반드시 응답 ──
+    if tone.upper() == "SAD":
+        pt = max(pt, 0.7)
+
     # ── 재무장 체크 ──
     # 침묵 직후에는 재무장 시간 동안 응답 확률 강제 상승
     if now < _state["rearm_until"]:

@@ -104,14 +104,14 @@ def reply():
             # 현재 입력
             chat_messages.append({"role": "user", "content": user_input})
 
-            response = openai.chat.completions.create(
+            response = openai.ChatCompletion.create(
                 model="gpt-4o-mini",
                 messages=chat_messages,
                 temperature=0.8,
                 max_tokens=300
             )
 
-            reply_text = response.choices[0].message.content
+            reply_text = response.choices[0].message["content"]
 
             # 이미 말한 내용이면 시드로 대체
             if was_said(reply_text):
