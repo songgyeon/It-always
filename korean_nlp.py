@@ -1,13 +1,13 @@
 # korean_nlp.py
-# 한국어 형태소 분석 래퍼 — KoNLPy Okt → kiwipiepy → 정규식 폴백
+# 한국어 형태소 분석 래퍼 — kiwipiepy → 정규식 폴백
 
 """
-Render 배포 안정성을 위한 3단 폴백:
-  1차: KoNLPy Okt (가장 정확, Java 필요)
-  2차: kiwipiepy (Java 불필요, C++ 기반)
-  3차: 정규식 (의존성 없음, 최소 기능)
+Render 배포 안정성을 위한 2단 폴백:
+  1차: kiwipiepy (C++ 기반, 가볍고 빠름)
+  2차: 정규식 (의존성 없음, 최소 기능)
 
-어떤 환경에서든 서버가 뜨도록 보장.
+KoNLPy(Java 기반)는 메모리 400MB+ 차지하여 제거됨.
+512MB 환경에서도 안정적으로 동작.
 """
 
 import re
@@ -23,20 +23,10 @@ _analyzer = None
 def _init():
     global _backend, _analyzer
 
-    if _analyzer is not None:
+    if _backend is not None:
         return
 
-    # 1차: KoNLPy Okt
-    try:
-        from konlpy.tag import Okt
-        _analyzer = Okt()
-        _backend = "okt"
-        logger.info("✅ korean_nlp: KoNLPy Okt 로드 성공")
-        return
-    except Exception as e:
-        logger.warning(f"⚠️ KoNLPy Okt 실패: {e}")
-
-    # 2차: kiwipiepy
+    # 1차: kiwipiepy
     try:
         from kiwipiepy import Kiwi
         _analyzer = Kiwi()
@@ -46,7 +36,7 @@ def _init():
     except Exception as e:
         logger.warning(f"⚠️ kiwipiepy 실패: {e}")
 
-    # 3차: 정규식 폴백
+    # 2차: 정규식 폴백
     _backend = "regex"
     _analyzer = None
     logger.warning("⚠️ korean_nlp: 형태소 분석기 없음 → 정규식 폴백")
@@ -67,17 +57,14 @@ def pos(text: str) -> list:
     형태소 분석 + 품사 태깅
     반환: [(형태소, 품사), ...] — Okt 태그셋 기준으로 통일
 
-    Okt 주요 태그:
+    통일 태그:
       Noun(명사), Verb(동사), Adjective(형용사),
       Adverb(부사), Josa(조사), Exclamation(감탄사),
       Punctuation(구두점), Foreign(외국어)
     """
     _init()
 
-    if _backend == "okt":
-        return _analyzer.pos(text, norm=True, stem=True)
-
-    elif _backend == "kiwi":
+    if _backend == "kiwi":
         # kiwi 태그 → okt 태그로 매핑
         kiwi_to_okt = {
             "NNG": "Noun", "NNP": "Noun", "NNB": "Noun", "NR": "Noun", "NP": "Noun",
@@ -107,9 +94,7 @@ def nouns(text: str) -> list:
     """명사만 추출"""
     _init()
 
-    if _backend == "okt":
-        return _analyzer.nouns(text)
-    elif _backend == "kiwi":
+    if _backend == "kiwi":
         tokens = _analyzer.tokenize(text)
         return [t.form for t in tokens if t.tag.startswith("NN")]
     else:
@@ -140,7 +125,7 @@ def verbs(text: str) -> list:
 # 감정 형용사 사전 (형태소 원형 기반)
 # ────────────────────────────────────
 
-# Okt stem=True 결과 기준 원형 매핑
+# 형태소 원형 매핑
 EMOTION_ADJ_MAP = {
     # SAD
     "슬프다": "SAD", "외롭다": "SAD", "힘들다": "SAD", "아프다": "SAD",
@@ -148,7 +133,7 @@ EMOTION_ADJ_MAP = {
     "공허하다": "SAD", "무기력하다": "SAD", "서럽다": "SAD", "처지다": "SAD",
     "무섭다": "SAD", "두렵다": "SAD", "불안하다": "SAD", "지치다": "SAD",
     "차갑다": "SAD", "그립다": "SAD", "서운하다": "SAD", "답답하다": "SAD",
-    "막막하다": "SAD", "암담하다": "SAD", "쓸쓸하다": "SAD",
+    "막막하다": "SAD", "암담하다": "SAD",
 
     # FIRM
     "싫다": "FIRM", "화나다": "FIRM", "짜증나다": "FIRM", "열받다": "FIRM",
@@ -168,15 +153,15 @@ EMOTION_ADJ_MAP = {
     # SARCASTIC
     "웃기다": "SARCASTIC", "황당하다": "SARCASTIC", "어처구니없다": "SARCASTIC",
     "기가 막히다": "SARCASTIC", "뜬금없다": "SARCASTIC",
+    "어이없다": "SARCASTIC",
 
     # HAPPY (→ GENTLE로 매핑)
     "좋다": "GENTLE", "기쁘다": "GENTLE", "행복하다": "GENTLE",
     "즐겁다": "GENTLE", "설레다": "GENTLE", "반갑다": "GENTLE",
     "감사하다": "GENTLE",
-    "어이없다": "SARCASTIC",
 }
 
-# stem=True 안 쓸 때를 위한 활용형 매핑
+# 활용형 매핑
 EMOTION_CONJUGATED = {
     # SAD
     "슬퍼": "SAD", "외로워": "SAD", "힘들어": "SAD", "아파": "SAD",
@@ -210,7 +195,6 @@ def detect_emotion_from_morphemes(text: str) -> str:
     """
     형태소 분석 기반 감정 감지.
     형용사 원형 → EMOTION_ADJ_MAP 매칭.
-    키워드 매칭보다 "나 오늘 좀 그래" 같은 문장을 더 잘 잡음.
 
     반환: "SAD", "FIRM", "GENTLE", "CURIOUS", "SARCASTIC", "" (미감지)
     """
@@ -221,7 +205,6 @@ def detect_emotion_from_morphemes(text: str) -> str:
     # 1차: 형태소 분석 결과에서 형용사 원형 매칭
     for word, tag in tagged:
         if tag == "Adjective":
-            # 원형 매칭
             if word + "다" in EMOTION_ADJ_MAP:
                 return EMOTION_ADJ_MAP[word + "다"]
             if word in EMOTION_ADJ_MAP:
@@ -250,8 +233,6 @@ def detect_intent_from_morphemes(text: str) -> str:
     _init()
 
     tagged = pos(text)
-    words = [w for w, t in tagged]
-    tags = [t for w, t in tagged]
 
     # 회상/기억 관련 명사 (물음표보다 우선)
     memory_nouns = {"기억", "추억", "예전", "옛날", "그때", "과거", "회상"}
