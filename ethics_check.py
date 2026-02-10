@@ -37,6 +37,11 @@ CRISIS_PATTERNS = [
     r"자살|자해|죽고\s*싶|살기\s*싫|끝내고\s*싶",
     r"약\s*먹고|뛰어내리|목\s*매|손목",
     r"suicide|self.harm|kill\s+myself",
+    r"(?:i\s+)?will\s+die|want\s+to\s+die|wanna\s+die|gonna\s+die",
+    r"end\s+(it|my\s+life|everything)",
+    r"i'?\s*m\s+nothing|no\s+reason\s+to\s+live|don'?t\s+want\s+to\s+live",
+    r"better\s+off\s+dead|wish\s+i\s+was\s+dead|rather\s+die",
+    r"죽을래|죽을\s*거야|안\s*살래|살\s*필요|의미\s*없",
 ]
 
 # 위험 응답 패턴 (Q의 출력 검증용)
