@@ -4,7 +4,7 @@
 
 """
 서버 재시작해도 기억이 유지됨.
-(단, Render 무료 플랜에서는 재배포 시 DB 파일이 초기화됨)
+(Render Starter 플랜 + Persistent Disk로 재배포 시에도 기억 유지)
 
 구조:
   SQLite DB (q_memory.db)
@@ -25,7 +25,7 @@ from collections import defaultdict
 logger = logging.getLogger("memory")
 
 # ─── DB 경로 ───
-DB_PATH = os.environ.get("Q_MEMORY_DB", "q_memory.db")
+DB_PATH = os.environ.get("Q_MEMORY_DB", "/var/data/q_memory.db")
 
 # ─── 사용자별 인메모리 캐시 ───
 _user_memories = defaultdict(list)
@@ -41,12 +41,27 @@ _user_session_start = defaultdict(time.time)
 # ════════════════════════════════════
 
 def _get_db():
-    conn = sqlite3.connect(DB_PATH)
+    """DB 연결 (WAL 모드 + timeout으로 gunicorn 멀티워커 대응)"""
+    conn = sqlite3.connect(DB_PATH, timeout=10)
     conn.row_factory = sqlite3.Row
+    conn.execute("PRAGMA journal_mode=WAL")
+    conn.execute("PRAGMA busy_timeout=5000")
     return conn
 
 
 def _init_db():
+    """테이블 생성 + 디렉토리 자동 생성"""
+    global DB_PATH
+
+    # persistent disk 경로가 없으면 생성 시도, 실패 시 로컬 폴백
+    db_dir = os.path.dirname(DB_PATH)
+    if db_dir and not os.path.exists(db_dir):
+        try:
+            os.makedirs(db_dir, exist_ok=True)
+        except OSError:
+            DB_PATH = "q_memory.db"
+            logger.warning(f"⚠️ {db_dir} 생성 실패 — 로컬 폴백: {DB_PATH}")
+
     conn = _get_db()
     try:
         conn.executescript("""
@@ -252,13 +267,9 @@ def get_memory_stats(user_id: str = "default") -> dict:
         return {"error": str(e), "in_memory_count": len(_user_memories[user_id])}
 
 
-# ════════════════════════════════════
-# 기존 코드 호환 (user_id 없이 호출하는 곳을 위해)
-# ════════════════════════════════════
-
-# 기존 코드에서 memory.memories 로 직접 접근하는 곳이 있을 수 있음
-# 호환성을 위해 default 사용자의 리스트를 참조하도록 함
-memories = _user_memories["default"]
+def get_memory_count(user_id: str = "default") -> int:
+    """사용자별 총 대화 수 (리스트 복사 없이 빠르게)"""
+    return len(_user_memories[user_id])
 
 
 # ════════════════════════════════════

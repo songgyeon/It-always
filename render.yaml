@@ -12,6 +12,8 @@ services:
         sync: false
       - key: WEATHER_API_KEY
         sync: false
+      - key: Q_API_KEY
+        sync: false
       - key: Q_MEMORY_DB
         value: /var/data/q_memory.db
       - key: PORT

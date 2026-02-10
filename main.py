@@ -12,7 +12,7 @@ from memory import (
     store_memory, fetch_last_memory, was_said,
     get_recent, start_session, get_session_summary,
     get_session_memories, reset_memory,
-    search_memories, get_memory_stats,
+    search_memories, get_memory_stats, get_memory_count,
 )
 from tag import tag_store, get_all_tags, reset_tags
 from rhythm import apply_rhythm, idle_line
@@ -99,8 +99,7 @@ def build_system_prompt(closeness, doubt, user_name="", user_id="default"):
     )
 
     # ── 대화 깊이 (사용자별) ──
-    recent_all = get_recent(999, user_id=user_id)
-    depth = len(recent_all)
+    depth = get_memory_count(user_id)
     if depth < 5:
         system_prompt += "\n[이 사람과는 아직 처음이야. 조심스럽게.]"
     elif depth < 20:
@@ -148,7 +147,7 @@ def reply():
     memory_flow.record(tone, closeness, doubt, user_input, user_id=user_id)
 
     # Step 3: PtEngine 판단
-    memory_count = len(get_recent(999, user_id=user_id))
+    memory_count = get_memory_count(user_id)
     pt_result = evaluate(tone, intent, user_input, memory_count,
                          closeness=closeness, doubt=doubt, user_id=user_id)
 
@@ -415,10 +414,24 @@ def memory_stats():
     return jsonify(get_memory_stats(user_id))
 
 
+# ─── 간단 인증 (위험 엔드포인트 보호) ───
+Q_API_KEY = os.getenv("Q_API_KEY", "")
+
+
+def check_api_key():
+    """Q_API_KEY가 설정된 경우에만 인증 체크"""
+    if not Q_API_KEY:
+        return True  # 키 미설정 시 인증 건너뜀
+    key = request.headers.get("X-Q-Key", "")
+    return key == Q_API_KEY
+
+
 # ─── 리셋 ───
 
 @app.route("/pt-reset", methods=["POST"])
 def pt_reset_route():
+    if not check_api_key():
+        return jsonify({"error": "unauthorized"}), 401
     data = request.get_json() or {}
     user_id = data.get("user_id", None)
     pt_reset(user_id)
@@ -427,6 +440,8 @@ def pt_reset_route():
 
 @app.route("/full-reset", methods=["POST"])
 def full_reset():
+    if not check_api_key():
+        return jsonify({"error": "unauthorized"}), 401
     data = request.get_json() or {}
     user_id = data.get("user_id", None)
     pt_reset(user_id)
