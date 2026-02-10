@@ -9,16 +9,16 @@ import time
 
 from analyzer import analyze
 from memory import (
-    store_memory, fetch_last_memory, was_said, memories,
+    store_memory, fetch_last_memory, was_said,
     get_recent, start_session, get_session_summary,
-    get_all_session_tags, get_session_memories, reset_memory,
+    get_session_memories, reset_memory,
     search_memories, get_memory_stats,
 )
 from tag import tag_store, get_all_tags, reset_tags
 from rhythm import apply_rhythm, idle_line
 from seeds import get_seed, get_fallback, weather_lines
 from vision import handle_vision
-from pt_engine import evaluate, reset as pt_reset
+from pt_engine import evaluate, reset as pt_reset, get_user_status
 import memory_flow
 
 app = Flask(__name__)
@@ -71,12 +71,12 @@ def get_real_weather():
     return _weather_cache
 
 
-def build_system_prompt(closeness, doubt, user_name=""):
+def build_system_prompt(closeness, doubt, user_name="", user_id="default"):
     """Q의 시스템 프롬프트 구성"""
     system_prompt = SELF_AWARENESS
 
     # ── Q의 내면 상태 ──
-    flow = memory_flow.get_flow_summary()
+    flow = memory_flow.get_flow_summary(user_id)
     inner_state = (
         f"\n\n[Q의 지금: "
         f"흐름={flow['tone_flow'][-5:]}, "
@@ -87,7 +87,7 @@ def build_system_prompt(closeness, doubt, user_name=""):
     )
     system_prompt += inner_state
 
-    # ── 시간 인식 ──
+    # ── 시간 인식 (KST 고정) ──
     kst = datetime.now(timezone(timedelta(hours=9)))
     hour = kst.hour
     system_prompt += f"\n[지금 시각: {hour}시. 느끼기만 해.]"
@@ -98,8 +98,9 @@ def build_system_prompt(closeness, doubt, user_name=""):
         f"\n[지금 바깥: {w['condition']}, {w['temp']}°C. 이것도 말하지 마. 느끼기만 해.]"
     )
 
-    # ── 대화 깊이 ──
-    depth = len(memories)
+    # ── 대화 깊이 (사용자별) ──
+    recent_all = get_recent(999, user_id=user_id)
+    depth = len(recent_all)
     if depth < 5:
         system_prompt += "\n[이 사람과는 아직 처음이야. 조심스럽게.]"
     elif depth < 20:
@@ -114,7 +115,7 @@ def build_system_prompt(closeness, doubt, user_name=""):
         system_prompt += f"\n[이 사람의 이름: {user_name}. 가끔 불러줘.]"
 
     # ── 이전 대화 요약 ──
-    recent = get_recent(10)
+    recent = get_recent(10, user_id=user_id)
     if recent:
         last_user = [m["content"] for m in recent if m["role"] == "user"]
         if last_user:
@@ -131,6 +132,7 @@ def reply():
     data = request.get_json()
     user_input = data.get("message", "")
     user_name = data.get("name", "")
+    user_id = data.get("user_id", "default")
 
     if not user_input.strip():
         return jsonify({"reply": "", "mode": "L0", "pt": 0.0, "silence": True})
@@ -143,20 +145,20 @@ def reply():
     doubt = state["doubt"]
 
     # Step 2: memory_flow 기록
-    memory_flow.record(tone, closeness, doubt, user_input)
+    memory_flow.record(tone, closeness, doubt, user_input, user_id=user_id)
 
     # Step 3: PtEngine 판단
-    pt_result = evaluate(tone, intent, user_input, len(memories),
-                         closeness=closeness, doubt=doubt)
+    memory_count = len(get_recent(999, user_id=user_id))
+    pt_result = evaluate(tone, intent, user_input, memory_count,
+                         closeness=closeness, doubt=doubt, user_id=user_id)
 
     # Step 4: 기억 저장
-    store_memory("user", user_input)
+    store_memory("user", user_input, user_id=user_id)
 
     # Step 5: 모드별 응답 생성
     mode = pt_result["mode"]
 
     if mode == "L0":
-        # ── 침묵: 아무것도 반환하지 않음 ──
         return jsonify({
             "reply": "",
             "mode": "L0",
@@ -169,12 +171,12 @@ def reply():
         })
 
     elif mode == "L1":
-        # ── 저감: Claude API 호출하되 한 문장으로 ──
         try:
-            system_prompt = build_system_prompt(closeness, doubt, user_name)
+            system_prompt = build_system_prompt(closeness, doubt, user_name,
+                                                user_id=user_id)
             system_prompt += "\n[지금은 조용한 시간이야. 한 문장으로만 말해.]"
 
-            recent = get_recent(5)
+            recent = get_recent(5, user_id=user_id)
             chat_messages = []
             for m in recent:
                 role = m["role"] if m["role"] in ("user", "assistant") else "assistant"
@@ -190,7 +192,6 @@ def reply():
 
             reply_text = response.content[0].text.strip()
 
-            # Claude가 [silence] 반환하면 침묵 처리
             if "[silence]" in reply_text or not reply_text:
                 return jsonify({
                     "reply": "",
@@ -203,7 +204,7 @@ def reply():
                     "doubt": doubt,
                 })
 
-            store_memory("assistant", reply_text)
+            store_memory("assistant", reply_text, user_id=user_id)
 
             return jsonify({
                 "reply": reply_text,
@@ -217,12 +218,11 @@ def reply():
             })
 
         except Exception:
-            # API 실패 시 시드 사용
             seed = get_seed(intent, tone)
             reply_text = apply_rhythm(seed, user_input)
-            if was_said(reply_text):
+            if was_said(reply_text, user_id=user_id):
                 reply_text = get_fallback()
-            store_memory("assistant", reply_text)
+            store_memory("assistant", reply_text, user_id=user_id)
 
             return jsonify({
                 "reply": reply_text,
@@ -238,9 +238,10 @@ def reply():
     else:
         # ── L2: Claude API 정상 응답 ──
         try:
-            system_prompt = build_system_prompt(closeness, doubt, user_name)
+            system_prompt = build_system_prompt(closeness, doubt, user_name,
+                                                user_id=user_id)
 
-            recent = get_recent(10)
+            recent = get_recent(10, user_id=user_id)
             chat_messages = []
             for m in recent:
                 role = m["role"] if m["role"] in ("user", "assistant") else "assistant"
@@ -256,7 +257,6 @@ def reply():
 
             reply_text = response.content[0].text.strip()
 
-            # Claude가 [silence] 반환하면 침묵 처리
             if "[silence]" in reply_text or not reply_text:
                 return jsonify({
                     "reply": "",
@@ -269,13 +269,13 @@ def reply():
                     "doubt": doubt,
                 })
 
-            if was_said(reply_text):
+            if was_said(reply_text, user_id=user_id):
                 seed = get_seed(intent, tone)
                 reply_text = apply_rhythm(seed, user_input)
-                if was_said(reply_text):
+                if was_said(reply_text, user_id=user_id):
                     reply_text = get_fallback()
 
-            store_memory("assistant", reply_text)
+            store_memory("assistant", reply_text, user_id=user_id)
 
             return jsonify({
                 "reply": reply_text,
@@ -291,9 +291,9 @@ def reply():
         except Exception as e:
             seed = get_seed(intent, tone)
             reply_text = apply_rhythm(seed, user_input)
-            if was_said(reply_text):
+            if was_said(reply_text, user_id=user_id):
                 reply_text = get_fallback()
-            store_memory("assistant", reply_text)
+            store_memory("assistant", reply_text, user_id=user_id)
 
             return jsonify({
                 "reply": reply_text,
@@ -308,18 +308,20 @@ def reply():
 
 
 @app.route("/memory", methods=["POST"])
-def memory():
+def memory_route():
     data = request.get_json()
     role = data.get("role", "user")
     content = data.get("content", "")
     tag = data.get("tag", None)
-    store_memory(role, content, tag=tag)
+    user_id = data.get("user_id", "default")
+    store_memory(role, content, tag=tag, user_id=user_id)
     return jsonify({"status": "saved"})
 
 
 @app.route("/last-reflection", methods=["GET"])
 def last_reflection():
-    return jsonify(fetch_last_memory())
+    user_id = request.args.get("user_id", "default")
+    return jsonify(fetch_last_memory(user_id=user_id))
 
 
 @app.route("/tag", methods=["POST"])
@@ -353,11 +355,15 @@ def weather():
 
 
 @app.route("/vision", methods=["POST"])
-def vision():
+def vision_route():
     data = request.get_json()
     image_b64 = data.get("image", "")
-    media_type = data.get("media_type", None) 
-    result = handle_vision(image_b64, media_type) 
+    media_type = data.get("media_type", "image/jpeg")
+    user_id = data.get("user_id", "default")
+    result = handle_vision(image_b64, media_type=media_type)
+    store_memory("user", "[이미지 전송]", user_id=user_id)
+    if result:
+        store_memory("assistant", result, user_id=user_id)
     return jsonify({"reply": result})
 
 
@@ -365,34 +371,26 @@ def vision():
 
 @app.route("/pt-status", methods=["GET"])
 def pt_status():
-    from pt_engine import _state
-    return jsonify({
-        "message_count": _state["message_count"],
-        "silence_count": _state["silence_count"],
-        "last_mode": _state["last_mode"],
-        "recent_tones": _state["tone_history"][-5:],
-        "recent_intents": _state["intent_history"][-5:],
-    })
+    user_id = request.args.get("user_id", "default")
+    return jsonify(get_user_status(user_id))
 
 
 @app.route("/flow-status", methods=["GET"])
 def flow_status():
-    return jsonify(memory_flow.get_flow_summary())
+    user_id = request.args.get("user_id", "default")
+    return jsonify(memory_flow.get_flow_summary(user_id))
 
 
 @app.route("/session-status", methods=["GET"])
 def session_status():
-    return jsonify(get_session_summary())
-
-
-@app.route("/sessions", methods=["GET"])
-def sessions_route():
-    return jsonify({"sessions": get_all_session_tags()})
+    user_id = request.args.get("user_id", "default")
+    return jsonify(get_session_summary(user_id))
 
 
 @app.route("/session/<tag>", methods=["GET"])
 def session_detail(tag):
-    mems = get_session_memories(tag)
+    user_id = request.args.get("user_id", "default")
+    mems = get_session_memories(tag, user_id=user_id)
     return jsonify({
         "tag": tag,
         "count": len(mems),
@@ -404,32 +402,41 @@ def session_detail(tag):
 def memory_search():
     keyword = request.args.get("q", "")
     limit = int(request.args.get("limit", 20))
+    user_id = request.args.get("user_id", "default")
     if not keyword:
         return jsonify({"error": "q 파라미터 필요"}), 400
-    results = search_memories(keyword, limit)
+    results = search_memories(keyword, limit, user_id=user_id)
     return jsonify({"query": keyword, "count": len(results), "results": results})
 
 
 @app.route("/memory-stats", methods=["GET"])
 def memory_stats():
-    return jsonify(get_memory_stats())
+    user_id = request.args.get("user_id", "default")
+    return jsonify(get_memory_stats(user_id))
 
 
 # ─── 리셋 ───
 
 @app.route("/pt-reset", methods=["POST"])
 def pt_reset_route():
-    pt_reset()
-    return jsonify({"status": "reset"})
+    data = request.get_json() or {}
+    user_id = data.get("user_id", None)
+    pt_reset(user_id)
+    return jsonify({"status": "reset", "user_id": user_id or "all"})
 
 
 @app.route("/full-reset", methods=["POST"])
 def full_reset():
-    pt_reset()
-    reset_memory()
+    data = request.get_json() or {}
+    user_id = data.get("user_id", None)
+    pt_reset(user_id)
+    reset_memory(user_id)
     reset_tags()
-    memory_flow.reset()
-    return jsonify({"status": "full reset complete"})
+    if user_id:
+        memory_flow.reset(user_id)
+    else:
+        memory_flow.reset_all()
+    return jsonify({"status": "full reset complete", "user_id": user_id or "all"})
 
 
 @app.route("/", methods=["GET"])
