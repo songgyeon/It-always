@@ -1,18 +1,19 @@
-# memory.py v3
+# memory.py v4
 # SQLite 영속 저장 + 인메모리 캐시 하이브리드
+# v4: user_id별 대화 기록 분리
 
 """
 서버 재시작해도 기억이 유지됨.
-기존 API (memories, was_said, store_memory 등) 100% 호환.
+(단, Render 무료 플랜에서는 재배포 시 DB 파일이 초기화됨)
 
 구조:
   SQLite DB (q_memory.db)
-    ├── conversations  (role, content, tag, timestamp)
-    └── said_cache     (content) — 중복 체크용
+    ├── conversations  (user_id, role, content, tag, timestamp)
+    └── said_cache     (user_id, content) — 중복 체크용
 
   인메모리 캐시 (속도용)
-    ├── memories[]     — 기존 코드 호환
-    └── said_set{}     — 빠른 중복 체크
+    ├── _user_memories{user_id: []}
+    └── _user_said{user_id: set()}
 """
 
 import sqlite3
@@ -26,15 +27,13 @@ logger = logging.getLogger("memory")
 # ─── DB 경로 ───
 DB_PATH = os.environ.get("Q_MEMORY_DB", "q_memory.db")
 
-# ─── 인메모리 캐시 (기존 코드 호환) ───
-memories = []
-said_set = set()
-last_assistant_reply = "안녕. 나는 Q야."
-
-# ─── 세션 관리 ───
-_sessions = defaultdict(list)
-_current_session_tag = "default"
-_session_start_time = time.time()
+# ─── 사용자별 인메모리 캐시 ───
+_user_memories = defaultdict(list)
+_user_said = defaultdict(set)
+_user_last_reply = {}
+_user_sessions = defaultdict(lambda: defaultdict(list))
+_user_session_tag = defaultdict(lambda: "default")
+_user_session_start = defaultdict(time.time)
 
 
 # ════════════════════════════════════
@@ -42,19 +41,18 @@ _session_start_time = time.time()
 # ════════════════════════════════════
 
 def _get_db():
-    """DB 연결 (thread-safe)"""
     conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
     return conn
 
 
 def _init_db():
-    """테이블 생성 (없으면)"""
     conn = _get_db()
     try:
         conn.executescript("""
             CREATE TABLE IF NOT EXISTS conversations (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id TEXT NOT NULL DEFAULT 'default',
                 role TEXT NOT NULL,
                 content TEXT NOT NULL,
                 tag TEXT DEFAULT 'default',
@@ -62,9 +60,12 @@ def _init_db():
             );
 
             CREATE TABLE IF NOT EXISTS said_cache (
-                content TEXT PRIMARY KEY
+                user_id TEXT NOT NULL DEFAULT 'default',
+                content TEXT NOT NULL,
+                PRIMARY KEY (user_id, content)
             );
 
+            CREATE INDEX IF NOT EXISTS idx_conv_user ON conversations(user_id);
             CREATE INDEX IF NOT EXISTS idx_conv_role ON conversations(role);
             CREATE INDEX IF NOT EXISTS idx_conv_tag ON conversations(tag);
             CREATE INDEX IF NOT EXISTS idx_conv_time ON conversations(timestamp);
@@ -76,39 +77,32 @@ def _init_db():
 
 def _load_from_db():
     """서버 시작 시 DB에서 인메모리 캐시로 복원"""
-    global memories, said_set, last_assistant_reply
-    global _sessions
-
     conn = _get_db()
     try:
-        # 대화 기록 로드
         rows = conn.execute(
-            "SELECT role, content, tag, timestamp FROM conversations ORDER BY id"
+            "SELECT user_id, role, content, tag, timestamp FROM conversations ORDER BY id"
         ).fetchall()
 
-        memories = []
-        _sessions = defaultdict(list)
-
         for row in rows:
+            uid = row["user_id"]
             entry = {
                 "role": row["role"],
                 "content": row["content"],
                 "timestamp": row["timestamp"],
             }
-            memories.append(entry)
-            _sessions[row["tag"]].append(entry)
+            _user_memories[uid].append(entry)
+            _user_sessions[uid][row["tag"]].append(entry)
 
             if row["role"] == "assistant":
-                last_assistant_reply = row["content"]
+                _user_last_reply[uid] = row["content"]
 
-        # said_cache 로드
-        said_rows = conn.execute("SELECT content FROM said_cache").fetchall()
-        said_set = {row["content"] for row in said_rows}
+        said_rows = conn.execute("SELECT user_id, content FROM said_cache").fetchall()
+        for row in said_rows:
+            _user_said[row["user_id"]].add(row["content"])
 
-        count = len(memories)
-        said_count = len(said_set)
-        if count > 0:
-            logger.info(f"✅ DB에서 복원: 대화 {count}개, said_cache {said_count}개")
+        total = len(rows)
+        if total > 0:
+            logger.info(f"✅ DB에서 복원: 대화 {total}개")
 
     finally:
         conn.close()
@@ -120,15 +114,13 @@ _load_from_db()
 
 
 # ════════════════════════════════════
-# 기본 메모리 함수 (기존 API 유지)
+# 기본 메모리 함수
 # ════════════════════════════════════
 
-def store_memory(role: str, content: str, tag: str = None):
-    """기억 저장 → 인메모리 + SQLite 동시 기록"""
-    global last_assistant_reply
-
+def store_memory(role: str, content: str, tag: str = None,
+                 user_id: str = "default"):
     ts = time.time()
-    session_tag = tag or _current_session_tag
+    session_tag = tag or _user_session_tag[user_id]
 
     entry = {
         "role": role,
@@ -137,172 +129,172 @@ def store_memory(role: str, content: str, tag: str = None):
     }
 
     if role == "assistant":
-        last_assistant_reply = content
+        _user_last_reply[user_id] = content
 
-    # 인메모리
-    memories.append(entry)
-    said_set.add(content)
-    _sessions[session_tag].append(entry)
+    _user_memories[user_id].append(entry)
+    _user_said[user_id].add(content)
+    _user_sessions[user_id][session_tag].append(entry)
 
-    # SQLite
     try:
         conn = _get_db()
         conn.execute(
-            "INSERT INTO conversations (role, content, tag, timestamp) VALUES (?, ?, ?, ?)",
-            (role, content, session_tag, ts),
+            "INSERT INTO conversations (user_id, role, content, tag, timestamp) "
+            "VALUES (?, ?, ?, ?, ?)",
+            (user_id, role, content, session_tag, ts),
         )
         conn.execute(
-            "INSERT OR IGNORE INTO said_cache (content) VALUES (?)",
-            (content,),
+            "INSERT OR IGNORE INTO said_cache (user_id, content) VALUES (?, ?)",
+            (user_id, content),
         )
         conn.commit()
         conn.close()
     except Exception as e:
         logger.error(f"DB 저장 실패: {e}")
-        # 인메모리에는 이미 저장되어 있으므로 서비스는 계속 동작
 
 
-def fetch_last_memory():
-    return {"last": last_assistant_reply}
+def fetch_last_memory(user_id: str = "default"):
+    last = _user_last_reply.get(user_id, "안녕. 나는 Q야.")
+    return {"last": last}
 
 
-def was_said(content: str) -> bool:
-    """Java hasSaid() 대응 — 이미 말한 적 있는지"""
-    return content in said_set
+def was_said(content: str, user_id: str = "default") -> bool:
+    return content in _user_said[user_id]
 
 
-def get_recent(n: int = 10) -> list:
-    """최근 N개 대화 기록"""
-    return memories[-n:] if len(memories) > n else memories[:]
+def get_recent(n: int = 10, user_id: str = "default") -> list:
+    mems = _user_memories[user_id]
+    return mems[-n:] if len(mems) > n else mems[:]
 
 
-def get_recent_by_role(role: str, n: int = 5) -> list:
-    """역할별 최근 N개"""
-    filtered = [m for m in memories if m["role"] == role]
+def get_recent_by_role(role: str, n: int = 5, user_id: str = "default") -> list:
+    filtered = [m for m in _user_memories[user_id] if m["role"] == role]
     return filtered[-n:]
 
 
-def get_user_messages(n: int = 10) -> list:
-    return get_recent_by_role("user", n)
+def get_user_messages(n: int = 10, user_id: str = "default") -> list:
+    return get_recent_by_role("user", n, user_id)
 
 
-def get_assistant_messages(n: int = 10) -> list:
-    return get_recent_by_role("assistant", n)
+def get_assistant_messages(n: int = 10, user_id: str = "default") -> list:
+    return get_recent_by_role("assistant", n, user_id)
 
 
 # ════════════════════════════════════
 # 세션 태그 관리
 # ════════════════════════════════════
 
-def start_session(tag: str):
-    global _current_session_tag, _session_start_time
-    _current_session_tag = tag
-    _session_start_time = time.time()
+def start_session(tag: str, user_id: str = "default"):
+    _user_session_tag[user_id] = tag
+    _user_session_start[user_id] = time.time()
 
 
-def get_current_session_tag() -> str:
-    return _current_session_tag
+def get_current_session_tag(user_id: str = "default") -> str:
+    return _user_session_tag[user_id]
 
 
-def get_session_memories(tag: str) -> list:
-    return _sessions.get(tag, [])
+def get_session_memories(tag: str, user_id: str = "default") -> list:
+    return _user_sessions[user_id].get(tag, [])
 
 
-def get_all_session_tags() -> list:
-    """DB에서 모든 세션 태그 조회"""
-    try:
-        conn = _get_db()
-        rows = conn.execute(
-            "SELECT DISTINCT tag FROM conversations ORDER BY tag"
-        ).fetchall()
-        conn.close()
-        return [row["tag"] for row in rows]
-    except Exception:
-        return list(_sessions.keys())
-
-
-def get_session_summary() -> dict:
+def get_session_summary(user_id: str = "default") -> dict:
     return {
-        "current_tag": _current_session_tag,
-        "total_memories": len(memories),
-        "total_sessions": len(set(_sessions.keys())),
-        "session_tags": list(_sessions.keys()),
-        "session_start": _session_start_time,
+        "current_tag": _user_session_tag[user_id],
+        "total_memories": len(_user_memories[user_id]),
+        "total_sessions": len(set(_user_sessions[user_id].keys())),
+        "session_tags": list(_user_sessions[user_id].keys()),
         "db_path": DB_PATH,
     }
 
 
 # ════════════════════════════════════
-# 검색 (SQLite 활용)
+# 검색
 # ════════════════════════════════════
 
-def search_memories(keyword: str, limit: int = 20) -> list:
-    """키워드로 대화 기록 검색 (SQLite LIKE)"""
+def search_memories(keyword: str, limit: int = 20, user_id: str = "default") -> list:
     try:
         conn = _get_db()
         rows = conn.execute(
             "SELECT role, content, tag, timestamp FROM conversations "
-            "WHERE content LIKE ? ORDER BY timestamp DESC LIMIT ?",
-            (f"%{keyword}%", limit),
+            "WHERE user_id = ? AND content LIKE ? ORDER BY timestamp DESC LIMIT ?",
+            (user_id, f"%{keyword}%", limit),
         ).fetchall()
         conn.close()
         return [dict(row) for row in rows]
     except Exception as e:
         logger.error(f"검색 실패: {e}")
-        return [m for m in memories if keyword in m["content"]][:limit]
+        return [m for m in _user_memories[user_id] if keyword in m["content"]][:limit]
 
 
-def get_memory_stats() -> dict:
-    """메모리 통계"""
+def get_memory_stats(user_id: str = "default") -> dict:
     try:
         conn = _get_db()
-        total = conn.execute("SELECT COUNT(*) as c FROM conversations").fetchone()["c"]
+        total = conn.execute(
+            "SELECT COUNT(*) as c FROM conversations WHERE user_id = ?", (user_id,)
+        ).fetchone()["c"]
         user_count = conn.execute(
-            "SELECT COUNT(*) as c FROM conversations WHERE role='user'"
+            "SELECT COUNT(*) as c FROM conversations WHERE user_id = ? AND role='user'",
+            (user_id,)
         ).fetchone()["c"]
         assistant_count = conn.execute(
-            "SELECT COUNT(*) as c FROM conversations WHERE role='assistant'"
+            "SELECT COUNT(*) as c FROM conversations WHERE user_id = ? AND role='assistant'",
+            (user_id,)
         ).fetchone()["c"]
-        tag_count = conn.execute(
-            "SELECT COUNT(DISTINCT tag) as c FROM conversations"
-        ).fetchone()["c"]
-        said_count = conn.execute("SELECT COUNT(*) as c FROM said_cache").fetchone()["c"]
         conn.close()
 
         return {
             "total": total,
             "user_messages": user_count,
             "assistant_messages": assistant_count,
-            "unique_tags": tag_count,
-            "said_cache_size": said_count,
+            "said_cache_size": len(_user_said[user_id]),
             "db_path": DB_PATH,
         }
     except Exception as e:
-        return {"error": str(e), "in_memory_count": len(memories)}
+        return {"error": str(e), "in_memory_count": len(_user_memories[user_id])}
+
+
+# ════════════════════════════════════
+# 기존 코드 호환 (user_id 없이 호출하는 곳을 위해)
+# ════════════════════════════════════
+
+# 기존 코드에서 memory.memories 로 직접 접근하는 곳이 있을 수 있음
+# 호환성을 위해 default 사용자의 리스트를 참조하도록 함
+memories = _user_memories["default"]
 
 
 # ════════════════════════════════════
 # 리셋
 # ════════════════════════════════════
 
-def reset_memory():
-    """전체 초기화 (인메모리 + DB)"""
-    global memories, said_set, last_assistant_reply
-    global _current_session_tag, _session_start_time
+def reset_memory(user_id: str = None):
+    """초기화. user_id 지정 시 해당 사용자만, 없으면 전체."""
+    if user_id:
+        _user_memories[user_id].clear()
+        _user_said[user_id].clear()
+        _user_last_reply.pop(user_id, None)
+        _user_sessions[user_id].clear()
+        _user_session_tag[user_id] = "default"
 
-    memories = []
-    said_set = set()
-    last_assistant_reply = "안녕. 나는 Q야."
-    _sessions.clear()
-    _current_session_tag = "default"
-    _session_start_time = time.time()
+        try:
+            conn = _get_db()
+            conn.execute("DELETE FROM conversations WHERE user_id = ?", (user_id,))
+            conn.execute("DELETE FROM said_cache WHERE user_id = ?", (user_id,))
+            conn.commit()
+            conn.close()
+        except Exception as e:
+            logger.error(f"DB 초기화 실패 (user={user_id}): {e}")
+    else:
+        _user_memories.clear()
+        _user_said.clear()
+        _user_last_reply.clear()
+        _user_sessions.clear()
+        _user_session_tag.clear()
 
-    try:
-        conn = _get_db()
-        conn.execute("DELETE FROM conversations")
-        conn.execute("DELETE FROM said_cache")
-        conn.commit()
-        conn.close()
-        logger.info("✅ DB 초기화 완료")
-    except Exception as e:
-        logger.error(f"DB 초기화 실패: {e}")
+        try:
+            conn = _get_db()
+            conn.execute("DELETE FROM conversations")
+            conn.execute("DELETE FROM said_cache")
+            conn.commit()
+            conn.close()
+            logger.info("✅ DB 전체 초기화 완료")
+        except Exception as e:
+            logger.error(f"DB 전체 초기화 실패: {e}")
