@@ -497,17 +497,14 @@ def evaluate(tone: str, intent: str, message: str,
     # ── 5. 집단 동기화 기록 ──
     group_sync.record_interaction(user_id, pt, mode)
 
-    # ── 6. 암호화 로그 ──
-    crypto_log.encrypt_and_store(user_id, "system",
-        f"pt={pt} mode={mode} tone={tone} intent={intent} art={art} rsrc={rsrc}")
-
-    # ── 7. API-R 게이트 상태값 ──
+    # ── 6. API-R 게이트 상태값 ──
+    # (crypto_log는 main.py에서 user/assistant 단위로 기록)
     policy = policy_negotiation.get_policy(user_id)
     gate = api_r.generate_gate_status(
         mode, pt, user_id, policy=policy,
     )
 
-    # ── 8. 증명 토큰 (L0일 때만) ──
+    # ── 7. 증명 토큰 (L0일 때만) ──
     proof = None
     if mode == "L0":
         proof = api_r.generate_proof_token(user_id, mode, pt)
