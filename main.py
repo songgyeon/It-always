@@ -67,6 +67,20 @@ def get_real_weather():
     return _weather_cache
 
 
+def calc_read_time(user_input, tone):
+    """Q가 메시지를 읽는 데 걸리는 시간 (초)"""
+    # 기본: 글자 수 기반 (1글자당 0.08초)
+    base = len(user_input) * 0.08
+
+    # 무거운 감정이면 더 오래 읽음
+    heavy = ["sad", "angry", "fear", "lonely", "confused"]
+    if tone in heavy:
+        base *= 1.5
+
+    # 최소 1초, 최대 4초
+    return round(min(max(base, 1.0), 4.0), 1)
+
+
 def build_system_prompt(closeness, doubt, user_name="", user_id="default"):
     system_prompt = SELF_AWARENESS
 
@@ -145,6 +159,9 @@ def reply():
     pt_result = evaluate(tone, intent, user_input, memory_count,
                          closeness=closeness, doubt=doubt, user_id=user_id)
 
+    # Step 4: read_time 계산
+    read_time = calc_read_time(user_input, tone)
+
     # ── 위기 응답 (윤리 체크) ──
     if pt_result.get("crisis"):
         crisis_reply = pt_result["crisis_reply"]
@@ -161,6 +178,7 @@ def reply():
             "crisis": True,
             "tone": tone,
             "intent": intent,
+            "read_time": read_time,
             "gate_status": pt_result.get("gate_status"),
         })
 
@@ -175,6 +193,7 @@ def reply():
         "intent": intent,
         "closeness": closeness,
         "doubt": doubt,
+        "read_time": read_time,
         "gate_status": pt_result.get("gate_status"),
         "proof_token": pt_result.get("proof_token"),
     }
