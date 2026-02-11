@@ -18,7 +18,7 @@ from tag import tag_store, get_all_tags, reset_tags
 from rhythm import apply_rhythm, idle_line
 from seeds import get_seed, get_fallback, weather_lines
 from vision import handle_vision
-from pt_engine import evaluate, reset as pt_reset, get_user_status
+from pt_engine import evaluate, reset as pt_reset, get_user_status, record_q_action
 import memory_flow
 import api_r
 import online_learning
@@ -69,15 +69,10 @@ def get_real_weather():
 
 def calc_read_time(user_input, tone):
     """Q가 메시지를 읽는 데 걸리는 시간 (초)"""
-    # 기본: 글자 수 기반 (1글자당 0.08초)
     base = len(user_input) * 0.08
-
-    # 무거운 감정이면 더 오래 읽음
     heavy = ["sad", "angry", "fear", "lonely", "confused"]
     if tone in heavy:
         base *= 1.5
-
-    # 최소 1초, 최대 4초
     return round(min(max(base, 1.0), 4.0), 1)
 
 
@@ -121,7 +116,6 @@ def build_system_prompt(closeness, doubt, user_name="", user_id="default"):
         if last_user:
             system_prompt += f"\n마지막으로 들은 말: {last_user[-1][:50]}"
 
-    # 집단 상태 반영
     collective = group_sync.get_collective_modifier()
     if collective["amplify_silence"]:
         system_prompt += "\n지금 세상이 조용해. 너도 조용해도 돼."
@@ -154,7 +148,7 @@ def reply():
     # Step 2: memory_flow 기록
     memory_flow.record(tone, closeness, doubt, user_input, user_id=user_id)
 
-    # Step 3: PtEngine 판단 (v5 풀 파이프라인)
+    # Step 3: PtEngine 판단
     memory_count = get_memory_count(user_id)
     pt_result = evaluate(tone, intent, user_input, memory_count,
                          closeness=closeness, doubt=doubt, user_id=user_id)
@@ -164,11 +158,12 @@ def reply():
 
     # ── 위기 응답 (윤리 체크) ──
     if pt_result.get("crisis"):
-        crisis_reply = pt_result["crisis_reply"]
+        crisis_reply = pt_result.get("crisis_reply", "")
         store_memory("user", user_input, user_id=user_id)
         store_memory("assistant", crisis_reply, user_id=user_id)
         crypto_log.encrypt_and_store(user_id, "user", user_input)
         crypto_log.encrypt_and_store(user_id, "assistant", crisis_reply)
+        record_q_action(user_id, crisis_reply, "L2")
 
         return jsonify({
             "reply": crisis_reply,
@@ -202,6 +197,7 @@ def reply():
     if mode == "L0":
         store_memory("user", user_input, user_id=user_id)
         crypto_log.encrypt_and_store(user_id, "user", user_input)
+        record_q_action(user_id, "", "L0")
         return jsonify({
             **base_response,
             "reply": "",
@@ -215,7 +211,6 @@ def reply():
         if mode == "L1":
             system_prompt += "\n지금은 조용한 시간이야. 한 문장으로만 말해도 돼."
 
-        # get_recent 먼저 → 아직 user_input은 저장 안 된 상태
         recent = get_recent(5 if mode == "L1" else 10, user_id=user_id)
         chat_messages = []
         for m in recent:
@@ -238,6 +233,7 @@ def reply():
         if "[silence]" in reply_text or not reply_text:
             store_memory("user", user_input, user_id=user_id)
             crypto_log.encrypt_and_store(user_id, "user", user_input)
+            record_q_action(user_id, "", "L0")
             return jsonify({
                 **base_response,
                 "reply": "",
@@ -251,6 +247,7 @@ def reply():
             if output_ethics.action == "force_l0":
                 store_memory("user", user_input, user_id=user_id)
                 crypto_log.encrypt_and_store(user_id, "user", user_input)
+                record_q_action(user_id, "", "L0")
                 return jsonify({
                     **base_response,
                     "reply": "",
@@ -273,6 +270,7 @@ def reply():
         store_memory("assistant", reply_text, user_id=user_id)
         crypto_log.encrypt_and_store(user_id, "user", user_input)
         crypto_log.encrypt_and_store(user_id, "assistant", reply_text)
+        record_q_action(user_id, reply_text, mode)
 
         # 암묵적 학습 신호
         online_learning.update(user_id, {
@@ -293,6 +291,7 @@ def reply():
             reply_text = get_fallback()
         store_memory("user", user_input, user_id=user_id)
         store_memory("assistant", reply_text, user_id=user_id)
+        record_q_action(user_id, reply_text, "L1")
 
         return jsonify({
             **base_response,
@@ -418,32 +417,24 @@ def memory_stats():
 
 
 # ════════════════════════════════════════
-# ★ 새 엔드포인트: API-R (단방향 검증)
+# ★ API-R (단방향 검증)
 # ════════════════════════════════════════
 
 @app.route("/gate-status", methods=["GET"])
 def gate_status():
-    """API-R: 현재 게이트 상태값 조회 (읽기 전용)"""
     user_id = request.args.get("user_id", "default")
     policy = policy_negotiation.get_policy(user_id)
     params = online_learning.get_params(user_id)
-
-    # 마지막 모드 기반 상태값 생성
     state = get_user_status(user_id)
     mode = state.get("last_mode", "L2")
-
     gate = api_r.generate_gate_status(
-        mode=mode,
-        pt=0.0,
-        user_id=user_id,
-        policy=policy,
+        mode=mode, pt=0.0, user_id=user_id, policy=policy,
     )
     return jsonify(gate)
 
 
 @app.route("/verify-gate", methods=["POST"])
 def verify_gate():
-    """API-R: 게이트 상태값 서명 검증"""
     data = request.get_json()
     valid = api_r.verify_gate_status(data)
     return jsonify({"valid": valid})
@@ -451,26 +442,23 @@ def verify_gate():
 
 @app.route("/verify-proof", methods=["POST"])
 def verify_proof():
-    """API-R: 증명 토큰 서명 검증"""
     data = request.get_json()
     valid = api_r.verify_proof_token(data)
     return jsonify({"valid": valid})
 
 
 # ════════════════════════════════════════
-# ★ 새 엔드포인트: 사용자 협상형 정책
+# ★ 사용자 협상형 정책
 # ════════════════════════════════════════
 
 @app.route("/policy", methods=["GET"])
 def policy_get():
-    """현재 정책 조회"""
     user_id = request.args.get("user_id", "default")
     return jsonify(policy_negotiation.get_policy(user_id))
 
 
 @app.route("/policy", methods=["POST"])
 def policy_negotiate():
-    """정책 협상 (사용자 요청)"""
     data = request.get_json()
     user_id = data.get("user_id", "default")
     result = policy_negotiation.negotiate(user_id, data)
@@ -478,12 +466,11 @@ def policy_negotiate():
 
 
 # ════════════════════════════════════════
-# ★ 새 엔드포인트: 온라인 학습
+# ★ 온라인 학습
 # ════════════════════════════════════════
 
 @app.route("/learning", methods=["POST"])
 def learning_feedback():
-    """학습 피드백 (임계치/가중치 보정)"""
     data = request.get_json()
     user_id = data.get("user_id", "default")
     feedback = data.get("feedback", {})
@@ -493,14 +480,12 @@ def learning_feedback():
 
 @app.route("/learning/params", methods=["GET"])
 def learning_params():
-    """현재 학습된 파라미터 조회"""
     user_id = request.args.get("user_id", "default")
     return jsonify(online_learning.get_params(user_id))
 
 
 @app.route("/learning/rollback", methods=["POST"])
 def learning_rollback():
-    """학습 롤백"""
     data = request.get_json() or {}
     user_id = data.get("user_id", "default")
     result = online_learning.rollback(user_id)
@@ -508,12 +493,11 @@ def learning_rollback():
 
 
 # ════════════════════════════════════════
-# ★ 새 엔드포인트: 암호화 로그 / 암호학적 소거
+# ★ 암호화 로그 / 암호학적 소거
 # ════════════════════════════════════════
 
 @app.route("/crypto/status", methods=["GET"])
 def crypto_status():
-    """암호화 로그 상태 조회"""
     user_id = request.args.get("user_id", "default")
     return jsonify({
         "user_id": user_id,
@@ -525,7 +509,6 @@ def crypto_status():
 
 @app.route("/crypto/destroy", methods=["POST"])
 def crypto_destroy():
-    """암호학적 소거: 키 폐기로 불가역 삭제"""
     if not check_api_key():
         return jsonify({"error": "unauthorized"}), 401
     data = request.get_json() or {}
@@ -537,31 +520,27 @@ def crypto_destroy():
 
 
 # ════════════════════════════════════════
-# ★ 새 엔드포인트: 집단 동기화
+# ★ 집단 동기화
 # ════════════════════════════════════════
 
 @app.route("/sync-status", methods=["GET"])
 def sync_status():
-    """집단 동기화 상태 조회"""
     return jsonify(group_sync.get_sync_status())
 
 
 # ════════════════════════════════════════
-# ★ 새 엔드포인트: 윤리 체크 (테스트용)
+# ★ 윤리 체크 (테스트용)
 # ════════════════════════════════════════
 
 @app.route("/ethics-check", methods=["POST"])
 def ethics_test():
-    """윤리 체크 테스트"""
     data = request.get_json()
     text = data.get("text", "")
-    check_type = data.get("type", "input")  # "input" | "output"
-
+    check_type = data.get("type", "input")
     if check_type == "output":
         result = ethics_check.check_output(text)
     else:
         result = ethics_check.check_input(text)
-
     return jsonify(result.to_dict())
 
 
