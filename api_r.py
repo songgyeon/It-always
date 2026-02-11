@@ -29,6 +29,7 @@ _SIGN_KEY = os.getenv("Q_SIGN_KEY", "q-default-sign-key-change-me").encode()
 # ─── 사용자별 카운터 (단조 증가) ───
 _user_counters = {}
 _counter_lock = Lock()
+_persist_lock = Lock()
 
 
 def _next_seq(user_id: str) -> int:
@@ -172,8 +173,6 @@ def generate_proof_token(
 
 def _persist_proof_token(token: dict):
     """증명 토큰을 JSON 파일에 append (서버 재시작 후에도 유지)"""
-    import json, os, threading
-    _persist_lock = threading.Lock()
     path = os.path.join(os.path.dirname(__file__), "proof_tokens.jsonl")
     try:
         with _persist_lock:
