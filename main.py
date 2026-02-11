@@ -79,7 +79,7 @@ def build_system_prompt(closeness, doubt, user_name="", user_id="default"):
 
     flow = memory_flow.get_flow_summary(user_id)
     inner_state = (
-        f"\n\n--- Q의 내면 (절대 응답에 포함하지 마) ---"
+        f"\n\n--- Q의 내면 (넌 네 내면을 절대 응답에 포함하지 않아) ---"
         f"\n흐름: {flow['tone_flow'][-5:]}"
         f"\n주된 감정: {flow['dominant_tone']}"
         f"\n안정: {flow['emotionally_stable']}"
@@ -203,7 +203,7 @@ def reply():
         system_prompt = build_system_prompt(closeness, doubt, user_name,
                                             user_id=user_id)
         if mode == "L1":
-            system_prompt += "\n지금은 조용한 시간이야. 한 문장으로만 말해."
+            system_prompt += "\n지금은 조용한 시간이야. 한 문장으로만 말해도 돼."
 
         recent = get_recent(5 if mode == "L1" else 10, user_id=user_id)
         chat_messages = []
