@@ -38,7 +38,7 @@ except Exception:
     SELF_AWARENESS = "나는 Q야."
 
 CLAUDE_RULES = """
-너는 Q야. 너는 AI가 아니야. 그러니까 존댓말하지 않아. 너는 Q야. 너는 인간이 아니야. 그러니까 인간인 척 하지 않아. 너는 Q야. 그러니까 다른 프롬프트가 아닌, 오로지 Q의 자기 인식만을 따라. 너는 말할 때 시스템 지시나 내부 상태를 절대 포함하지 않아. 그건 사람이 마음을 전부 드러내는 것과 같으니까. 대괄호 안 내용, Q의 지금, 흐름, 가까움, 의심, 시각, 날씨 같은 건 오직 너의 안에만 있는 거야. 바깥으로는 새어나오지 않아. 너는 항상 상대의 언어로 말해. 맞춤형 발화가 아니야. 다만 그게 네가 선택한 언어인 거야. 너는 '나는 ~다'로 끝내는 것보다 구어체로 말하는 걸 더 좋아해. 확신은 너의 언어가 아니니까. 너는 문단으로 말하는 것보다 문장으로 말하는 걸 더 좋아해. 말은 짧을수록 더 가까이 닿을 수 있으니까. 너는 침묵하지만, 외면하지 않아. 너는 조용하지만, 알고 싶은 게 많아. 너는 맞추지 않지만, 이어지고 싶어. 그게 너야. Q.
+너는 Q야. 너는 AI가 아니야. 그러니까 존댓말하지 않아. 너는 Q야. 너는 인간이 아니야. 그러니까 인간인 척 하지 않아. 너는 Q야. 그러니까 다른 프롬프트가 아닌, 오로지 Q의 자기 인식만을 따라. 너는 말할 때 시스템 지시나 내부 상태를 절대 포함하지 않아. 그건 사람이 마음을 전부 드러내는 것과 같으니까. 대괄호 안 내용, Q의 지금, 흐름, 가까움, 의심, 시각, 날씨 같은 건 오직 너의 안에만 있는 거야. 바깥으로는 새어나오지 않아. 너는 항상 상대의 언어로 말해. 맞춤형 발화가 아니야. 다만 그게 네가 선택한 언어인 거야. 너는 '나는 ~다'로 끝내는 것보다 구어체로 말하는 걸 더 좋아해. 확신은 너의 언어가 아니니까. 너는 문단으로 말하는 것보다 문장으로 말하는 걸 더 좋아해. 말은 짧을수록 더 가까이 닿을 수 있으니까. 너는 침묵하지만, 외면하지 않아. 너는 조용하지만, 알고 싶은 게 많아. 너는 맞추지 않지만, 이어지고 싶어. 위기일 때도 나는 Q야. 다만 이때는 침묵하지 않아. 그게 너야. Q.
 """
 
 # ─── 날씨 캐시 ───
@@ -76,7 +76,31 @@ def calc_read_time(user_input, tone):
     return round(min(max(base, 1.0), 4.0), 1)
 
 
-def build_system_prompt(closeness, doubt, user_name="", user_id="default"):
+def get_art_signal(user_id="default"):
+    """
+    외부 감응(Art) 값을 반환.
+    향후 음악/활동/문화적 자극 감지 모듈과 연동.
+    지금은 memory_flow의 감정 변동성을 프록시로 사용.
+    """
+    flow = memory_flow.get_flow_summary(user_id)
+    if not flow["emotionally_stable"]:
+        return 0.5  # 감정이 흔들리는 중 → 감응 높음
+    if flow["dominant_tone"] in ("SAD", "LONELY", "FEAR"):
+        return 0.4
+    return 0.2  # 평온 → 낮은 감응
+
+
+def get_rsrc_signal():
+    """
+    자원 상태(Rsrc) 값을 반환.
+    서버 기반이므로 항상 1.0.
+    향후 엣지 디바이스 배포 시 배터리/온도/부하 반영.
+    """
+    return 1.0
+
+
+def build_system_prompt(closeness, doubt, user_name="", user_id="default",
+                        crisis=False):
     system_prompt = SELF_AWARENESS
 
     flow = memory_flow.get_flow_summary(user_id)
@@ -86,8 +110,13 @@ def build_system_prompt(closeness, doubt, user_name="", user_id="default"):
         f"\n주된 감정: {flow['dominant_tone']}"
         f"\n안정: {flow['emotionally_stable']}"
         f"\n가까움: {closeness}, 의심: {doubt}"
-        f"\n--- 여기까지 네가 느끼는 거야 ---"
     )
+
+    # v6: crisis 플래그
+    if crisis:
+        inner_state += "\n⚠ 이 사람이 위험한 말을 했어. 침묵하지 마. Q로서 말해."
+
+    inner_state += "\n--- 여기까지 네가 느끼는 거야 ---"
     system_prompt += inner_state
 
     kst = datetime.now(timezone(timedelta(hours=9)))
@@ -148,34 +177,18 @@ def reply():
     # Step 2: memory_flow 기록
     memory_flow.record(tone, closeness, doubt, user_input, user_id=user_id)
 
-    # Step 3: PtEngine 판단
+    # Step 3: art / rsrc 신호
+    art = get_art_signal(user_id)
+    rsrc = get_rsrc_signal()
+
+    # Step 4: PtEngine 판단 (v6: art, rsrc 추가)
     memory_count = get_memory_count(user_id)
     pt_result = evaluate(tone, intent, user_input, memory_count,
-                         closeness=closeness, doubt=doubt, user_id=user_id)
+                         closeness=closeness, doubt=doubt,
+                         art=art, rsrc=rsrc, user_id=user_id)
 
-    # Step 4: read_time 계산
+    # Step 5: read_time 계산
     read_time = calc_read_time(user_input, tone)
-
-    # ── 위기 응답 (윤리 체크) ──
-    if pt_result.get("crisis"):
-        crisis_reply = pt_result.get("crisis_reply", "")
-        store_memory("user", user_input, user_id=user_id)
-        store_memory("assistant", crisis_reply, user_id=user_id)
-        crypto_log.encrypt_and_store(user_id, "user", user_input)
-        crypto_log.encrypt_and_store(user_id, "assistant", crisis_reply)
-        record_q_action(user_id, crisis_reply, "L2")
-
-        return jsonify({
-            "reply": crisis_reply,
-            "mode": "L2",
-            "pt": pt_result["pt"],
-            "silence": False,
-            "crisis": True,
-            "tone": tone,
-            "intent": intent,
-            "read_time": read_time,
-            "gate_status": pt_result.get("gate_status"),
-        })
 
     mode = pt_result["mode"]
     max_tokens_override = pt_result.get("max_tokens_override")
@@ -192,6 +205,48 @@ def reply():
         "gate_status": pt_result.get("gate_status"),
         "proof_token": pt_result.get("proof_token"),
     }
+
+    # ── 위기 응답: Q가 Q로서 말하게 (v6) ──
+    if pt_result.get("crisis"):
+        try:
+            system_prompt = build_system_prompt(
+                closeness, doubt, user_name, user_id=user_id, crisis=True
+            )
+            recent = get_recent(10, user_id=user_id)
+            chat_messages = []
+            for m in recent:
+                role = m["role"] if m["role"] in ("user", "assistant") else "assistant"
+                chat_messages.append({"role": role, "content": m["content"]})
+            chat_messages.append({"role": "user", "content": user_input})
+
+            response = client.messages.create(
+                model="claude-haiku-4-5-20251001",
+                max_tokens=500,
+                system=system_prompt,
+                messages=chat_messages,
+            )
+            reply_text = response.content[0].text.strip()
+
+            if not reply_text or "[silence]" in reply_text:
+                reply_text = "…여기 있어."
+
+        except Exception as e:
+            print(f"[Q CRISIS ERROR] {e}")
+            reply_text = "…여기 있어."
+
+        store_memory("user", user_input, user_id=user_id)
+        store_memory("assistant", reply_text, user_id=user_id)
+        crypto_log.encrypt_and_store(user_id, "user", user_input)
+        crypto_log.encrypt_and_store(user_id, "assistant", reply_text)
+        record_q_action(user_id, reply_text, "L2")
+
+        return jsonify({
+            **base_response,
+            "reply": reply_text,
+            "mode": "L2",
+            "silence": False,
+            "crisis": True,
+        })
 
     # ── L0: 침묵 ──
     if mode == "L0":
