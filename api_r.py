@@ -153,7 +153,7 @@ def generate_proof_token(
     sign_payload = f"proof|{token_id}|{user_id}|{mode}|{pt}|{reason}|{test_result}|{ts}"
     signature = _sign(sign_payload)
 
-    return {
+    token = {
         "token_id": token_id,
         "user_id": user_id,
         "mode": mode,
@@ -163,6 +163,24 @@ def generate_proof_token(
         "ts": ts,
         "signature": signature,
     }
+
+    # ─── 영속 저장 ───
+    _persist_proof_token(token)
+
+    return token
+
+
+def _persist_proof_token(token: dict):
+    """증명 토큰을 JSON 파일에 append (서버 재시작 후에도 유지)"""
+    import json, os, threading
+    _persist_lock = threading.Lock()
+    path = os.path.join(os.path.dirname(__file__), "proof_tokens.jsonl")
+    try:
+        with _persist_lock:
+            with open(path, "a", encoding="utf-8") as f:
+                f.write(json.dumps(token, ensure_ascii=False) + "\n")
+    except Exception as e:
+        print(f"[api_r] proof_token 저장 실패: {e}")
 
 
 # ─── 서명 검증 ───
