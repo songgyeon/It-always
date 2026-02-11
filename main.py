@@ -588,11 +588,9 @@ def full_reset():
         memory_flow.reset_all()
     return jsonify({"status": "full reset complete", "user_id": user_id or "all"})
 
-
 @app.route("/", methods=["GET"])
-def ping():
-    return "Q server v5 — UNLIQ full patent implementation."
-
+def home():
+    return app.send_static_file("index.html")
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 10000))
