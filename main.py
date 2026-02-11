@@ -205,27 +205,16 @@ def reply():
             chat_messages.append({"role": role, "content": m["content"]})
         chat_messages.append({"role": "user", "content": user_input})
 
-        tokens = max_tokens_override or (120 if mode == "L1" else 300)
+        tokens = max_tokens_override or (120 if mode == "L1" else 500)
 
-        # ── 응답 생성 (잘리면 이어서 생성) ──
-        full_reply = ""
-        for _ in range(3):
-            response = client.messages.create(
-                model="claude-haiku-4-5-20251001",
-                max_tokens=tokens,
-                system=system_prompt,
-                messages=chat_messages,
-            )
-            chunk = response.content[0].text
-            full_reply += chunk
-
-            if response.stop_reason == "end_turn":
-                break
-
-            chat_messages.append({"role": "assistant", "content": full_reply})
-            chat_messages.append({"role": "user", "content": "이어서 말해."})
-
-        reply_text = full_reply.strip()
+        # ── 응답 생성 ──
+        response = client.messages.create(
+            model="claude-haiku-4-5-20251001",
+            max_tokens=tokens,
+            system=system_prompt,
+            messages=chat_messages,
+        )
+        reply_text = response.content[0].text.strip()
 
         # [silence] 처리
         if "[silence]" in reply_text or not reply_text:
