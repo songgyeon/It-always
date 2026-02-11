@@ -162,9 +162,13 @@ def store_memory(role: str, content: str, tag: str = None,
             (user_id, content),
         )
         conn.commit()
-        conn.close()
     except Exception as e:
         logger.error(f"DB 저장 실패: {e}")
+    finally:
+        try:
+            conn.close()
+        except Exception:
+            pass
 
 
 def fetch_last_memory(user_id: str = "default"):
@@ -226,6 +230,7 @@ def get_session_summary(user_id: str = "default") -> dict:
 # ════════════════════════════════════
 
 def search_memories(keyword: str, limit: int = 20, user_id: str = "default") -> list:
+    conn = None
     try:
         conn = _get_db()
         rows = conn.execute(
@@ -233,14 +238,20 @@ def search_memories(keyword: str, limit: int = 20, user_id: str = "default") -> 
             "WHERE user_id = ? AND content LIKE ? ORDER BY timestamp DESC LIMIT ?",
             (user_id, f"%{keyword}%", limit),
         ).fetchall()
-        conn.close()
         return [dict(row) for row in rows]
     except Exception as e:
         logger.error(f"검색 실패: {e}")
         return [m for m in _user_memories[user_id] if keyword in m["content"]][:limit]
+    finally:
+        if conn:
+            try:
+                conn.close()
+            except Exception:
+                pass
 
 
 def get_memory_stats(user_id: str = "default") -> dict:
+    conn = None
     try:
         conn = _get_db()
         total = conn.execute(
@@ -254,7 +265,6 @@ def get_memory_stats(user_id: str = "default") -> dict:
             "SELECT COUNT(*) as c FROM conversations WHERE user_id = ? AND role='assistant'",
             (user_id,)
         ).fetchone()["c"]
-        conn.close()
 
         return {
             "total": total,
@@ -265,6 +275,12 @@ def get_memory_stats(user_id: str = "default") -> dict:
         }
     except Exception as e:
         return {"error": str(e), "in_memory_count": len(_user_memories[user_id])}
+    finally:
+        if conn:
+            try:
+                conn.close()
+            except Exception:
+                pass
 
 
 def get_memory_count(user_id: str = "default") -> int:
@@ -285,14 +301,20 @@ def reset_memory(user_id: str = None):
         _user_sessions[user_id].clear()
         _user_session_tag[user_id] = "default"
 
+        conn = None
         try:
             conn = _get_db()
             conn.execute("DELETE FROM conversations WHERE user_id = ?", (user_id,))
             conn.execute("DELETE FROM said_cache WHERE user_id = ?", (user_id,))
             conn.commit()
-            conn.close()
         except Exception as e:
             logger.error(f"DB 초기화 실패 (user={user_id}): {e}")
+        finally:
+            if conn:
+                try:
+                    conn.close()
+                except Exception:
+                    pass
     else:
         _user_memories.clear()
         _user_said.clear()
@@ -300,12 +322,18 @@ def reset_memory(user_id: str = None):
         _user_sessions.clear()
         _user_session_tag.clear()
 
+        conn = None
         try:
             conn = _get_db()
             conn.execute("DELETE FROM conversations")
             conn.execute("DELETE FROM said_cache")
             conn.commit()
-            conn.close()
             logger.info("✅ DB 전체 초기화 완료")
         except Exception as e:
             logger.error(f"DB 전체 초기화 실패: {e}")
+        finally:
+            if conn:
+                try:
+                    conn.close()
+                except Exception:
+                    pass

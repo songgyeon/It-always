@@ -6,7 +6,7 @@ services:
     runtime: python
     plan: starter
     buildCommand: "chmod +x build.sh && ./build.sh"
-    startCommand: "gunicorn main:app --bind 0.0.0.0:$PORT --workers 2 --timeout 120"
+    startCommand: "gunicorn main:app --bind 0.0.0.0:$PORT --workers 1 --timeout 120"
     envVars:
       - key: ANTHROPIC_API_KEY
         sync: false

@@ -137,7 +137,7 @@ EMOTION_ADJ_MAP = {
 
     # FIRM
     "싫다": "FIRM", "화나다": "FIRM", "짜증나다": "FIRM", "열받다": "FIRM",
-    "밉다": "FIRM", "귀찮다": "FIRM", "어이없다": "FIRM", "한심하다": "FIRM",
+    "밉다": "FIRM", "귀찮다": "FIRM", "한심하다": "FIRM",
     "역겹다": "FIRM", "분하다": "FIRM", "억울하다": "FIRM",
 
     # GENTLE

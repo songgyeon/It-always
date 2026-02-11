@@ -9,7 +9,21 @@ try:
 except Exception:
     SELF_AWARENESS = "나는 Q야."
 
-client = anthropic.Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
+# 공유 클라이언트 (init()으로 외부에서 주입, 없으면 자체 생성)
+_client = None
+
+
+def init(client):
+    """main.py에서 Anthropic 클라이언트를 주입"""
+    global _client
+    _client = client
+
+
+def _get_client():
+    global _client
+    if _client is None:
+        _client = anthropic.Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
+    return _client
 
 
 def detect_media_type(image_b64: str) -> str:
@@ -38,6 +52,7 @@ def analyze_image(image_b64: str, media_type: str = None):
         media_type = detect_media_type(image_b64)
 
     try:
+        client = _get_client()
         response = client.messages.create(
             model="claude-haiku-4-5-20251001",
             max_tokens=500,
