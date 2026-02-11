@@ -12,6 +12,8 @@ Group Sync — 집단 동기화 모듈
   - 합의 기반 정책 전환 (다수가 침묵이면 전체 침묵 경향 강화)
   - 이벤트 브로드캐스트 (특정 사용자의 상태가 전체에 영향)
 
+v6: 비활성 사용자 정리 (메모리 누수 방지)
+
 ※ 블록체인 확장은 멀티서버 배포 시 구현 (현재는 인메모리 합의)
 """
 
@@ -33,6 +35,25 @@ _lock = Lock()
 # ─── 합의 파라미터 ───
 SILENCE_CONSENSUS_THRESHOLD = 0.6  # 60% 이상이 침묵이면 집단 침묵 경향
 ACTIVITY_TIMEOUT = 3600            # 1시간 비활동 시 비활성 사용자
+_CLEANUP_INTERVAL = 300            # 정리 주기 (5분)
+_last_cleanup = 0
+
+
+def _cleanup_inactive():
+    """비활성 사용자 정리 (v6: 메모리 누수 방지)"""
+    global _last_cleanup
+    now = time.time()
+    if now - _last_cleanup < _CLEANUP_INTERVAL:
+        return
+
+    expired = [
+        uid for uid, ts in _global_state["active_users"].items()
+        if now - ts >= ACTIVITY_TIMEOUT
+    ]
+    for uid in expired:
+        del _global_state["active_users"][uid]
+
+    _last_cleanup = now
 
 
 def record_interaction(user_id: str, pt: float, mode: str):
@@ -45,6 +66,9 @@ def record_interaction(user_id: str, pt: float, mode: str):
         _global_state["active_users"][user_id] = time.time()
         _global_state["recent_pts"].append(pt)
         _global_state["recent_modes"].append(mode)
+
+        # 주기적 정리
+        _cleanup_inactive()
 
 
 def get_collective_temperature() -> float:

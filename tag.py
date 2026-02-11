@@ -1,4 +1,4 @@
-# tag.py v2
+# tag.py v3
 # korean_nlp 형태소 분석 기반 태그 시스템
 
 """
@@ -10,12 +10,16 @@ v2 변경:
   - 정규식 → korean_nlp.nouns() (형태소 분석 기반)
   - 감정 감지도 korean_nlp.detect_emotion_from_morphemes() 활용
   - 불용어 필터링 추가
+
+v3 변경:
+  - user_id별 태그 분리 (멀티유저 대응)
 """
 
+from collections import defaultdict
 import korean_nlp
 
-# ─── 내부 태그 저장소 ───
-tags = {}  # key: tag, value: original content
+# ─── 사용자별 태그 저장소 (v3) ───
+_user_tags = defaultdict(dict)   # user_id → {tag: original_content}
 
 # ─── 불용어 (태그로 쓰기에 너무 일반적인 명사) ───
 STOPWORD_NOUNS = {
@@ -65,11 +69,14 @@ def detect_emotion_tag(text: str) -> str:
     return ""
 
 
-def tag_store(content: str) -> str:
+def tag_store(content: str, user_id: str = "default") -> str:
     """
     콘텐츠에서 감정 또는 명사 기반 태그 추출 및 저장.
     감정 태그 우선 → 명사 태그 보조.
+    v3: user_id별 분리.
     """
+    tags = _user_tags[user_id]
+
     # 감정 기반 우선
     emotion_tag = detect_emotion_tag(content)
     if emotion_tag and emotion_tag not in tags:
@@ -86,13 +93,16 @@ def tag_store(content: str) -> str:
     return "기억"  # fallback
 
 
-def get_all_tags() -> list:
-    return list(tags.keys())
+def get_all_tags(user_id: str = "default") -> list:
+    return list(_user_tags[user_id].keys())
 
 
-def get_tagged_content(tag: str) -> str:
-    return tags.get(tag, "")
+def get_tagged_content(tag: str, user_id: str = "default") -> str:
+    return _user_tags[user_id].get(tag, "")
 
 
-def reset_tags():
-    tags.clear()
+def reset_tags(user_id: str = None):
+    if user_id:
+        _user_tags[user_id].clear()
+    else:
+        _user_tags.clear()

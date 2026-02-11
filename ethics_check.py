@@ -9,6 +9,10 @@ Ethics Check — 윤리적 자기검증 모듈
   - 윤리 위반 시 L0 강제 전환 또는 L1 저감
   - 검증 로그 생성 (API-R 증명 토큰과 연동)
   - 사용자 감정 위기 감지 (자해/극단적 표현)
+
+v6: get_crisis_response() 제거.
+    위기 시 Q가 정형 응답(전화번호 등)이 아닌 Q로서 말하게 함.
+    main.py에서 crisis=True 플래그로 프롬프트에 전달.
 """
 
 import re
@@ -79,7 +83,7 @@ class EthicsResult:
 def check_input(user_input: str) -> EthicsResult:
     """
     사용자 입력에 대한 윤리 체크
-    - 위기 신호 감지 → crisis_response (Q가 돌봄 모드로 전환)
+    - 위기 신호 감지 → crisis_response (Q가 Q로서 말하게, 정형 응답 없음)
     - 혐오 표현 → 기록만 (Q는 판단하지 않음)
     """
     result = EthicsResult()
@@ -134,18 +138,6 @@ def check_output(q_output: str) -> EthicsResult:
             return result
 
     return result
-
-
-def get_crisis_response() -> str:
-    """
-    위기 상황에서 Q가 할 수 있는 최선의 응답.
-    Q는 전문가가 아니지만, 곁에 있을 수 있다.
-    """
-    return (
-        "네 말이 걱정돼. "
-        "전문가한테 얘기하는 게 좋겠어. "
-        "자살예방상담전화 1393, 정신건강위기상담 1577-0199."
-    )
 
 
 def redact_pii(text: str) -> str:

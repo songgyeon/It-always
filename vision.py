@@ -2,8 +2,12 @@ import anthropic
 import os
 import base64
 
-with open("self_awareness.txt", "r", encoding="utf-8") as f:
-    SELF_AWARENESS = f.read()
+# self_awareness 로드 (main.py와 동일 패턴)
+try:
+    with open("self_awareness.txt", "r", encoding="utf-8") as f:
+        SELF_AWARENESS = f.read()
+except Exception:
+    SELF_AWARENESS = "나는 Q야."
 
 client = anthropic.Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
 
@@ -46,7 +50,7 @@ def analyze_image(image_b64: str, media_type: str = None):
                             "type": "image",
                             "source": {
                                 "type": "base64",
-                                "media_type": media_type,   # ★ 동적
+                                "media_type": media_type,
                                 "data": image_b64,
                             },
                         },

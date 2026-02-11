@@ -10,6 +10,8 @@ Policy Negotiation — 사용자 협상형 정책
   - 정책 협상 API (사용자가 "침묵 줄여줘" 같은 요청)
   - 맥락 기반 자동 정책 전환 (야간/주간, 대화 깊이)
   - 정책 → pt_engine 파라미터 매핑
+
+v6: 가중치 정규화 시 w_Art, w_R 포함
 """
 
 import copy
@@ -17,6 +19,9 @@ import hashlib
 import json
 import time
 from threading import Lock
+
+# ─── 가중치 키 목록 (정규화 대상, v6: 7변수) ───
+W_KEYS = ["w_E", "w_S", "w_M", "w_Env", "w_C", "w_Art", "w_R"]
 
 # ─── 기본 정책 ───
 DEFAULT_POLICY = {
@@ -148,12 +153,12 @@ def apply_to_params(user_id: str, base_params: dict) -> dict:
     # emotional_priority: True이면 w_E 약간 높임
     if policy["emotional_priority"]:
         params["w_E"] = min(0.40, params["w_E"] + 0.03)
-        # 가중치 재정규화
-        w_keys = ["w_E", "w_S", "w_M", "w_Env", "w_C"]
-        total = sum(params[k] for k in w_keys)
+        # 가중치 재정규화 (v6: 7변수)
+        total = sum(params.get(k, 0) for k in W_KEYS)
         if total > 0:
-            for k in w_keys:
-                params[k] = round(params[k] / total, 4)
+            for k in W_KEYS:
+                if k in params:
+                    params[k] = round(params[k] / total, 4)
 
     return params
 

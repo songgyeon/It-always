@@ -11,22 +11,29 @@ Online Learning Module — UNLIQ 특허 온라인 학습
   - 경계 투영 (min/max 클램핑)
   - 발산 롤백 (변화량 > delta_max이면 이전 값 복원)
   - 냉각 기간 (cooldown: 연속 업데이트 사이 최소 간격)
+
+v6: w_Art, w_R 추가 (7변수 대응)
 """
 
 import time
 import copy
 from threading import Lock
 
-# ─── 기본 파라미터 ───
+# ─── 기본 파라미터 (v6: 7변수) ───
 DEFAULT_PARAMS = {
     "T": 0.50,           # L2 임계치 (채팅 모델: 대화하되 침묵할 줄 아는)
     "T1": 0.25,          # L1 임계치 (침묵은 자연스러운 선택)
-    "w_E": 0.25,         # 감정 가중치
-    "w_S": 0.20,         # 세션 가중치
-    "w_M": 0.25,         # 기억 가중치
+    "w_E": 0.20,         # 감정 가중치
+    "w_S": 0.15,         # 세션 가중치
+    "w_M": 0.20,         # 기억 가중치
     "w_Env": 0.10,       # 환경 가중치
-    "w_C": 0.20,         # 친밀도 가중치
+    "w_C": 0.15,         # 친밀도 가중치
+    "w_Art": 0.10,       # 외부 감응 가중치 (v6)
+    "w_R": 0.10,         # 자원 상태 가중치 (v6)
 }
+
+# ─── 가중치 키 목록 (정규화 대상) ───
+W_KEYS = ["w_E", "w_S", "w_M", "w_Env", "w_C", "w_Art", "w_R"]
 
 # ─── 학습 하이퍼파라미터 ───
 ALPHA = 0.01             # 저학습률
@@ -40,6 +47,8 @@ BOUNDS = {
     "w_M":   (0.10, 0.40),
     "w_Env": (0.05, 0.20),
     "w_C":   (0.05, 0.35),
+    "w_Art": (0.05, 0.20),
+    "w_R":   (0.05, 0.20),
 }
 
 # ─── 사용자별 학습 상태 ───
@@ -69,11 +78,10 @@ def _project(key: str, value: float) -> float:
 
 
 def _normalize_weights(params: dict):
-    """가중치 합이 1.0이 되도록 정규화"""
-    w_keys = ["w_E", "w_S", "w_M", "w_Env", "w_C"]
-    total = sum(params[k] for k in w_keys)
+    """가중치 합이 1.0이 되도록 정규화 (v6: 7변수)"""
+    total = sum(params[k] for k in W_KEYS)
     if total > 0:
-        for k in w_keys:
+        for k in W_KEYS:
             params[k] = round(params[k] / total, 4)
 
 
