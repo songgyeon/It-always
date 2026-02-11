@@ -271,7 +271,8 @@ def reply():
             "silence": False,
         })
 
-    except Exception as e:
+   except Exception as e:
+        print(f"[Q ERROR] {e}")
         seed = get_seed(intent, tone)
         reply_text = apply_rhythm(seed, user_input)
         if was_said(reply_text, user_id=user_id):
