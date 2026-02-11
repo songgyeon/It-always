@@ -271,7 +271,7 @@ def reply():
             "silence": False,
         })
 
-   except Exception as e:
+    except Exception as e:
         print(f"[Q ERROR] {e}")
         seed = get_seed(intent, tone)
         reply_text = apply_rhythm(seed, user_input)
@@ -419,7 +419,7 @@ def gate_status():
 
     gate = api_r.generate_gate_status(
         mode=mode,
-        pt=0.0,  # 조회 시점의 P(t)는 없음
+        pt=0.0,
         user_id=user_id,
         policy=policy,
     )
@@ -589,9 +589,11 @@ def full_reset():
         memory_flow.reset_all()
     return jsonify({"status": "full reset complete", "user_id": user_id or "all"})
 
+
 @app.route("/", methods=["GET"])
 def home():
     return app.send_static_file("index.html")
+
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 10000))
