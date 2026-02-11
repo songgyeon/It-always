@@ -153,7 +153,7 @@ def build_system_prompt(closeness, doubt, user_name="", user_id="default",
     if collective["amplify_silence"]:
         system_prompt += "\n지금 세상이 조용해. 너도 조용해도 돼."
 
-    system_prompt += "\n" + CLAUDE_RULES
+    system_prompt += "\n" + Q_RULES
     return system_prompt
 
 
