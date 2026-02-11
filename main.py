@@ -382,13 +382,15 @@ def last_reflection():
 def tag_route():
     data = request.get_json()
     content = data.get("content", "")
-    tag_result = tag_store(content)
+    user_id = data.get("user_id", "default")
+    tag_result = tag_store(content, user_id=user_id)
     return jsonify({"tag": tag_result})
 
 
 @app.route("/tags", methods=["GET"])
 def tags_route():
-    return jsonify({"tags": get_all_tags()})
+    user_id = request.args.get("user_id", "default")
+    return jsonify({"tags": get_all_tags(user_id)})
 
 
 @app.route("/weather", methods=["GET"])
@@ -631,7 +633,7 @@ def full_reset():
     user_id = data.get("user_id", None)
     pt_reset(user_id)
     reset_memory(user_id)
-    reset_tags()
+    reset_tags(user_id)
     if user_id:
         memory_flow.reset(user_id)
     else:
