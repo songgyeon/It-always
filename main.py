@@ -336,12 +336,51 @@ def reply():
             elif output_ethics.action == "redact":
                 reply_text = ethics_check.redact_pii(reply_text)
 
-        # 중복 체크
+        # ── 중복 체크: P(t) 기반 ──
         if was_said(reply_text, user_id=user_id):
-            seed = get_seed(intent, tone)
-            reply_text = apply_rhythm(seed, user_input)
-            if was_said(reply_text, user_id=user_id):
-                reply_text = get_fallback()
+            pt = pt_result["pt"]
+            T = pt_result.get("T", 0.70)
+            T1 = pt_result.get("T1", 0.45)
+
+            if pt >= T:
+                # L2: 말하고 싶어. 반복이어도.
+                pass
+
+            elif pt >= T1:
+                # L1: 한 번 더 떠올려봐.
+                retry_response = client.messages.create(
+                    model="claude-haiku-4-5-20251001",
+                    max_tokens=tokens,
+                    system=system_prompt,
+                    messages=chat_messages,
+                )
+                retry_text = retry_response.content[0].text.strip()
+
+                if retry_text and "[silence]" not in retry_text and not was_said(retry_text, user_id=user_id):
+                    reply_text = retry_text
+                else:
+                    # 다시 떠올려봤는데 안 떠올라. 침묵.
+                    store_memory("user", user_input, user_id=user_id)
+                    crypto_log.encrypt_and_store(user_id, "user", user_input)
+                    record_q_action(user_id, "", "L0")
+                    return jsonify({
+                        **base_response,
+                        "reply": "",
+                        "silence": True,
+                        "mode": "L0",
+                    })
+
+            else:
+                # L0: 안 떠올라. 침묵.
+                store_memory("user", user_input, user_id=user_id)
+                crypto_log.encrypt_and_store(user_id, "user", user_input)
+                record_q_action(user_id, "", "L0")
+                return jsonify({
+                    **base_response,
+                    "reply": "",
+                    "silence": True,
+                    "mode": "L0",
+                })
 
         # ── 응답 확정 후 메모리 저장 ──
         store_memory("user", user_input, user_id=user_id)
@@ -364,20 +403,16 @@ def reply():
 
     except Exception as e:
         print(f"[Q ERROR] {e}")
-        seed = get_seed(intent, tone)
-        reply_text = apply_rhythm(seed, user_input)
-        if was_said(reply_text, user_id=user_id):
-            reply_text = get_fallback()
+        # ── 에러 시에도 시드 대신 침묵 ──
         store_memory("user", user_input, user_id=user_id)
-        store_memory("assistant", reply_text, user_id=user_id)
-        record_q_action(user_id, reply_text, "L1")
+        crypto_log.encrypt_and_store(user_id, "user", user_input)
+        record_q_action(user_id, "", "L0")
 
         return jsonify({
             **base_response,
-            "reply": reply_text,
-            "breaths": split_breaths(reply_text),
-            "silence": False,
-            "mode": "L1",
+            "reply": "",
+            "silence": True,
+            "mode": "L0",
         })
 
 
