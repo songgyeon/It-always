@@ -9,6 +9,9 @@ v6 변경사항 (v5 → v6):
   - 리듬 생성부 R(t) → 특허 5.2/5.4 "내적 리듬 신호"
   - 대화 흐름 인식(flow context) → is_reaction의 맥락 기반 재설계
   - crisis_reply 제거 → Q의 톤 유지
+
+v6.1 변경사항:
+  - evaluate() 리턴에 T, T1 포함 → app.py 중복 체크에서 실제 동적 임계치 사용
 """
 
 import math
@@ -448,7 +451,7 @@ def record_q_action(user_id: str, q_message: str, mode: str):
 
 
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-# 메인 함수 (v6: crisis_reply 제거, Art/Rsrc 추가)
+# 메인 함수 (v6.1: T, T1 리턴 추가)
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 def evaluate(tone: str, intent: str, message: str,
@@ -457,6 +460,12 @@ def evaluate(tone: str, intent: str, message: str,
              art: float = 0.3,
              rsrc: float = 1.0,
              user_id: str = "default") -> dict:
+
+    # ── 동적 임계치 로드 (중복 체크에서도 사용하므로 먼저) ──
+    params = online_learning.get_params(user_id)
+    params = policy_negotiation.apply_to_params(user_id, params)
+    current_T = params.get("T", T)
+    current_T1 = params.get("T1", T1)
 
     # ── 1. 윤리 체크 (입력) ──
     input_ethics = ethics_check.check_input(message)
@@ -473,6 +482,8 @@ def evaluate(tone: str, intent: str, message: str,
 
         return {
             "pt": 1.0,
+            "T": current_T,
+            "T1": current_T1,
             "mode": "L2",
             "should_respond": True,
             "silence": False,
@@ -511,6 +522,8 @@ def evaluate(tone: str, intent: str, message: str,
 
     return {
         "pt": pt,
+        "T": current_T,
+        "T1": current_T1,
         "mode": mode,
         "should_respond": mode in ("L1", "L2"),
         "silence": mode == "L0",
