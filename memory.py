@@ -177,7 +177,12 @@ def fetch_last_memory(user_id: str = "default"):
 
 
 def was_said(content: str, user_id: str = "default") -> bool:
-    return content in _user_said[user_id]
+    """최근 assistant 발화 10개에서만 중복 체크."""
+    recent = [
+        m["content"] for m in _user_memories[user_id]
+        if m["role"] == "assistant"
+    ][-10:]
+    return content in recent
 
 
 def get_recent(n: int = 10, user_id: str = "default") -> list:
