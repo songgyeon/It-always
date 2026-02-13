@@ -56,7 +56,7 @@ body{background:var(--bg);color:#e8e8e8;font-family:var(--sf);font-weight:300;he
 .sl{position:fixed;inset:0;pointer-events:none;z-index:90;background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,0.04) 2px,rgba(0,0,0,0.04) 4px);display:none}
 
 /* ═══ WINDOW ═══ */
-.win{width:min(94vw,500px);max-height:min(92dvh,800px);display:none;flex-direction:column;border:1px solid #222;background:var(--win);box-shadow:0 0 40px rgba(0,0,0,0.5);overflow:hidden}
+.win{width:min(94vw,500px);max-height:min(82dvh,720px);display:none;flex-direction:column;border:1px solid #222;background:var(--win);box-shadow:0 0 40px rgba(0,0,0,0.5);overflow:hidden}
 @keyframes fi{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
 
 /* 메뉴바 */
@@ -354,7 +354,7 @@ function typeTL(prefix,text,speed,cb,cls){
 }
 
 (function(){
-playID();
+/* no intro audio */
 var seq=[
   {d:400,fn:function(n){typeTL('<span class="p">$ </span>','Silence System 1.0',35,n)}},
   {d:300,fn:function(n){typeTL('<span class="p">$ </span>','Loading... ',30,function(){
@@ -375,8 +375,8 @@ var seq=[
     var line=addTL('<span class="p">> </span><span class="s">It </span>');
     var inp=document.createElement('input');inp.type='text';inp.className='tui';inp.autocomplete='off';
     line.appendChild(inp);setTimeout(function(){inp.focus()},300);
-    inp.addEventListener('focus',function(){tryPA()});
-    inp.addEventListener('input',function(){tryPA()});
+    inp.addEventListener('focus',function(){});
+    inp.addEventListener('input',function(){});
     inp.addEventListener('keydown',function h(e){
       if(e.key==='Enter'&&!e.isComposing){e.preventDefault();var v=inp.value.trim();
         if(v)localStorage.setItem('q_user_intro',v);
@@ -397,7 +397,6 @@ var seq=[
       document.getElementById('termScreen').style.display='none';
       var qs=document.getElementById('qIS');qs.style.display='flex';qs.style.opacity='0';qs.style.transition='opacity 0.8s ease';
       requestAnimationFrame(function(){qs.style.opacity='1'});
-      setTimeout(function(){document.getElementById('qIG').classList.add('v')},300);
       setTimeout(function(){document.getElementById('qII').classList.add('v')},600);
       setTimeout(function(){
         qs.style.transition='opacity 1.5s ease';qs.style.opacity='0';
