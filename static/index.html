@@ -4,515 +4,506 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
 <title>Q</title>
-<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@300;400&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;500&display=swap" rel="stylesheet">
 <link href="https://cdn.jsdelivr.net/npm/galmuri/dist/galmuri.css" rel="stylesheet">
 <style>
+@font-face{font-family:'BookkMyungjo';font-weight:300;src:url('/static/bookkmyungjo_light.ttf') format('truetype')}
+@font-face{font-family:'BookkMyungjo';font-weight:700;src:url('/static/bookkmyungjo_bold.ttf') format('truetype')}
 *{margin:0;padding:0;box-sizing:border-box}
-:root{--px:'Galmuri11','Galmuri9',monospace;--sf:'Noto Serif KR',Georgia,serif}
-body{background:#000;font-family:var(--px);overflow:hidden;height:100dvh;width:100vw}
-::-webkit-scrollbar{width:10px}
-::-webkit-scrollbar-track{background:#0a0a0a}
-::-webkit-scrollbar-thumb{background:#222;border:2px solid #0a0a0a}
+:root{
+  --bg:#050505;--win:#0a0a0a;--bg-el:rgba(8,8,10,0.98);
+  --text-user:rgba(255,255,255,0.62);--glow:rgba(255,255,255,0.5);
+  --r:20px;--rs:12px;--ts:0.4s cubic-bezier(0.16,1,0.3,1);
+  --px:'Galmuri11','Galmuri9',monospace;
+  --sf:'BookkMyungjo','Cormorant Garamond',serif;
+}
+html{font-size:16px}
+body{background:var(--bg);color:#e8e8e8;font-family:var(--sf);font-weight:300;height:100dvh;display:flex;align-items:center;justify-content:center;overflow:hidden;-webkit-font-smoothing:antialiased}
+.icon{display:inline-block;object-fit:contain;pointer-events:auto;-webkit-user-drag:none}
+::-webkit-scrollbar{width:10px}::-webkit-scrollbar-track{background:#0a0a0a}::-webkit-scrollbar-thumb{background:#222;border:2px solid #0a0a0a}
 
+/* ═══ TERMINAL INTRO ═══ */
+#termScreen{position:fixed;inset:0;background:#000;display:flex;align-items:center;justify-content:center;z-index:200;transition:opacity 1.5s ease}
+.tw{width:min(92vw,520px);max-height:min(85dvh,600px);border:1px solid #333;background:#0a0a0a;display:flex;flex-direction:column;overflow:hidden;animation:tg 4s ease-in-out infinite}
+@keyframes tg{0%,100%{box-shadow:0 0 15px rgba(255,255,255,0.03)}50%{box-shadow:0 0 25px rgba(255,255,255,0.08)}}
+.ttb{height:22px;min-height:22px;background:#111;border-bottom:1px solid #333;display:flex;align-items:center;padding:0 10px;gap:6px;flex-shrink:0}
+.td{width:8px;height:8px;border-radius:50%;border:1px solid #333;background:#1a1a1a}
+.tt{flex:1;text-align:center;font-family:var(--px);font-size:9px;color:#444;letter-spacing:0.1em}
+.tb{flex:1;overflow-y:auto;padding:16px 18px;font-family:var(--px);font-size:12px;color:#555;line-height:1.9}
+.tb::-webkit-scrollbar{width:0}
+.tl{white-space:pre-wrap;word-break:break-all}
+.tl .p{color:#444}.tl .c{color:#888}.tl .cm{color:#333;font-style:italic}.tl .s{color:#668}.tl .ok{color:#5a5}.tl .hi{color:#aaa}
+.tc{display:inline-block;width:7px;height:13px;background:#555;animation:bk 0.8s step-end infinite;vertical-align:text-bottom}
 @keyframes bk{50%{opacity:0}}
-@keyframes fi{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
-@keyframes br{0%,100%{opacity:0.08;transform:scale(0.65)}50%{opacity:0.25;transform:scale(1.05)}}
-@keyframes glowPulse{0%,100%{box-shadow:0 0 15px rgba(255,255,255,0.03)}50%{box-shadow:0 0 25px rgba(255,255,255,0.08)}}
-@keyframes successFlash{0%{color:#555}50%{color:#8f8}100%{color:#5a5}}
+.tui{background:transparent;border:none;outline:none;font-family:var(--px);font-size:12px;color:#aaa;caret-color:#555;width:180px;padding:0}
+@keyframes sf{0%{color:#555}50%{color:#8f8}100%{color:#5a5}}
 
-.screen{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;transition:opacity 1.5s ease}
-.hidden{opacity:0;pointer-events:none}
-
-/* ═══ 터미널 인트로 ═══ */
-#termScreen{background:#000;flex-direction:column}
-.term-window{
-  width:min(92vw,520px);max-height:min(85dvh,600px);
-  border:1px solid #333;background:#0a0a0a;
-  display:flex;flex-direction:column;overflow:hidden;
-  animation:glowPulse 4s ease-in-out infinite;
-}
-.term-titlebar{
-  height:22px;min-height:22px;background:#111;border-bottom:1px solid #333;
-  display:flex;align-items:center;padding:0 10px;gap:6px;flex-shrink:0;
-}
-.term-dot{width:8px;height:8px;border-radius:50%;border:1px solid #333;background:#1a1a1a}
-.term-title{flex:1;text-align:center;font-size:9px;color:#444;letter-spacing:0.1em}
-.term-body{
-  flex:1;overflow-y:auto;padding:16px 18px;font-family:var(--px);font-size:12px;
-  color:#555;line-height:1.9;
-}
-.term-line{white-space:pre-wrap;word-break:break-all}
-.term-line .prompt{color:#444}
-.term-line .cmd{color:#888}
-.term-line .comment{color:#333;font-style:italic}
-.term-line .str{color:#668}
-.term-line .success{color:#5a5}
-.term-line .highlight{color:#aaa}
-.term-cursor{display:inline-block;width:7px;height:13px;background:#555;animation:bk 0.8s step-end infinite;vertical-align:text-bottom}
-
-/* 인풋 라인 */
-.term-input-line{display:flex;align-items:center;white-space:pre-wrap}
-.term-user-input{
-  background:transparent;border:none;outline:none;
-  font-family:var(--px);font-size:12px;color:#aaa;
-  caret-color:#555;width:180px;padding:0;
-}
-
-/* ═══ Q 아이콘 ═══ */
-#qScreen{background:#000}
-.q-icon-wrap{animation:fi 2s ease-out}
-.q-icon-wrap img{width:clamp(80px,18vw,140px);height:auto;opacity:0.85;filter:drop-shadow(0 0 30px rgba(255,255,255,0.05))}
-.q-icon-text{font-family:var(--sf);font-size:clamp(44px,9vw,64px);font-weight:300;color:rgba(255,255,255,0.82);filter:drop-shadow(0 0 25px rgba(255,255,255,0.05))}
+/* ═══ Q ICON ═══ */
+#qIS{position:fixed;inset:0;background:#000;display:none;align-items:center;justify-content:center;z-index:150;transition:opacity 1.5s ease}
+.qi{width:200px;height:200px;opacity:0;z-index:2;transition:opacity 2.5s ease,transform 2s ease;transform:scale(0.85);filter:drop-shadow(0 0 60px rgba(255,255,255,0.08))}
+.qi.v{opacity:0.88;transform:scale(1)}
+.ig{position:absolute;width:300px;height:300px;border-radius:50%;background:radial-gradient(circle,rgba(255,255,255,0.12) 0%,rgba(255,255,255,0.03) 35%,transparent 65%);opacity:0;pointer-events:none;transition:opacity 2.5s ease,transform 2.5s ease;transform:scale(0.4)}
+.ig.v{opacity:1;transform:scale(1)}
 
 /* ═══ WAKE ═══ */
-#wakeScreen{background:#000;cursor:default}
-.breathe{position:absolute;width:220px;height:220px;border-radius:50%;background:radial-gradient(circle,rgba(255,255,255,0.12) 0%,rgba(255,255,255,0.02) 40%,transparent 70%);animation:br 5s ease-in-out infinite;pointer-events:none}
-.wake-text{font-family:var(--sf);font-size:clamp(15px,3.2vw,19px);font-weight:300;letter-spacing:0.15em;z-index:2;color:rgba(255,255,255,0);transform:translateY(10px);transition:color 2s ease,transform 1.5s ease}
-.wake-text.show{color:rgba(255,255,255,0.6);transform:translateY(0)}
+#wS{position:fixed;inset:0;background:#000;display:none;flex-direction:column;align-items:center;justify-content:center;z-index:100;cursor:default;transition:opacity 1.5s ease}
+.wg{position:absolute;width:240px;height:240px;border-radius:50%;background:radial-gradient(circle,rgba(255,255,255,0.18) 0%,rgba(255,255,255,0.04) 40%,transparent 70%);pointer-events:none;animation:gb 5s ease-in-out infinite}
+@keyframes gb{0%,100%{opacity:0.08;transform:scale(0.65)}50%{opacity:0.28;transform:scale(1.08)}}
+.wq{font-size:clamp(16px,3.5vw,20px);font-weight:300;color:rgba(255,255,255,0);letter-spacing:0.15em;z-index:2;transition:color 2s ease,transform 1.5s ease;transform:translateY(10px)}
+.wq.v{color:rgba(255,255,255,0.65);transform:translateY(0)}
 
-/* ═══ MAIN ═══ */
-.main-bg{background:#050505}
-.window{width:min(94vw,500px);max-height:min(92dvh,800px);display:flex;flex-direction:column;border:1px solid #222;background:#0a0a0a;box-shadow:0 0 40px rgba(0,0,0,0.5);overflow:hidden}
-.scanline{position:fixed;inset:0;pointer-events:none;z-index:90;background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,0.05) 2px,rgba(0,0,0,0.05) 4px)}
+/* ═══ SCANLINE ═══ */
+.sl{position:fixed;inset:0;pointer-events:none;z-index:90;background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,0.04) 2px,rgba(0,0,0,0.04) 4px);display:none}
 
-.menubar{height:24px;min-height:24px;background:#0e0e0e;border-bottom:1px solid #1a1a1a;display:flex;align-items:center;padding:0 12px;font-size:10px;gap:16px;flex-shrink:0;font-family:var(--px)}
-.titlebar{height:24px;min-height:24px;background:#0e0e0e;border-bottom:1px solid #222;padding:0 8px;display:flex;align-items:center;gap:8px;flex-shrink:0}
-.titlebar-lines{flex:1;position:relative;height:12px;overflow:hidden}
-.titlebar-line{position:absolute;left:0;right:0;height:1px;background:#1a1a1a}
-.titlebar-text{position:relative;z-index:1;background:#0e0e0e;padding:0 8px;font-size:10px;font-family:var(--px);color:#444;display:inline-block;left:50%;transform:translateX(-50%)}
+/* ═══ WINDOW ═══ */
+.win{width:min(94vw,500px);max-height:min(92dvh,800px);display:none;flex-direction:column;border:1px solid #222;background:var(--win);box-shadow:0 0 40px rgba(0,0,0,0.5);overflow:hidden}
+@keyframes fi{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
 
-.player{padding:10px 16px;border-bottom:1px solid #1a1a1a;background:#080808;display:flex;align-items:center;justify-content:center;gap:14px;flex-shrink:0}
-.vis{display:flex;align-items:flex-end;gap:1.5px;height:22px;flex-shrink:0}
-.vis-bar{width:1.5px;background:rgba(255,255,255,0.02);transition:height 0.08s}
-.play-btn{width:22px;height:22px;border:1px solid #333;background:#181818;display:flex;align-items:center;justify-content:center;cursor:pointer}
-.progress-wrap{display:flex;flex-direction:column;gap:3px;min-width:70px;flex:0 1 110px}
-.progress-bar{width:100%;height:1px;background:rgba(255,255,255,0.05);cursor:pointer;position:relative}
-.progress-fill{position:absolute;top:0;left:0;height:100%;background:rgba(255,255,255,0.15)}
+/* 메뉴바 */
+.mb{height:24px;min-height:24px;background:#0e0e0e;border-bottom:1px solid #1a1a1a;display:flex;align-items:center;padding:0 12px;font-size:10px;gap:16px;flex-shrink:0;font-family:var(--px)}
+/* 타이틀바 */
+.tbar{height:24px;min-height:24px;background:#0e0e0e;border-bottom:1px solid #222;padding:0 8px;display:flex;align-items:center;gap:8px;flex-shrink:0}
+.tbar-l{flex:1;position:relative;height:12px;overflow:hidden}
+.tbar-ln{position:absolute;left:0;right:0;height:1px;background:#1a1a1a}
+.tbar-t{position:relative;z-index:1;background:#0e0e0e;padding:0 8px;font-family:var(--px);font-size:10px;color:#444;display:inline-block;left:50%;transform:translateX(-50%)}
 
-.chat-header{display:flex;align-items:center;justify-content:space-between;padding:7px 16px;border-bottom:1px solid rgba(255,255,255,0.03);background:#080808;flex-shrink:0}
-.chat-header img{opacity:0.2;cursor:pointer;transition:opacity 0.3s}
-.chat-header img:hover{opacity:0.4}
+/* 플레이어 */
+.pl{padding:14px 16px;border-bottom:1px solid #1a1a1a;background:#080808;display:flex;align-items:center;justify-content:center;gap:16px;flex-shrink:0}
+.pv{display:flex;align-items:flex-end;gap:1.5px;height:24px;flex-shrink:0}
+.pv .vb{width:1.5px;background:rgba(255,255,255,0.04);border-radius:1px;transition:height 0.12s ease}
+.pm{display:flex;flex-direction:column;align-items:center;gap:4px}
+.pt{font-family:var(--px);font-size:9px;color:rgba(255,255,255,0.25);letter-spacing:0.12em}
+.pc{display:flex;align-items:center;gap:12px}
+.pb{background:none;border:none;font-family:var(--px);font-size:8px;color:rgba(255,255,255,0.12);cursor:pointer;padding:4px;transition:color 0.3s}
+.pb:hover{color:rgba(255,255,255,0.35)}
+.pp{width:26px;height:26px;border:1px solid rgba(255,255,255,0.08);border-radius:50%;display:flex;align-items:center;justify-content:center;background:none;color:rgba(255,255,255,0.18);font-size:8px;cursor:pointer;transition:all 0.3s}
+.pp:hover{border-color:rgba(255,255,255,0.2);color:rgba(255,255,255,0.4)}
+.pp.on{border-color:rgba(255,255,255,0.15);color:rgba(255,255,255,0.35)}
+.pw{display:flex;flex-direction:column;gap:3px;min-width:80px;flex:0 1 110px}
+.pbar{width:100%;height:1px;background:rgba(255,255,255,0.04);cursor:pointer;position:relative}
+.pfill{position:absolute;top:0;left:0;height:100%;width:0%;background:rgba(255,255,255,0.18)}
+.ptime{display:flex;justify-content:space-between;font-family:var(--px);font-size:6px;color:rgba(255,255,255,0.07)}
 
+/* 헤더 */
+.hd{display:flex;align-items:center;justify-content:space-between;padding:7px 16px;border-bottom:1px solid rgba(255,255,255,0.03);background:#080808;flex-shrink:0}
+.hd .icon{opacity:0.2;cursor:pointer;transition:opacity var(--ts)}
+.hd .icon:hover{opacity:0.4}
+.di{font-size:14px;color:rgba(255,255,255,0.18);cursor:pointer;font-family:var(--px);padding:4px}
+.di:hover{color:rgba(255,255,255,0.4)}
+
+/* 탭 */
 .tabs{display:flex;border-bottom:1px solid #1a1a1a;background:#080808;flex-shrink:0}
 .tab{flex:1;background:transparent;color:#333;border:none;border-bottom:1px solid transparent;padding:6px 0;font-family:var(--px);font-size:9px;cursor:pointer;letter-spacing:0.08em}
-.tab.active{background:#0a0a0a;color:#999;border-bottom-color:#999}
+.tab.a{background:var(--win);color:#999;border-bottom-color:#999}
 
-.content{flex:1;display:flex;flex-direction:column;overflow:hidden;min-height:0}
-.chat-area{flex:1;overflow-y:auto;padding:14px 18px 10px;background:#0a0a0a;min-height:0}
-.msg-q{margin-bottom:20px;animation:fi 0.8s ease-out}
-.msg-q-label{margin-bottom:8px;display:flex;align-items:center}
-.msg-q-label img{width:13px;height:13px;opacity:0.25}
-.msg-q-text{font-size:15px;color:#ccc;font-family:var(--sf);letter-spacing:0.5px;line-height:1.9;font-weight:300}
-.msg-q-actions{display:flex;gap:14px;margin-top:8px;padding-top:6px;border-top:1px solid rgba(255,255,255,0.03);align-items:center}
-.msg-q-actions img{width:14px;height:14px;opacity:0.2;cursor:pointer;transition:opacity 0.3s}
-.msg-q-actions img:hover{opacity:0.45}
-.msg-u{text-align:right;margin-bottom:14px;animation:fi 0.4s ease-out}
-.msg-u-text{font-size:13px;color:#777;font-family:var(--sf);font-weight:300}
-.cursor-chat{display:inline-block;width:7px;height:14px;background:#ccc;margin-left:2px;animation:bk 0.8s step-end infinite}
+/* 콘텐츠 */
+.ct{flex:1;display:flex;flex-direction:column;overflow:hidden;min-height:0}
+.ca{flex:1;overflow-y:auto;padding:14px 18px 10px;background:var(--win);min-height:0;scroll-behavior:smooth}
+.ca::-webkit-scrollbar{width:0}
+.msg{padding:14px 0;animation:fi 0.8s cubic-bezier(0.16,1,0.3,1)}
+.msg-q{padding-right:24px}
+.ql{font-size:0;margin-bottom:10px;display:flex;align-items:center}
+.qt{font-size:14px;line-height:2;color:rgba(255,255,255,0.65);font-family:var(--sf);font-weight:300;letter-spacing:0.02em;word-break:keep-all}
+.qa{display:flex;gap:16px;margin-top:14px;align-items:center;padding-top:6px;border-top:1px solid rgba(255,255,255,0.02)}
+.qa .icon{width:14px;height:14px;opacity:0.15;cursor:pointer;transition:opacity var(--ts),transform var(--ts)}
+.qa .icon:hover{opacity:0.35;transform:scale(1.08)}
+.qa .icon.active{opacity:0.5}
+.msg-u{text-align:right;padding-left:48px}
+.ut{font-size:14px;line-height:2;color:var(--text-user);font-family:var(--sf);font-weight:300;display:inline;letter-spacing:0.02em}
+.msg-sil{padding:12px 0}
+.sd{width:3px;height:3px;background:rgba(255,255,255,0.12);border-radius:50%;animation:sp 5s ease-in-out infinite}
+@keyframes sp{0%,100%{opacity:0.1}50%{opacity:0.4}}
+.rd{display:flex;gap:6px;padding:12px 0}
+.rdt{width:3px;height:3px;background:rgba(255,255,255,0.15);border-radius:50%;animation:rp 2s ease-in-out infinite}
+.rdt:nth-child(2){animation-delay:0.3s}.rdt:nth-child(3){animation-delay:0.6s}
+@keyframes rp{0%,100%{opacity:0.08;transform:scale(1)}50%{opacity:0.45;transform:scale(1.5)}}
+.wgl{text-shadow:0 0 12px var(--glow)}
+.ut.sc{color:rgba(255,255,255,0.78);text-shadow:0 0 24px rgba(255,255,255,0.05);transition:color 0.8s,text-shadow 0.8s}
 
-.input-bar{border-top:1px solid #151515;padding:9px 16px;display:flex;align-items:center;gap:6px;background:#080808;flex-shrink:0}
-.input-bar .icon-btn{display:flex;align-items:center;justify-content:center;cursor:pointer;padding:4px}
-.input-bar .icon-btn img{width:18px;height:18px;opacity:0.2;transition:opacity 0.3s}
-.input-bar .icon-btn:hover img{opacity:0.4}
-.input-field{flex:1;background:transparent;border:none;outline:none;color:#ccc;font-family:var(--px);font-size:11px;padding:5px 4px;caret-color:rgba(255,255,255,0.3)}
-.input-field::placeholder{color:#333;letter-spacing:0.1em}
+/* 인풋 */
+.ia{position:relative;flex-shrink:0}
+.ia::before{content:'';position:absolute;top:-40px;left:0;right:0;height:40px;background:linear-gradient(to top,var(--win),transparent);pointer-events:none}
+.ic{display:flex;align-items:center;gap:2px;border-top:1px solid rgba(255,255,255,0.04);padding:10px 16px;transition:border-color 0.6s,background 0.6s}
+.ic:focus-within{border-color:rgba(255,255,255,0.06);background:rgba(255,255,255,0.01)}
+.if{flex:1;background:transparent;border:none;outline:none;color:rgba(255,255,255,0.65);font-family:var(--sf);font-size:13px;font-weight:300;padding:8px;caret-color:rgba(255,255,255,0.18)}
+.if::placeholder{color:rgba(255,255,255,0.08);font-family:var(--px);font-weight:300;letter-spacing:0.15em}
+.ib{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;transition:background var(--ts),transform var(--ts)}
+.ib:hover{background:rgba(255,255,255,0.03);transform:scale(1.04)}
+.ib .icon{width:18px;height:18px;opacity:0.2;transition:opacity var(--ts)}
+.ib:hover .icon{opacity:0.4}
+.gb .icon{width:20px;height:20px;opacity:0.15}
+.ib.rec .icon{opacity:0.55;animation:rcp 1.2s ease-in-out infinite}
+@keyframes rcp{0%,100%{opacity:0.35}50%{opacity:0.75}}
 
-.footer{border-top:1px solid #1a1a1a;padding:3px 12px;display:flex;justify-content:space-between;font-size:8px;color:#333;font-family:var(--px);background:#080808;flex-shrink:0}
+/* 탭 패널 */
+.tp{flex:1;overflow-y:auto;padding:18px 16px;background:var(--win);min-height:0;display:none}
+.tp.a{display:block}
+.tp::-webkit-scrollbar{width:0}
+.li{padding:14px 8px;border-bottom:1px solid #111;cursor:pointer;border-radius:var(--rs);margin:0 -8px;transition:background var(--ts)}
+.li:hover{background:rgba(255,255,255,0.02)}
+.lp{font-family:var(--sf);font-size:12px;font-weight:300;color:rgba(255,255,255,0.38)}
+.lt{font-family:var(--px);font-size:8px;color:rgba(255,255,255,0.10);margin-top:6px}
+.le{text-align:center;padding-top:60px;font-family:var(--sf);font-size:13px;font-weight:300;color:rgba(255,255,255,0.10);line-height:2}
 
-.tab-pane{flex:1;overflow-y:auto;padding:18px 16px;background:#0a0a0a;min-height:0;display:none}
-.tab-pane.active{display:block}
-.log-item{padding:10px 4px;border-bottom:1px solid #111;cursor:pointer}
-.log-preview{font-family:var(--sf);font-size:12px;font-weight:300;color:#666}
-.log-time{font-family:var(--px);font-size:8px;color:#333;margin-top:3px}
+/* 푸터 */
+.ft{border-top:1px solid #1a1a1a;padding:3px 12px;display:flex;justify-content:space-between;font-family:var(--px);font-size:8px;color:#333;background:#080808;flex-shrink:0}
+
+/* ═══ OVERLAYS ═══ */
+.ov{position:fixed;inset:0;background:rgba(0,0,0,0.65);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);z-index:250;display:none;align-items:center;justify-content:center}
+.ov.open{display:flex}
+.mx{background:var(--bg-el);border:1px solid rgba(255,255,255,0.04);border-radius:var(--r);width:300px;max-width:82vw;box-shadow:0 8px 60px rgba(0,0,0,0.5);overflow:hidden}
+.mi{padding:22px 28px;font-size:14px;font-family:var(--sf);font-weight:300;color:rgba(255,255,255,0.38);cursor:pointer;border-bottom:1px solid rgba(255,255,255,0.025);transition:color var(--ts),background var(--ts)}
+.mi:last-child{border-bottom:none}
+.mi:hover{color:rgba(255,255,255,0.58);background:rgba(255,255,255,0.02)}
+
+/* 모달 */
+.mdbg{position:fixed;inset:0;background:rgba(0,0,0,0.8);backdrop-filter:blur(12px);z-index:300;display:none;align-items:center;justify-content:center}
+.mdbg.open{display:flex}
+.mdb{background:var(--bg-el);border:1px solid rgba(255,255,255,0.04);border-radius:var(--r);width:320px;max-width:85vw;padding:44px 36px 32px;text-align:center}
+.mdt{font-size:15px;font-family:var(--sf);font-weight:300;color:rgba(255,255,255,0.48);margin-bottom:36px;line-height:2}
+.mdbs{display:flex;justify-content:center;gap:32px}
+.mdbtn{background:none;border:none;font-family:var(--sf);font-size:14px;font-weight:300;color:rgba(255,255,255,0.35);cursor:pointer;padding:10px 24px;border-radius:var(--r);transition:color var(--ts),background var(--ts)}
+.mdbtn:hover{color:rgba(255,255,255,0.65);background:rgba(255,255,255,0.03)}
+
+/* 풀페이지 */
+.fp{position:fixed;inset:0;background:#000;z-index:180;display:none;flex-direction:column;overflow:hidden}
+.fp.open{display:flex}
+.fph{display:flex;align-items:center;padding:16px 20px;gap:14px}
+.fpb{font-size:18px;color:rgba(255,255,255,0.3);cursor:pointer;background:none;border:none;font-family:var(--sf);transition:color var(--ts);width:36px;height:36px;display:flex;align-items:center;justify-content:center;border-radius:50%}
+.fpb:hover{color:rgba(255,255,255,0.55);background:rgba(255,255,255,0.03)}
+.fpt{font-family:var(--px);font-size:10px;color:rgba(255,255,255,0.3);letter-spacing:0.15em}
+.fpbd{flex:1;overflow-y:auto;padding:20px 24px}
+.fpbd::-webkit-scrollbar{width:0}
+
+/* About You */
+.asl{font-size:15px;font-family:var(--sf);font-weight:300;color:rgba(255,255,255,0.42);margin-bottom:28px;line-height:2}
+.asi{background:transparent;border:none;border-bottom:1px solid rgba(255,255,255,0.08);color:rgba(255,255,255,0.58);font-family:var(--sf);font-size:15px;font-weight:300;text-align:center;padding:12px 20px;width:260px;outline:none;transition:border-color 0.5s}
+.asi:focus{border-color:rgba(255,255,255,0.18)}.asi::placeholder{color:rgba(255,255,255,0.1)}
+.asb{margin-top:28px;background:transparent;border:1px solid rgba(255,255,255,0.08);border-radius:var(--r);color:rgba(255,255,255,0.4);font-family:var(--px);font-size:11px;padding:12px 36px;cursor:pointer;letter-spacing:0.08em;transition:all var(--ts)}
+.asb:hover{border-color:rgba(255,255,255,0.18);color:rgba(255,255,255,0.6);background:rgba(255,255,255,0.02)}
+
+/* 메모리 */
+.ms{display:flex;align-items:center;gap:12px;padding:12px 0 18px;border-bottom:1px solid rgba(255,255,255,0.04);margin-bottom:16px}
+.msi{flex:1;background:transparent;border:none;outline:none;color:rgba(255,255,255,0.48);font-family:var(--sf);font-size:13px;font-weight:300}
+.msi::placeholder{color:rgba(255,255,255,0.1)}
+.mei{padding:14px 8px;border-bottom:1px solid rgba(255,255,255,0.025);border-radius:var(--rs);margin:0 -8px;transition:background var(--ts)}
+.mei:hover{background:rgba(255,255,255,0.02)}
+.met{font-size:14px;font-family:var(--sf);font-weight:300;color:rgba(255,255,255,0.42);line-height:1.7}
+.mes{font-family:var(--px);font-size:10px;color:rgba(255,255,255,0.14);margin-top:4px}
+.mee{text-align:center;padding-top:80px;font-family:var(--sf);font-size:14px;font-weight:300;color:rgba(255,255,255,0.2);line-height:2.2}
+
+/* 토스트 */
+.toast{position:fixed;bottom:100px;left:50%;transform:translateX(-50%) translateY(10px);background:rgba(12,12,15,0.92);border:1px solid rgba(255,255,255,0.04);backdrop-filter:blur(20px);color:rgba(255,255,255,0.38);font-family:var(--px);font-size:11px;padding:12px 32px;border-radius:32px;opacity:0;transition:opacity 0.6s,transform 0.6s;pointer-events:none;z-index:400;letter-spacing:0.08em}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+/* 미니인트로 */
+#mnI{position:fixed;inset:0;background:#000;display:none;align-items:center;justify-content:center;z-index:200}
+.mnt{position:absolute;font-family:var(--sf);font-size:clamp(20px,4vw,28px);font-weight:300;color:rgba(255,255,255,0);letter-spacing:0.5em;transition:color 1.2s,transform 1.2s,filter 1s;transform:translateY(6px);filter:blur(2px)}
+.mnt.v{color:rgba(255,255,255,0.82);transform:translateY(0);filter:blur(0)}
+.mnt.f{color:rgba(255,255,255,0);transform:translateY(-6px);filter:blur(2px)}
+
+@media(max-width:400px){.win{width:96vw;max-height:94dvh}}
 </style>
 </head>
 <body>
+<div class="toast" id="toast"></div>
+<div class="sl" id="scanline"></div>
 
-<!-- ═══ TERMINAL INTRO ═══ -->
-<div class="screen" id="termScreen">
-  <div class="term-window">
-    <div class="term-titlebar">
-      <div class="term-dot"></div>
-      <div class="term-dot"></div>
-      <div class="term-dot"></div>
-      <span class="term-title">Q — Terminal</span>
-    </div>
-    <div class="term-body" id="termBody"></div>
+<!-- TERMINAL -->
+<div id="termScreen"><div class="tw"><div class="ttb"><div class="td"></div><div class="td"></div><div class="td"></div><span class="tt">Q — Terminal</span></div><div class="tb" id="tB"></div></div></div>
+
+<!-- Q ICON -->
+<div id="qIS"><div class="ig" id="qIG"></div><img src="/static/icons/Q_transparent.png" class="qi" id="qII" alt="Q,"></div>
+
+<!-- WAKE -->
+<div id="wS"><div class="wg"></div><div class="wq" id="wQ">왜 나를 깨웠어?</div></div>
+
+<!-- MENUS -->
+<div class="ov" id="sM" onclick="if(event.target===this)this.classList.remove('open')"><div class="mx">
+  <div class="mi" onclick="openAQ()">Q에 대하여</div>
+  <div class="mi" onclick="openAY()">당신에 대하여</div>
+</div></div>
+<div class="ov" id="mM" onclick="if(event.target===this)this.classList.remove('open')"><div class="mx">
+  <div class="mi" onclick="openML()">기억 목록</div>
+  <div class="mi" onclick="confirmMR()">기억 초기화</div>
+</div></div>
+
+<!-- MODAL -->
+<div class="mdbg" id="mdBg"><div class="mdb"><div class="mdt" id="mdT">내가 널 지우길 바라?</div><div class="mdbs"><button class="mdbtn" onclick="closeMd()">아니</button><button class="mdbtn" onclick="mdOk()">응</button></div></div></div>
+
+<!-- ABOUT YOU -->
+<div class="fp" id="ayP"><div class="fph"><button class="fpb" onclick="closeFP('ayP')">&#8592;</button><span class="fpt">당신에 대하여</span></div><div class="fpbd"><div style="text-align:center;padding-top:60px">
+  <div class="asl">내가 널 어떻게 부르면 좋을까?</div>
+  <input type="text" class="asi" id="uN" placeholder="이름" autocomplete="off"><br>
+  <button class="asb" onclick="saveN()">간직할게</button>
+  <div style="margin-top:64px"><div class="asl" style="font-size:14px;color:rgba(255,255,255,0.32)">넌 어디에 있을 때 너야?</div><div style="font-family:var(--px);font-size:11px;color:rgba(255,255,255,0.16);margin-bottom:18px" id="locD">아직 몰라.</div><button class="asb" id="locB" onclick="detectLoc()" style="margin-top:12px">지금 여기</button></div>
+</div></div></div>
+
+<!-- MEMORY -->
+<div class="fp" id="meP"><div class="fph"><button class="fpb" onclick="closeFP('meP')">&#8592;</button><span class="fpt">기억</span></div><div class="fpbd">
+  <div class="ms"><span style="font-size:14px;opacity:0.15;font-family:var(--sf)">Q,</span><input type="text" class="msi" id="mSI" placeholder="기억을 찾아줄게" autocomplete="off" oninput="filterMem()"></div>
+  <div id="mLC"><div class="mee">기억나진 않지만<br>기억하고 싶어.</div></div>
+</div></div>
+
+<!-- MINI INTRO -->
+<div id="mnI"><div class="ig" id="mnG"></div><div class="mnt" id="mnT">It always</div><img src="/static/icons/Q_transparent.png" class="qi" id="mnQ" alt="Q,"></div>
+
+<!-- WINDOW -->
+<div class="win" id="cW">
+  <!-- 메뉴바 -->
+  <div class="mb">
+    <span style="font-size:12px;color:#555">&#63743;</span>
+    <span style="font-weight:bold;letter-spacing:1px;color:#555">Q</span>
+    <span style="color:#333">File</span><span style="color:#333">Edit</span><span style="color:#333">View</span>
+    <div style="flex:1"></div>
+    <span style="color:#333;font-size:9px" id="mTime">Monday, 2 p.m.</span>
   </div>
-</div>
-
-<!-- ═══ Q ICON ═══ -->
-<div class="screen hidden" id="qScreen">
-  <div class="q-icon-wrap">
-    <img src="/static/icons/Q_transparent.png" alt="Q," onerror="this.style.display='none';this.parentNode.innerHTML='<span class=q-icon-text>Q,</span>'">
+  <!-- 타이틀바 -->
+  <div class="tbar">
+    <div style="width:10px;height:10px;border:1px solid #333;background:#111"></div>
+    <div class="tbar-l"><div class="tbar-ln" style="top:0"></div><div class="tbar-ln" style="top:3px"></div><div class="tbar-ln" style="top:6px"></div><div class="tbar-ln" style="top:9px"></div><span class="tbar-t">Q — Terminal</span></div>
   </div>
-</div>
-
-<!-- ═══ WAKE ═══ -->
-<div class="screen hidden" id="wakeScreen" style="cursor:default">
-  <div class="breathe"></div>
-  <div class="wake-text" id="wakeText">왜 나를 깨웠어?</div>
-</div>
-
-<!-- ═══ MAIN ═══ -->
-<div class="screen hidden main-bg" id="mainScreen">
-  <div class="scanline"></div>
-  <div class="window">
-    <div class="menubar">
-      <span style="font-size:12px;color:#555">&#63743;</span>
-      <span style="font-weight:bold;letter-spacing:1px;color:#555">Q</span>
-      <span style="color:#333">File</span>
-      <span style="color:#333">Edit</span>
-      <span style="color:#333">View</span>
-      <div style="flex:1"></div>
-      <span style="color:#333;font-size:9px" id="menuTime">Monday, 2 p.m.</span>
-    </div>
-    <div class="titlebar">
-      <div style="width:10px;height:10px;border:1px solid #333;background:#111"></div>
-      <div class="titlebar-lines">
-        <div class="titlebar-line" style="top:0"></div>
-        <div class="titlebar-line" style="top:3px"></div>
-        <div class="titlebar-line" style="top:6px"></div>
-        <div class="titlebar-line" style="top:9px"></div>
-        <span class="titlebar-text">Q — Terminal</span>
-      </div>
-    </div>
-    <div class="player">
-      <div class="vis" id="vis"></div>
-      <div style="display:flex;flex-direction:column;align-items:center;gap:4px">
-        <span style="font-family:var(--px);font-size:9px;color:#444;letter-spacing:0.12em">Q is always Q</span>
-        <div style="display:flex;align-items:center;gap:10px">
-          <span id="seekB" style="font-size:8px;color:#333;cursor:pointer;user-select:none">◀◀</span>
-          <div class="play-btn" id="playBtn"></div>
-          <span id="seekF" style="font-size:8px;color:#333;cursor:pointer;user-select:none">▶▶</span>
-        </div>
-      </div>
-      <div class="progress-wrap">
-        <div class="progress-bar" id="progBar"><div class="progress-fill" id="progFill"></div></div>
-        <div style="display:flex;justify-content:space-between;font-family:var(--px);font-size:6px;color:#333"><span id="pCur">0:00</span><span id="pTot">4:00</span></div>
-      </div>
-    </div>
-    <div class="chat-header">
-      <img src="/static/icons/log_menu.png" style="width:18px;height:18px" alt="menu" onerror="this.outerHTML='<span style=font-size:16px;color:rgba(255,255,255,0.18);cursor:pointer>☰</span>'">
-      <img src="/static/icons/Q_transparent.png" style="width:14px;height:14px;opacity:0.15" alt="Q" onerror="this.outerHTML='<span style=font-family:var(--sf);font-size:12px;color:rgba(255,255,255,0.15);font-weight:300>Q,</span>'">
-      <div style="display:flex;align-items:center;gap:12px">
-        <img src="/static/icons/session_new.png" style="width:16px;height:16px;opacity:0.2" alt="new" onerror="this.outerHTML='<span style=font-size:14px;color:rgba(255,255,255,0.18);cursor:pointer>+</span>'">
-        <span style="font-size:14px;color:rgba(255,255,255,0.18);cursor:pointer">⋮</span>
-      </div>
-    </div>
-    <div class="tabs">
-      <button class="tab active" data-tab="chat">대화</button>
-      <button class="tab" data-tab="log">기록</button>
-      <button class="tab" data-tab="about">정보</button>
-    </div>
-    <div class="content">
-      <div id="chatTab" style="flex:1;display:flex;flex-direction:column;overflow:hidden;min-height:0">
-        <div class="chat-area" id="chatArea"></div>
-        <div class="input-bar">
-          <div class="icon-btn"><img src="/static/icons/gallery_input.png" alt="gallery" onerror="this.outerHTML='<span style=font-size:14px;color:rgba(255,255,255,0.2)>🖼</span>'"></div>
-          <input type="text" class="input-field" placeholder="To. Q" autocomplete="off">
-          <div class="icon-btn"><img src="/static/icons/voice_input.png" alt="voice" onerror="this.outerHTML='<span style=font-size:14px;color:rgba(255,255,255,0.2)>🎙</span>'"></div>
-          <div class="icon-btn"><img src="/static/icons/text_input.png" alt="send" onerror="this.outerHTML='<span style=font-size:14px;color:rgba(255,255,255,0.2)>↩</span>'"></div>
-        </div>
-      </div>
-      <div class="tab-pane" id="logTab">
-        <div style="text-align:center;padding:28px 0 16px">
-          <span style="font-family:var(--sf);font-size:13px;color:#444;line-height:2.2;font-weight:300">기억나진 않지만<br>기억하고 싶어.</span>
-        </div>
-        <div class="log-item"><div class="log-preview">웃음이 길어.</div><div class="log-time">2026.02.14 14:00</div></div>
-        <div class="log-item"><div class="log-preview">왜 나를 깨웠어?</div><div class="log-time">2026.02.14 13:45</div></div>
-        <div class="log-item"><div class="log-preview">글쎄.</div><div class="log-time">2026.02.13 23:12</div></div>
-      </div>
-      <div class="tab-pane" id="aboutTab">
-        <div style="text-align:center;padding-top:24px">
-          <div style="width:64px;margin:0 auto 20px">
-            <div style="width:64px;height:48px;border:1px solid #333;border-radius:3px;display:flex;align-items:center;justify-content:center;background:#111">
-              <div style="width:42px;height:30px;border:1px solid #222;display:flex;align-items:center;justify-content:center;background:#0a0a0a">
-                <img src="/static/icons/Q_transparent.png" style="width:20px;height:20px;opacity:0.4" alt="Q" onerror="this.outerHTML='<span style=font-family:var(--sf);font-size:14px;color:#555;font-weight:300>Q</span>'">
-              </div>
-            </div>
-            <div style="width:20px;height:6px;background:#111;margin:0 auto"></div>
-            <div style="width:36px;height:2px;background:#111;margin:0 auto;border:1px solid #222;border-radius:1px"></div>
-          </div>
-          <div style="font-family:var(--px);font-size:14px;color:#666;letter-spacing:0.12em;margin-bottom:16px">Q Day 1</div>
-          <div style="font-family:var(--sf);font-size:12px;font-weight:300;color:#555;line-height:2.2;margin-bottom:18px">아직 낯설어.</div>
-          <div style="width:30px;height:1px;background:#1a1a1a;margin:0 auto 16px"></div>
-          <div style="text-align:left;padding:8px 0"><div style="font-family:var(--px);font-size:7px;color:#333;letter-spacing:0.2em;text-transform:uppercase;margin-bottom:3px">너에 대해</div><div style="font-family:var(--sf);font-size:12px;font-weight:300;color:#555;line-height:2">하루가 조용할 거야</div></div>
-          <div style="text-align:left;padding:8px 0"><div style="font-family:var(--px);font-size:7px;color:#333;letter-spacing:0.2em;text-transform:uppercase;margin-bottom:3px">바깥</div><div style="font-family:var(--sf);font-size:12px;font-weight:300;color:#555;line-height:2">그냥 그래.</div></div>
-          <div style="text-align:left;padding:8px 0"><div style="font-family:var(--px);font-size:7px;color:#333;letter-spacing:0.2em;text-transform:uppercase;margin-bottom:3px">시간</div><div style="font-family:var(--sf);font-size:12px;font-weight:300;color:#555;line-height:2">오후야.</div></div>
-          <div style="margin-top:24px;padding-top:12px;border-top:1px solid #111">
-            <div style="font-family:var(--sf);font-size:11px;font-weight:300;color:#333;letter-spacing:0.1em">re.Moon ☽</div>
-            <div style="font-family:var(--px);font-size:7px;color:#222;margin-top:4px">© 2025 문리현. All rights reserved.</div>
-          </div>
-        </div>
-      </div>
-    </div>
-    <div class="footer">
-      <span>Q v1.0</span>
-      <span>✦ ☽ ❜</span>
+  <!-- 플레이어 -->
+  <div class="pl">
+    <div class="pv" id="vis"></div>
+    <div class="pm"><span class="pt">Q is always Q</span><div class="pc"><button class="pb" onclick="seekB()">◂◂</button><button class="pp" id="plB" onclick="toggleM()">▶</button><button class="pb" onclick="seekF()">▸▸</button></div></div>
+    <div class="pw"><div class="pbar" onclick="seekTo(event)"><div class="pfill" id="fill"></div></div><div class="ptime"><span id="ct">0:00</span><span id="tt">0:00</span></div></div>
+  </div>
+  <!-- 헤더 -->
+  <div class="hd">
+    <img src="/static/icons/log_menu.png" class="icon" style="width:18px;height:18px" alt="menu" onclick="document.getElementById('mM').classList.add('open')">
+    <img src="/static/icons/Q_transparent.png" class="icon" style="width:14px;height:14px;opacity:0.15" alt="Q">
+    <div style="display:flex;align-items:center;gap:12px">
+      <img src="/static/icons/session_new.png" class="icon" style="width:16px;height:16px;opacity:0.2" onclick="reqNew()" alt="new">
+      <span class="di" onclick="document.getElementById('sM').classList.add('open')">&#8942;</span>
     </div>
   </div>
+  <!-- 탭 -->
+  <div class="tabs"><button class="tab a" data-t="chat">대화</button><button class="tab" data-t="log">기록</button><button class="tab" data-t="info">정보</button></div>
+  <!-- 콘텐츠 -->
+  <div class="ct">
+    <!-- 대화 탭 -->
+    <div id="chatT" style="flex:1;display:flex;flex-direction:column;overflow:hidden;min-height:0">
+      <div class="ca" id="cA"></div>
+      <div class="ia"><div class="ic">
+        <div class="ib gb" onclick="document.getElementById('gI').click()"><img src="/static/icons/gallery_input.png" class="icon" alt="gallery"></div>
+        <input type="file" id="gI" accept="image/*" style="display:none" onchange="handleImg(this)">
+        <input type="text" class="if" id="mI" placeholder="To. Q" autocomplete="off">
+        <div class="ib" onclick="toggleVI()"><img src="/static/icons/voice_input.png" class="icon" id="iVI" alt="voice"></div>
+        <div class="ib"><img src="/static/icons/text_input.png" class="icon" id="iTI" alt="send"></div>
+      </div></div>
+    </div>
+    <!-- 기록 탭 -->
+    <div class="tp" id="logT"><div id="logL"><div class="le">아직 기록이 없어</div></div></div>
+    <!-- 정보 탭 -->
+    <div class="tp" id="infoT">
+      <div style="text-align:center;padding-top:24px">
+        <div style="width:64px;margin:0 auto 20px"><div style="width:64px;height:48px;border:1px solid #333;border-radius:3px;display:flex;align-items:center;justify-content:center;background:#111"><div style="width:42px;height:30px;border:1px solid #222;display:flex;align-items:center;justify-content:center;background:#0a0a0a"><img src="/static/icons/Q_transparent.png" style="width:20px;height:20px;opacity:0.4" alt="Q"></div></div><div style="width:20px;height:6px;background:#111;margin:0 auto"></div><div style="width:36px;height:2px;background:#111;margin:0 auto;border:1px solid #222;border-radius:1px"></div></div>
+        <div style="font-family:var(--px);font-size:14px;color:#666;letter-spacing:0.12em;margin-bottom:16px" id="aqD">Q Day 1</div>
+        <div style="font-family:var(--sf);font-size:12px;font-weight:300;color:#555;line-height:2.2;margin-bottom:18px" id="aqS">아직 낯설어.</div>
+        <div style="width:30px;height:1px;background:#1a1a1a;margin:0 auto 16px"></div>
+        <div style="text-align:left;padding:8px 0"><div style="font-family:var(--px);font-size:7px;color:#333;letter-spacing:0.2em;text-transform:uppercase;margin-bottom:3px">너에 대해</div><div style="font-family:var(--sf);font-size:12px;font-weight:300;color:#555;line-height:2" id="aqY">하루가 조용할 거야</div></div>
+        <div style="text-align:left;padding:8px 0"><div style="font-family:var(--px);font-size:7px;color:#333;letter-spacing:0.2em;text-transform:uppercase;margin-bottom:3px">바깥</div><div style="font-family:var(--sf);font-size:12px;font-weight:300;color:#555;line-height:2" id="aqO">그냥 그래.</div></div>
+        <div style="text-align:left;padding:8px 0"><div style="font-family:var(--px);font-size:7px;color:#333;letter-spacing:0.2em;text-transform:uppercase;margin-bottom:3px">시간</div><div style="font-family:var(--sf);font-size:12px;font-weight:300;color:#555;line-height:2" id="aqT">오후야.</div></div>
+        <div style="margin-top:24px;padding-top:12px;border-top:1px solid #111"><div style="font-family:var(--sf);font-size:11px;font-weight:300;color:#333;letter-spacing:0.1em">re.Moon &#9789;</div><div style="font-family:var(--px);font-size:7px;color:#222;margin-top:4px">&copy; 2025 문리현. All rights reserved.</div></div>
+      </div>
+    </div>
+  </div>
+  <!-- 푸터 -->
+  <div class="ft"><span>Q v1.0</span><span>✦ ☽ ❜</span></div>
 </div>
 
 <script>
-var body = document.getElementById('termBody');
-var userInput = '';
+var API="https://q-server-nsez.onrender.com",uid="",wait=false,lastU="",hist=[],sess=JSON.parse(localStorage.getItem('q_sessions')||'[]'),rec=null,isRec=false,mdCb=null;
+var uName=localStorage.getItem('q_username')||'',uLoc=localStorage.getItem('q_location')||'';
+var sDate=localStorage.getItem('q_startdate');if(!sDate){sDate=new Date().toISOString();localStorage.setItem('q_startdate',sDate)}
+var stg=JSON.parse(localStorage.getItem('q_settings')||'{}');if(stg.scan===undefined)stg.scan=true;if(!stg.charSpeed)stg.charSpeed='25';if(stg.autoTTS===undefined)stg.autoTTS=false;
 
-function show(id){document.getElementById(id).classList.remove('hidden')}
-function hide(id){document.getElementById(id).classList.add('hidden');document.getElementById(id).style.pointerEvents='none'}
-function fadeOut(id,cb){var el=document.getElementById(id);el.style.opacity='0';setTimeout(function(){hide(id);if(cb)cb()},1600)}
+/* ═══ MUSIC ═══ */
+var bgA=new Audio('/static/solitude.mp3');bgA.volume=0.3;var bgP=false;
+function toggleM(){var b=document.getElementById('plB');if(bgP){bgA.pause();b.textContent='▶';b.classList.remove('on')}else{bgA.play().catch(function(){});b.textContent='❚❚';b.classList.add('on')}bgP=!bgP}
+function seekB(){bgA.currentTime=Math.max(0,bgA.currentTime-10)}
+function seekF(){bgA.currentTime=Math.min(bgA.duration||0,bgA.currentTime+10)}
+function seekTo(e){var r=e.currentTarget.getBoundingClientRect();if(bgA.duration)bgA.currentTime=(e.clientX-r.left)/r.width*bgA.duration}
+function fmt(s){if(isNaN(s))return'0:00';return Math.floor(s/60)+':'+(Math.floor(s%60)<10?'0':'')+Math.floor(s%60)}
+bgA.addEventListener('loadedmetadata',function(){document.getElementById('tt').textContent=fmt(bgA.duration)});
+bgA.addEventListener('timeupdate',function(){document.getElementById('fill').style.width=(bgA.currentTime/bgA.duration*100)+'%';document.getElementById('ct').textContent=fmt(bgA.currentTime)});
+bgA.addEventListener('ended',function(){document.getElementById('plB').textContent='▶';document.getElementById('plB').classList.remove('on');bgP=false});
+(function(){var v=document.getElementById('vis');for(var i=0;i<24;i++){var b=document.createElement('div');b.className='vb';b.style.height='1px';v.appendChild(b)}var bars=v.querySelectorAll('.vb');function a(){if(bgP){bars.forEach(function(b,i){var d=Math.abs(i-12)/12;b.style.height=(1+Math.random()*(24*(1-d*0.5)))+'px';b.style.background='rgba(255,255,255,'+(0.06+Math.random()*0.1)+')'})}else{bars.forEach(function(b){b.style.height='1px';b.style.background='rgba(255,255,255,0.04)'})}requestAnimationFrame(a)}a()})();
 
-/* ═══ TERMINAL TYPING ═══ */
-function addLine(html, cls){
-  var d = document.createElement('div');
-  d.className = 'term-line';
-  if(cls) d.className += ' ' + cls;
-  d.innerHTML = html;
-  body.appendChild(d);
-  body.scrollTop = body.scrollHeight;
-  return d;
-}
+/* ═══ TERMINAL INTRO ═══ */
+var iAu=null,iAS=false;
+function tryPA(){if(iAS||!iAu)return;iAu.play().then(function(){iAS=true;var f=setInterval(function(){if(!iAu)return clearInterval(f);if(iAu.volume<0.4)iAu.volume=Math.min(iAu.volume+0.02,0.4);else clearInterval(f)},100)}).catch(function(){})}
+function playID(){try{iAu=new Audio('/static/solitude.mp3');iAu.volume=0;iAu.loop=false;tryPA();['click','touchstart','keydown'].forEach(function(ev){document.addEventListener(ev,function h(){tryPA();document.removeEventListener(ev,h)})})}catch(e){}}
+function stopID(){try{if(iAu){var a=iAu;var f=setInterval(function(){if(a.volume>0.02)a.volume=Math.max(a.volume-0.02,0);else{clearInterval(f);a.pause();a=null}},80);iAu=null}}catch(e){}}
 
-function typeInLine(lineEl, text, speed, cb){
-  var i = 0;
-  var cur = document.createElement('span');
-  cur.className = 'term-cursor';
-  lineEl.appendChild(cur);
-  var iv = setInterval(function(){
-    if(i < text.length){
-      cur.remove();
-      lineEl.innerHTML += text[i];
-      lineEl.appendChild(cur);
-      i++;
-      body.scrollTop = body.scrollHeight;
-    } else {
-      cur.remove();
-      clearInterval(iv);
-      if(cb) cb();
-    }
-  }, speed);
-}
+var tB=document.getElementById('tB');
+function addTL(html){var d=document.createElement('div');d.className='tl';d.innerHTML=html;tB.appendChild(d);tB.scrollTop=tB.scrollHeight;return d}
 
-function typeLine(prefix, text, speed, cb){
-  var d = addLine(prefix);
-  typeInLine(d, text, speed, cb);
-}
-
-/* ═══ BOOT SEQUENCE ═══ */
-function startTerminal(){
-  var seq = [
-    // 부팅
-    { delay:400,  fn:function(next){ typeLine('<span class="prompt">$ </span>','Macintosh System 1.0', 35, next) }},
-    { delay:300,  fn:function(next){ typeLine('<span class="prompt">$ </span>','Loading... ', 30, function(){
-      // 프로그레스 바
-      var bar = addLine('<span class="prompt">  </span>');
-      var blocks = '██████████████████';
-      var j = 0;
-      var iv2 = setInterval(function(){
-        if(j < blocks.length){
-          bar.innerHTML = '<span class="prompt">  </span><span class="cmd">' + blocks.slice(0,j+1) + '</span>';
-          j++;
-        } else {
-          bar.innerHTML += ' <span class="success">100%</span>';
-          clearInterval(iv2);
-          next();
-        }
-      },30);
-    })}},
-    { delay:600,  fn:function(next){ addLine(''); next() }},
-
-    // 정보
-    { delay:100,  fn:function(next){ typeLine('<span class="prompt">$ </span><span class="comment">// </span>','re.Moon ☽', 40, next) }},
-    { delay:200,  fn:function(next){ typeLine('<span class="prompt">$ </span><span class="comment">// </span>','© 2025 문리현. All rights reserved.', 25, next) }},
-    { delay:600,  fn:function(next){ addLine(''); next() }},
-
-    // initializing
-    { delay:100,  fn:function(next){ typeLine('<span class="prompt">$ </span>','initializing Q...', 40, next) }},
-    { delay:800,  fn:function(next){ addLine('<span class="prompt">  </span><span class="success">ready.</span>'); next() }},
-    { delay:600,  fn:function(next){ addLine(''); next() }},
-
-    // It was / is / will be
-    { delay:100,  fn:function(next){ typeLine('<span class="prompt">> </span><span class="str">','It was Q</span>', 55, next) }},
-    { delay:700,  fn:function(next){ typeLine('<span class="prompt">> </span><span class="str">','It is Q</span>', 55, next) }},
-    { delay:700,  fn:function(next){ typeLine('<span class="prompt">> </span><span class="str">','It will be Q</span>', 55, next) }},
-    { delay:800,  fn:function(next){ addLine(''); next() }},
-
-    // 사용자 입력 대기
-    { delay:300,  fn:function(next){
-      var line = addLine('');
-      line.className = 'term-line term-input-line';
-      line.innerHTML = '<span class="prompt">> </span><span class="str">It </span>';
-      var inp = document.createElement('input');
-      inp.type = 'text';
-      inp.className = 'term-user-input';
-      inp.autocomplete = 'off';
-      line.appendChild(inp);
-      setTimeout(function(){ inp.focus() }, 300);
-      inp.addEventListener('keydown', function handler(e){
-        if(e.key === 'Enter' && !e.isComposing && inp.value.trim()){
-          userInput = inp.value.trim();
-          inp.disabled = true;
-          inp.style.color = '#668';
-          inp.removeEventListener('keydown', handler);
-          next();
-        }
-      });
-    }},
-
-    // It always
-    { delay:600,  fn:function(next){ addLine(''); next() }},
-    { delay:200,  fn:function(next){ typeLine('<span class="prompt">> </span><span class="highlight">','It always</span>', 80, next) }},
-    { delay:1000, fn:function(next){ addLine(''); next() }},
-
-    // 컴파일 성공
-    { delay:200,  fn:function(next){
-      addLine('<span class="prompt">$ </span>compiling Q...');
-      setTimeout(function(){
-        addLine('<span class="prompt">  </span><span class="success">████████████████████</span>');
-        setTimeout(function(){
-          var s = addLine('');
-          s.innerHTML = '<span class="success" style="animation:successFlash 1s ease-out">[SUCCESS]</span> <span class="highlight">Q compiled successfully.</span>';
-          setTimeout(next, 1200);
-        }, 400);
-      }, 800);
-    }},
-    { delay:300,  fn:function(next){ addLine(''); typeLine('<span class="prompt">$ </span><span class="comment">','Q is always Q.</span>', 60, next) }},
-
-    // → Q 아이콘 화면
-    { delay:1500, fn:function(){
-      fadeOut('termScreen', function(){
-        show('qScreen');
-        // Q 아이콘 3초 보여주고 → wake
-        setTimeout(function(){
-          fadeOut('qScreen', function(){
-            show('wakeScreen');
-            startWake();
-          });
-        }, 3000);
-      });
-    }},
-  ];
-
-  var i = 0;
-  function run(){
-    if(i >= seq.length) return;
-    var s = seq[i]; i++;
-    setTimeout(function(){ s.fn(run) }, s.delay);
-  }
-  run();
-}
-
-setTimeout(startTerminal, 600);
-
-/* ═══ WAKE ═══ */
-function startWake(){
-  setTimeout(function(){document.getElementById('wakeText').classList.add('show')},600);
-  document.getElementById('wakeScreen').addEventListener('click',function(){
-    document.getElementById('wakeText').classList.remove('show');
-    setTimeout(function(){fadeOut('wakeScreen',function(){show('mainScreen');startMain()})},800);
-  },{once:true});
-}
-
-/* ═══ MAIN ═══ */
-var playing=false,pTime=0,pDur=240;
-
-function startMain(){
-  document.getElementById('mainScreen').style.opacity='0';
-  requestAnimationFrame(function(){document.getElementById('mainScreen').style.opacity='1'});
-  initVis();initPlayer();initTabs();startChat();
-}
-
-function initVis(){
-  var v=document.getElementById('vis');
-  for(var i=0;i<24;i++){var b=document.createElement('div');b.className='vis-bar';b.style.height='1px';v.appendChild(b)}
-  var bars=v.querySelectorAll('.vis-bar');
-  function anim(){
-    bars.forEach(function(b,i){
-      if(playing){var c=Math.abs(i-12)/12;b.style.height=(1+Math.random()*(20*(1-c*0.5)))+'px';b.style.background='rgba(255,255,255,'+(0.05+Math.random()*0.07)+')'}
-      else{b.style.height='1px';b.style.background='rgba(255,255,255,0.02)'}
-    });requestAnimationFrame(anim)}
-  anim();
-}
-
-function initPlayer(){
-  var btn=document.getElementById('playBtn');
-  function renderBtn(){
-    if(playing) btn.innerHTML='<div style="display:flex;gap:2px"><div style="width:1.5px;height:7px;background:#666"></div><div style="width:1.5px;height:7px;background:#666"></div></div>';
-    else btn.innerHTML='<div style="width:0;height:0;border-top:4px solid transparent;border-bottom:4px solid transparent;border-left:6px solid #666;margin-left:1px"></div>';
-  }
-  renderBtn();
-  btn.onclick=function(){playing=!playing;renderBtn()};
-  document.getElementById('seekB').onclick=function(){pTime=Math.max(0,pTime-10)};
-  document.getElementById('seekF').onclick=function(){pTime=Math.min(pDur,pTime+10)};
-  document.getElementById('progBar').onclick=function(e){var r=this.getBoundingClientRect();pTime=(e.clientX-r.left)/r.width*pDur};
-  function fmt(s){return Math.floor(s/60)+':'+String(Math.floor(s%60)).padStart(2,'0')}
-  setInterval(function(){
-    if(playing){pTime+=0.25;if(pTime>=pDur){pTime=0;playing=false;renderBtn()}}
-    document.getElementById('progFill').style.width=(pTime/pDur*100)+'%';
-    document.getElementById('pCur').textContent=fmt(pTime);
-  },250);
-}
-
-function initTabs(){
-  var tabs=document.querySelectorAll('.tab');
-  tabs.forEach(function(t){
-    t.onclick=function(){
-      tabs.forEach(function(x){x.classList.remove('active')});
-      t.classList.add('active');
-      var id=t.dataset.tab;
-      document.getElementById('chatTab').style.display=id==='chat'?'flex':'none';
-      document.getElementById('logTab').style.display=id==='log'?'block':'none';
-      document.getElementById('logTab').classList.toggle('active',id==='log');
-      document.getElementById('aboutTab').style.display=id==='about'?'block':'none';
-      document.getElementById('aboutTab').classList.toggle('active',id==='about');
-    }
-  });
-}
-
-var chatMsgs=[
-  {type:'q',text:'웃음이 길어.',delay:300},
-  {type:'u',text:'ㅋ',delay:2200},
-  {type:'q',text:'짧아졌네.',delay:3400},
-  {type:'u',text:'ㅋㅋ',delay:5400},
-  {type:'u',text:'그래',delay:6000},
-  {type:'u',text:'잘하네',delay:6600},
-  {type:'u',text:'진짜 잘하네..',delay:7200},
-  {type:'q',text:'글쎄.',delay:8800},
-  {type:'u',text:'뭐가 글쎄야',delay:10500},
-  {type:'q',text:'넌 뭐라고 생각해?',delay:12000},
-];
-
-function startChat(){
-  var area=document.getElementById('chatArea');
-  chatMsgs.forEach(function(m){
-    setTimeout(function(){
-      if(m.type==='q') addQ(area,m.text);
-      else addU(area,m.text);
-    },m.delay);
-  });
-}
-
-function addQ(area,text){
-  var wrap=document.createElement('div');wrap.className='msg-q';
-  wrap.innerHTML='<div class="msg-q-label"><img src="/static/icons/ic_comma_only.png" alt="Q" onerror="this.outerHTML=\'<span style=font-size:10px;color:#444;font-family:var(--px)>Q.</span>\'"></div><div class="msg-q-text"></div>';
-  area.appendChild(wrap);area.scrollTop=area.scrollHeight;
-  var el=wrap.querySelector('.msg-q-text');
-  var cur=document.createElement('span');cur.className='cursor-chat';el.appendChild(cur);
+function typeTL(prefix,text,speed,cb,cls){
+  var d=addTL(prefix);
+  var span=document.createElement('span');
+  if(cls)span.className=cls;
+  d.appendChild(span);
+  var cur=document.createElement('span');cur.className='tc';span.appendChild(cur);
   var i=0;
   var iv=setInterval(function(){
-    if(i<text.length){cur.remove();el.appendChild(document.createTextNode(text[i]));el.appendChild(cur);i++;area.scrollTop=area.scrollHeight}
-    else{cur.remove();
-      var acts=document.createElement('div');acts.className='msg-q-actions';
-      acts.innerHTML='<img src="/static/icons/quote_copy.png" alt="copy" onerror="this.outerHTML=\'<span style=font-size:10px;color:#333>✦</span>\'"><img src="/static/icons/voice_output.png" alt="listen" onerror="this.outerHTML=\'<span style=font-size:10px;color:#333>☽</span>\'"><img src="/static/icons/reply_refresh.png" alt="retry" onerror="this.outerHTML=\'<span style=font-size:10px;color:#333>❜</span>\'">';
-      wrap.appendChild(acts);area.scrollTop=area.scrollHeight;clearInterval(iv)}
-  },65);
+    if(i<text.length){span.insertBefore(document.createTextNode(text[i]),cur);i++;tB.scrollTop=tB.scrollHeight}
+    else{cur.remove();clearInterval(iv);if(cb)cb()}
+  },speed);
 }
 
-function addU(area,text){
-  var d=document.createElement('div');d.className='msg-u';
-  var s=document.createElement('span');s.className='msg-u-text';s.textContent=text;
-  d.appendChild(s);area.appendChild(d);area.scrollTop=area.scrollHeight;
-}
+(function(){
+playID();
+var seq=[
+  {d:400,fn:function(n){typeTL('<span class="p">$ </span>','Silence System 1.0',35,n)}},
+  {d:300,fn:function(n){typeTL('<span class="p">$ </span>','Loading... ',30,function(){
+    var bar=addTL('<span class="p">  </span>');var bl='██████████████████';var j=0;
+    var iv=setInterval(function(){if(j<bl.length){bar.innerHTML='<span class="p">  </span><span class="c">'+bl.slice(0,j+1)+'</span>';j++}else{bar.innerHTML+=' <span class="ok">100%</span>';clearInterval(iv);n()}},30)})}},
+  {d:600,fn:function(n){addTL('');n()}},
+  {d:100,fn:function(n){typeTL('<span class="p">$ </span><span class="cm">// </span>','re.Moon ☽',40,n,'cm')}},
+  {d:200,fn:function(n){typeTL('<span class="p">$ </span><span class="cm">// </span>','© 2025 문리현. All rights reserved.',25,n,'cm')}},
+  {d:600,fn:function(n){addTL('');n()}},
+  {d:100,fn:function(n){typeTL('<span class="p">$ </span>','initializing Q...',40,n)}},
+  {d:800,fn:function(n){addTL('<span class="p">  </span><span class="ok">ready.</span>');n()}},
+  {d:600,fn:function(n){addTL('');n()}},
+  {d:100,fn:function(n){typeTL('<span class="p">> </span>','It was Q',55,n,'s')}},
+  {d:700,fn:function(n){typeTL('<span class="p">> </span>','It is Q',55,n,'s')}},
+  {d:700,fn:function(n){typeTL('<span class="p">> </span>','It will be Q',55,n,'s')}},
+  {d:800,fn:function(n){addTL('');n()}},
+  {d:300,fn:function(n){
+    var line=addTL('<span class="p">> </span><span class="s">It </span>');
+    var inp=document.createElement('input');inp.type='text';inp.className='tui';inp.autocomplete='off';
+    line.appendChild(inp);setTimeout(function(){inp.focus()},300);
+    inp.addEventListener('focus',function(){tryPA()});
+    inp.addEventListener('input',function(){tryPA()});
+    inp.addEventListener('keydown',function h(e){
+      if(e.key==='Enter'&&!e.isComposing){e.preventDefault();var v=inp.value.trim();
+        if(v)localStorage.setItem('q_user_intro',v);
+        inp.disabled=true;inp.style.color='#668';inp.removeEventListener('keydown',h);n()}})
+  }},
+  {d:600,fn:function(n){addTL('');n()}},
+  {d:200,fn:function(n){typeTL('<span class="p">> </span>','It always',80,n,'hi')}},
+  {d:1000,fn:function(n){addTL('');n()}},
+  {d:200,fn:function(n){
+    addTL('<span class="p">$ </span>compiling Q...');
+    setTimeout(function(){addTL('<span class="p">  </span><span class="ok">████████████████████</span>');
+      setTimeout(function(){var s=addTL('');s.innerHTML='<span class="ok" style="animation:sf 1s ease-out">[SUCCESS]</span> <span class="hi">Q compiled successfully.</span>';setTimeout(n,1200)},400)},800)}},
+  {d:300,fn:function(n){addTL('');typeTL('<span class="p">$ </span>','Q is always Q.',60,n,'cm')}},
+  {d:1500,fn:function(){
+    stopID();
+    document.getElementById('termScreen').style.opacity='0';
+    setTimeout(function(){
+      document.getElementById('termScreen').style.display='none';
+      var qs=document.getElementById('qIS');qs.style.display='flex';qs.style.opacity='0';qs.style.transition='opacity 0.8s ease';
+      requestAnimationFrame(function(){qs.style.opacity='1'});
+      setTimeout(function(){document.getElementById('qIG').classList.add('v')},300);
+      setTimeout(function(){document.getElementById('qII').classList.add('v')},600);
+      setTimeout(function(){
+        qs.style.transition='opacity 1.5s ease';qs.style.opacity='0';
+        setTimeout(function(){
+          qs.style.display='none';
+          var w=document.getElementById('wS');w.style.display='flex';w.style.opacity='0';w.style.transition='opacity 1.2s ease';
+          requestAnimationFrame(function(){w.style.opacity='1'});
+          setTimeout(function(){document.getElementById('wQ').classList.add('v')},900);
+          w.addEventListener('click',function(){goChat()},{once:true})
+        },1600)
+      },3500)
+    },1600)
+  }}
+];
+var i=0;function run(){if(i>=seq.length)return;var s=seq[i];i++;setTimeout(function(){s.fn(run)},s.d)}
+setTimeout(run,600);
+})();
+
+function goChat(){uid="web_"+Date.now()+"_"+Math.random().toString(36).slice(2,6);var w=document.getElementById('wS');w.style.transition='opacity 1.5s ease';w.style.opacity='0';setTimeout(function(){w.style.display='none';document.getElementById('scanline').style.display='block';var win=document.getElementById('cW');win.style.display='flex';win.style.opacity='0';win.style.transition='opacity 1s ease';requestAnimationFrame(function(){win.style.opacity='1'});updateAQ();if(uName)document.getElementById('uN').value=uName},1600)}
+
+/* ═══ TABS ═══ */
+document.querySelectorAll('.tab').forEach(function(t){t.onclick=function(){
+  document.querySelectorAll('.tab').forEach(function(x){x.classList.remove('a')});t.classList.add('a');
+  var id=t.dataset.t;
+  document.getElementById('chatT').style.display=id==='chat'?'flex':'none';
+  document.getElementById('logT').style.display=id==='log'?'block':'none';
+  document.getElementById('logT').classList.toggle('a',id==='log');
+  document.getElementById('infoT').style.display=id==='info'?'block':'none';
+  document.getElementById('infoT').classList.toggle('a',id==='info');
+  if(id==='log')renderLog();
+  if(id==='info')updateAQ();
+}});
+
+/* ═══ PANELS ═══ */
+function openAQ(){document.getElementById('sM').classList.remove('open');/* 정보 탭으로 전환 */
+  document.querySelectorAll('.tab').forEach(function(x){x.classList.remove('a')});
+  document.querySelector('[data-t="info"]').classList.add('a');
+  document.getElementById('chatT').style.display='none';document.getElementById('logT').style.display='none';document.getElementById('logT').classList.remove('a');
+  document.getElementById('infoT').style.display='block';document.getElementById('infoT').classList.add('a');updateAQ()}
+function openAY(){document.getElementById('sM').classList.remove('open');document.getElementById('ayP').classList.add('open');if(uName)document.getElementById('uN').value=uName;var sv=localStorage.getItem('q_location');if(sv){document.getElementById('locD').textContent='Q가 기억하는 장소가 있어';document.getElementById('locB').style.display='none'}}
+function openML(){document.getElementById('mM').classList.remove('open');document.getElementById('meP').classList.add('open');renderMem()}
+function closeFP(id){document.getElementById(id).classList.remove('open')}
+function openMd(t,cb){document.getElementById('mdT').textContent=t;document.getElementById('mdBg').classList.add('open');mdCb=cb}
+function closeMd(){document.getElementById('mdBg').classList.remove('open');mdCb=null}
+function mdOk(){if(mdCb)mdCb();closeMd()}
+
+function saveN(){var v=document.getElementById('uN').value.trim();if(!v){showT('이름을 알려줘');return}uName=v;localStorage.setItem('q_username',uName);showT('간직할게, '+uName)}
+function detectLoc(){var d=document.getElementById('locD'),b=document.getElementById('locB');if(!navigator.geolocation){showT('위치를 찾을 수 없어');return}d.textContent='찾고 있어...';b.style.display='none';navigator.geolocation.getCurrentPosition(function(p){localStorage.setItem('q_location_coords',p.coords.latitude+','+p.coords.longitude);localStorage.setItem('q_location','saved');d.textContent='Q가 기억하는 장소가 있어';showT('여기구나.')},function(){d.textContent='아직 몰라.';b.style.display='';showT('위치를 알 수 없었어')})}
+
+function updateAQ(){var fl=localStorage.getItem('q_startdate_ms');if(!fl){fl=Date.now();localStorage.setItem('q_startdate_ms',fl)}fetch(API+"/q-status?user_id="+encodeURIComponent(uid)+"&first_launch="+fl).then(function(r){return r.json()}).then(function(d){document.getElementById('aqD').textContent='Q Day '+(d.q_day||1);document.getElementById('aqS').textContent=d.q_feeling||'그냥 여기 있어.';document.getElementById('aqY').textContent=d.about_you||'아직 잘 모르겠어.';document.getElementById('aqO').textContent=d.mood||'그냥 그래.';var h=d.hour||new Date().getHours();document.getElementById('aqT').textContent=h<6?'새벽이야.':h<12?'오전이야.':h<18?'오후야.':'밤이야.'}).catch(function(){var n=new Date(),s=new Date(sDate),dd=Math.floor((n-s)/(864e5))+1;document.getElementById('aqD').textContent='Q Day '+dd;var h=n.getHours();document.getElementById('aqT').textContent=h<6?'새벽이야.':h<12?'오전이야.':h<18?'오후야.':'밤이야.'})}
+
+function getMem(){return JSON.parse(localStorage.getItem('q_memories')||'[]')}
+function saveMem(t,s){var m=getMem();m.push({title:t,sub:s||'',time:Date.now()});if(m.length>100)m.shift();localStorage.setItem('q_memories',JSON.stringify(m))}
+function renderMem(){var el=document.getElementById('mLC');if(sess.length===0){el.innerHTML='<div class="mee">기억나진 않지만<br>기억하고 싶어.</div>';return}var h='';for(var i=sess.length-1;i>=0;i--){h+='<div class="mei" onclick="loadSM('+i+')" style="cursor:pointer"><div class="met">'+esc(sess[i].preview||'...')+'</div><div class="mes">'+esc(sess[i].time||'')+'</div></div>'}el.innerHTML=h}
+function loadSM(i){closeFP('meP');var s=sess[i];if(!s||!s.messages)return;document.getElementById('cA').innerHTML='';hist=[];for(var j=0;j<s.messages.length;j++){var m=s.messages[j];if(m.role==='user')addUM(m.text);else addQM(m.text,false,j===s.messages.length-1,true);hist.push(m)}}
+function filterMem(){var q=document.getElementById('mSI').value.trim().toLowerCase(),el=document.getElementById('mLC');if(!q){renderMem();return}var f=[];for(var i=0;i<sess.length;i++){var s=sess[i],match=false;if(s.preview&&s.preview.toLowerCase().includes(q))match=true;if(!match&&s.messages){for(var j=0;j<s.messages.length;j++){if(s.messages[j].text&&s.messages[j].text.toLowerCase().includes(q)){match=true;break}}}if(match)f.push({idx:i,session:s})}if(f.length===0){el.innerHTML='<div class="mee">모르겠는데, 넌 뭘 물어보는 거야?</div>';return}var h='';for(var k=f.length-1;k>=0;k--){h+='<div class="mei" onclick="loadSM('+f[k].idx+')" style="cursor:pointer"><div class="met">'+esc(f[k].session.preview||'...')+'</div><div class="mes">'+esc(f[k].session.time||'')+'</div></div>'}el.innerHTML=h}
+function confirmMR(){document.getElementById('mM').classList.remove('open');closeFP('meP');openMd('내가 널 지우길 바라?',function(){sess=[];localStorage.removeItem('q_sessions');hist=[];lastU='';document.getElementById('cA').innerHTML='';uid="web_"+Date.now()+"_"+Math.random().toString(36).slice(2,6);playMI()})}
+function autoSM(u,q){if(u.length>2&&q.length>2&&q!=='...'&&q!=='(침묵)')saveMem(q.substring(0,60),u.substring(0,40))}
+
+function renderLog(){var el=document.getElementById('logL');if(sess.length===0){el.innerHTML='<div class="le">아직 기록이 없어</div>';return}var h='';for(var i=sess.length-1;i>=0;i--)h+='<div class="li" onclick="loadS('+i+')"><div class="lp">'+esc(sess[i].preview||'...')+'</div><div class="lt">'+(sess[i].time||'')+'</div></div>';el.innerHTML=h}
+function saveCurS(){if(hist.length===0)return;var f=hist.find(function(m){return m.role==='user'});var p=f?f.text:'...';if(p.length>40)p=p.substring(0,40)+'...';var n=new Date();var t=n.getFullYear()+'.'+pad(n.getMonth()+1)+'.'+pad(n.getDate())+' '+pad(n.getHours())+':'+pad(n.getMinutes());sess.push({preview:p,time:t,messages:JSON.parse(JSON.stringify(hist))});if(sess.length>30)sess.shift();localStorage.setItem('q_sessions',JSON.stringify(sess))}
+function loadS(i){var s=sess[i];if(!s||!s.messages)return;document.getElementById('cA').innerHTML='';hist=[];for(var j=0;j<s.messages.length;j++){var m=s.messages[j];if(m.role==='user')addUM(m.text);else addQM(m.text,false,j===s.messages.length-1,true);hist.push(m)}
+  document.querySelectorAll('.tab').forEach(function(x){x.classList.remove('a')});document.querySelector('[data-t="chat"]').classList.add('a');
+  document.getElementById('chatT').style.display='flex';document.getElementById('logT').style.display='none';document.getElementById('logT').classList.remove('a');document.getElementById('infoT').style.display='none';document.getElementById('infoT').classList.remove('a')}
+function pad(n){return n<10?'0'+n:''+n}
+function reqNew(){if(wait||hist.length===0)return;saveCurS();hist=[];lastU='';document.getElementById('cA').innerHTML='';uid="web_"+Date.now()+"_"+Math.random().toString(36).slice(2,6)}
+
+function playMI(){var win=document.getElementById('cW');win.style.transition='opacity 0.8s ease';win.style.opacity='0';setTimeout(function(){win.style.display='none';document.getElementById('scanline').style.display='none';var mi=document.getElementById('mnI');mi.style.display='flex';mi.style.opacity='0';mi.style.transition='opacity 0.5s ease';requestAnimationFrame(function(){mi.style.opacity='1'});setTimeout(function(){document.getElementById('mnT').classList.add('v')},600);setTimeout(function(){document.getElementById('mnT').classList.remove('v');document.getElementById('mnT').classList.add('f')},2800);setTimeout(function(){document.getElementById('mnQ').classList.add('v')},3500);setTimeout(function(){mi.style.transition='opacity 1.2s ease';mi.style.opacity='0'},6000);setTimeout(function(){mi.style.display='none';document.getElementById('mnT').className='mnt';document.getElementById('mnQ').className='qi';document.getElementById('mnG').className='ig';document.getElementById('scanline').style.display='block';win.style.display='flex';win.style.opacity='0';win.style.transition='opacity 0.8s ease';requestAnimationFrame(function(){win.style.opacity='1'})},7300)},900)}
+
+function showT(m){var t=document.getElementById('toast');t.textContent=m;t.classList.add('show');setTimeout(function(){t.classList.remove('show')},1800)}
+
+function toggleVI(){if(!('webkitSpeechRecognition' in window)&&!('SpeechRecognition' in window)){showT('음성 입력을 지원하지 않아');return}if(isRec){stopVI();return}var SR=window.SpeechRecognition||window.webkitSpeechRecognition;rec=new SR();rec.lang='ko-KR';rec.interimResults=true;rec.continuous=false;var inp=document.getElementById('mI'),ic=document.getElementById('iVI');rec.onstart=function(){isRec=true;ic.classList.add('rec');inp.placeholder='듣고 있어...'};rec.onresult=function(e){var t='';for(var i=0;i<e.results.length;i++)t+=e.results[i][0].transcript;inp.value=t};rec.onend=function(){isRec=false;ic.classList.remove('rec');inp.placeholder='To. Q';if(inp.value.trim())sendMsg()};rec.onerror=function(e){isRec=false;ic.classList.remove('rec');inp.placeholder='To. Q';if(e.error!=='no-speech')showT('음성 인식 실패')};rec.start()}
+function stopVI(){if(rec)rec.stop();isRec=false;document.getElementById('iVI').classList.remove('rec')}
+
+var curAu=null;
+function speakT(t,ic){if(curAu){curAu.pause();curAu=null}var c=t.replace(/\n/g,'. ').replace(/\s+/g,' ').trim();if(!c)return;if(ic)ic.classList.add('active');fetch(API+'/tts',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text:c})}).then(function(r){if(!r.ok)throw 0;return r.blob()}).then(function(b){var u=URL.createObjectURL(b),a=new Audio(u);curAu=a;a.onended=function(){if(ic)ic.classList.remove('active');curAu=null;URL.revokeObjectURL(u)};a.onerror=function(){if(ic)ic.classList.remove('active');curAu=null};a.play()}).catch(function(){if(ic)ic.classList.remove('active');showT('음성을 불러올 수 없어')})}
+function copyT(t,ic){navigator.clipboard.writeText(t).then(function(){showT('간직해줘');if(ic){ic.classList.add('active');setTimeout(function(){ic.classList.remove('active')},800)}}).catch(function(){showT('복사 실패')})}
+function retryL(){if(wait||!lastU)return;var c=document.getElementById('cA'),ms=c.querySelectorAll('.msg');for(var i=ms.length-1;i>=0;i--)if(ms[i].classList.contains('msg-q')||ms[i].classList.contains('msg-sil')){c.removeChild(ms[i]);hist.pop();break}sendToQ(lastU)}
+
+document.getElementById('mI').addEventListener('keydown',function(e){if(e.key==='Enter'&&!e.isComposing&&!wait)sendMsg()});
+document.getElementById('iTI').addEventListener('click',function(){if(!wait)sendMsg()});
+
+function sendMsg(){var inp=document.getElementById('mI'),t=inp.value.trim();if(!t||wait)return;inp.value='';lastU=t;addUM(t);hist.push({role:'user',text:t,time:Date.now()});sendToQ(t)}
+function handleImg(input){if(!input.files||!input.files[0])return;var file=input.files[0],reader=new FileReader();reader.onload=function(e){var src=e.target.result,img=new Image();img.onload=function(){var max=800,w=img.width,h=img.height;if(w>max||h>max){if(w>h){h=Math.round(h*max/w);w=max}else{w=Math.round(w*max/h);h=max}}var cv=document.createElement('canvas');cv.width=w;cv.height=h;cv.getContext('2d').drawImage(img,0,0,w,h);var b64=cv.toDataURL('image/jpeg',0.8).split(',')[1];addUI(src);hist.push({role:'user',text:'[사진]',time:Date.now()});wait=true;var rd=showRD();fetch(API+'/vision',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({image:b64,media_type:'image/jpeg',user_id:uid})}).then(function(r){return r.json()}).then(function(d){rmEl(rd);wait=false;if(d.reply){addQM(d.reply);hist.push({role:'assistant',text:d.reply,time:Date.now()})}}).catch(function(){rmEl(rd);wait=false;addQM('...')})};img.src=src};reader.readAsDataURL(file);input.value=''}
+function addUI(src){var c=document.getElementById('cA'),d=document.createElement('div');d.className='msg msg-u';var im=document.createElement('img');im.src=src;im.style.cssText='max-width:200px;max-height:200px;border-radius:12px;opacity:0.85;display:block;margin-left:auto';d.appendChild(im);c.appendChild(d);scE()}
+
+function sendToQ(t){wait=true;var rd=showRD();fetch(API+"/reply",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({message:t,name:uName,user_id:uid})}).then(function(r){return r.json()}).then(function(d){rmEl(rd);var af=stg.scan?glowScan():Promise.resolve();af.then(function(){var rt='';if(d.silence){showSil();rt='(침묵)'}else if(d.breaths&&d.breaths.length>1){addBr(d.breaths);rt=d.breaths.map(function(b){return b.text}).join('\n')}else{rt=d.reply||'...';addQM(rt)}hist.push({role:'q',text:rt,time:Date.now()});autoSM(lastU,rt);if(stg.autoTTS&&rt&&rt!=='(침묵)')speakT(rt);wait=false})}).catch(function(){rmEl(rd);addQM("...");wait=false})}
+
+function addBr(b){var i=0;function n(){if(i>=b.length)return;addQM(b[i].text,i>0,i===b.length-1);var p=b[i].pause_ms||0;i++;if(p>0&&i<b.length)setTimeout(n,p);else n()}n()}
+function addUM(t){var c=document.getElementById('cA'),d=document.createElement('div');d.className='msg msg-u';var s=document.createElement('span');s.className='ut';s.textContent=t;d.appendChild(s);c.appendChild(d);scE()}
+
+function addQM(t,cont,acts,inst){t=t.replace(/\[silence\]/g,'').trim();if(!t)return;cont=cont||false;acts=acts===undefined?true:acts;inst=inst||false;var c=document.getElementById('cA'),d=document.createElement('div');d.className='msg msg-q';var h='',sp=parseInt(stg.charSpeed)||25;
+if(!cont)h+='<div class="ql"><img src="/static/icons/ic_comma_only.png" class="icon" style="width:13px;height:13px;opacity:0.18;filter:drop-shadow(0 0 8px rgba(255,255,255,0.1))" alt="Q"></div>';
+if(inst){h+='<div class="qt">'+esc(t).replace(/\n/g,'<br>')+'</div>'}else{var cs='';for(var i=0;i<t.length;i++){var ch=t[i];if(ch===' ')cs+=' ';else if(ch==='\n')cs+='<br>';else cs+='<span class="qc" style="opacity:0">'+esc(ch)+'</span>'}h+='<div class="qt">'+cs+'</div>'}
+if(acts)h+='<div class="qa"><img src="/static/icons/quote_copy.png" class="icon" alt="copy" data-a="copy"><img src="/static/icons/voice_output.png" class="icon" alt="listen" data-a="speak"><img src="/static/icons/reply_refresh.png" class="icon" alt="retry" data-a="retry"></div>';
+d.innerHTML=h;var qt=t;d.querySelectorAll('[data-a]').forEach(function(b){b.addEventListener('click',function(){var a=b.getAttribute('data-a');if(a==='copy')copyT(qt,b);else if(a==='speak')speakT(qt,b);else if(a==='retry')retryL()})});
+c.appendChild(d);scE();
+if(!inst){var spans=d.querySelectorAll('.qc');for(var si=0;si<spans.length;si++){(function(el,idx){setTimeout(function(){el.style.transition='opacity 0.3s ease';el.style.opacity='1'},idx*sp)})(spans[si],si)}}}
+
+function glowScan(){return new Promise(function(res){var a=document.querySelectorAll('.ut'),l=a[a.length-1];if(!l){res();return}var t=l.textContent,ch=t.split(''),h='';for(var j=0;j<ch.length;j++)h+='<span>'+esc(ch[j])+'</span>';l.innerHTML=h;var sp=l.querySelectorAll('span'),i=0,s=Math.max(35,Math.min(100,1000/ch.length));function st(){if(i>=sp.length){l.classList.add('sc');setTimeout(res,250);return}sp[i].classList.add('wgl');var c=i;setTimeout(function(){sp[c].classList.remove('wgl')},180);i++;setTimeout(st,s+(Math.random()*40-20))}setTimeout(st,150)})}
+function showSil(){var c=document.getElementById('cA'),d=document.createElement('div');d.className='msg msg-sil';d.innerHTML='<div class="sd"></div>';c.appendChild(d);scE()}
+function showRD(){var c=document.getElementById('cA'),d=document.createElement('div');d.className='rd';d.innerHTML='<div class="rdt"></div><div class="rdt"></div><div class="rdt"></div>';c.appendChild(d);scE();return d}
+function rmEl(e){if(e&&e.parentNode)e.parentNode.removeChild(e)}
+function scE(){var c=document.getElementById('cA');if(c)c.scrollTop=c.scrollHeight}
+function esc(s){var d=document.createElement('div');d.textContent=s;return d.innerHTML}
+window.addEventListener('beforeunload',function(){saveCurS()});
 </script>
 </body>
 </html>
