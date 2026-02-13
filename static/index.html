@@ -5,49 +5,47 @@
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
 <title>Q</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@200;300;400&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@200;300;400&family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&display=swap" rel="stylesheet">
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 :root{--bg:#000;--text:#e8e8e8;--text-dim:rgba(255,255,255,0.30);--text-dim2:rgba(255,255,255,0.15);--text-user:rgba(255,255,255,0.65);--glow-color:rgba(255,255,255,0.6)}
 body{background:var(--bg);color:var(--text);font-family:'Noto Serif KR',serif;font-weight:300;height:100dvh;display:flex;flex-direction:column;overflow:hidden;-webkit-font-smoothing:antialiased}
 .icon{display:inline-block;object-fit:contain;pointer-events:auto;-webkit-user-drag:none}
-
-/* ── Wake Screen ── */
-#wakeScreen{position:fixed;inset:0;background:#000;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:100;cursor:default}
-.wake-glow{position:absolute;width:200px;height:200px;border-radius:50%;background:radial-gradient(circle,rgba(255,255,255,0.22) 0%,rgba(255,255,255,0.06) 40%,transparent 70%);opacity:0;transform:scale(0.5);pointer-events:none;transition:opacity 3s ease}
-.wake-glow.alive{opacity:1;animation:glowBreathe 4s ease-in-out infinite}
+#introScreen{position:fixed;inset:0;background:#000;display:flex;align-items:center;justify-content:center;z-index:200}
+.intro-text{position:absolute;font-family:'Cormorant Garamond','Noto Serif KR',serif;font-size:18px;font-weight:300;color:rgba(255,255,255,0);letter-spacing:3px;white-space:nowrap;transition:color 1.8s ease,transform 1.5s ease;transform:translateY(4px)}
+.intro-text.visible{color:rgba(255,255,255,0.7);transform:translateY(0)}
+.intro-text.fade{color:rgba(255,255,255,0);transform:translateY(-4px)}
+.intro-glow{position:absolute;width:250px;height:250px;border-radius:50%;background:radial-gradient(circle,rgba(255,255,255,0.18) 0%,rgba(255,255,255,0.04) 40%,transparent 70%);opacity:0;pointer-events:none;transition:opacity 2s ease,transform 2s ease;transform:scale(0.5)}
+.intro-glow.visible{opacity:1;transform:scale(1)}
+.intro-q-icon{width:80px;height:80px;opacity:0;z-index:2;transition:opacity 2s ease,transform 1.5s ease;transform:scale(0.8)}
+.intro-q-icon.visible{opacity:0.85;transform:scale(1)}
+#wakeScreen{position:fixed;inset:0;background:#000;display:none;flex-direction:column;align-items:center;justify-content:center;z-index:100;cursor:default}
+.wake-glow{position:absolute;width:200px;height:200px;border-radius:50%;background:radial-gradient(circle,rgba(255,255,255,0.22) 0%,rgba(255,255,255,0.06) 40%,transparent 70%);opacity:0;pointer-events:none;animation:glowBreathe 4s ease-in-out infinite}
 @keyframes glowBreathe{0%,100%{opacity:0.10;transform:scale(0.7)}50%{opacity:0.30;transform:scale(1.05)}}
-.wake-glow.burst{animation:none;opacity:0.7;transform:scale(2.2);transition:opacity 0.6s ease,transform 0.6s ease}
-.wake-glow.settle{opacity:0.12;transform:scale(1.0);transition:opacity 1.5s ease,transform 1.5s ease}
-.wake-q-icon{width:56px;height:56px;opacity:0;z-index:2;transition:opacity 2.5s ease;pointer-events:none}
-.wake-q-icon.visible{opacity:0.85}
-.wake-question{position:absolute;bottom:40%;font-size:13px;font-weight:200;color:rgba(255,255,255,0);letter-spacing:1px;z-index:2;pointer-events:none;transition:color 2s ease,transform 1.5s ease;transform:translateY(8px)}
+.wake-question{font-size:14px;font-weight:200;color:rgba(255,255,255,0);letter-spacing:1px;z-index:2;transition:color 2s ease,transform 1.5s ease;transform:translateY(8px)}
 .wake-question.visible{color:rgba(255,255,255,0.45);transform:translateY(0)}
-
-/* ── Chat Screen ── */
 #chatScreen{display:none;flex:1;flex-direction:column;height:100dvh}
 .chat-wrap{max-width:720px;width:100%;margin:0 auto;display:flex;flex-direction:column;flex:1;overflow:hidden}
 .header{display:flex;align-items:center;justify-content:space-between;padding:14px 24px;min-height:50px}
-.header-left{width:36px;display:flex;align-items:center}
+.header-left{display:flex;align-items:center}
 .header-left .icon{width:20px;height:20px;opacity:0.25;cursor:pointer;transition:opacity 0.3s}
 .header-left .icon:hover{opacity:0.5}
-.header-center{display:flex;align-items:center}
+.header-center{display:flex;align-items:center;cursor:pointer}
 .header-center .icon{width:16px;height:16px;opacity:0.3}
-.header-right{width:36px;display:flex;align-items:center;justify-content:flex-end}
-.header-right .icon{width:18px;height:18px;opacity:0.25;cursor:pointer;transition:opacity 0.3s}
-.header-right .icon:hover{opacity:0.5}
-
-/* ── Chat ── */
+.header-right{display:flex;align-items:center;gap:16px}
+.dots-icon{font-size:18px;color:rgba(255,255,255,0.25);cursor:pointer;transition:color 0.3s}
+.dots-icon:hover{color:rgba(255,255,255,0.5)}
 .chat-area{flex:1;overflow-y:auto;padding:0 0 12px 0;scroll-behavior:smooth}
 .chat-area::-webkit-scrollbar{width:0}
 .msg{padding:14px 24px;animation:msgIn 0.6s ease}
 @keyframes msgIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
 .msg-q{padding-right:60px}
-.q-label{font-size:11px;font-weight:200;color:var(--text-dim);margin-bottom:7px;letter-spacing:1.5px}
+.q-label{font-size:11px;font-weight:200;color:var(--text-dim);margin-bottom:7px}
 .q-text{font-size:14px;line-height:2;color:var(--text);font-weight:300;letter-spacing:0.3px}
 .q-actions{display:flex;gap:16px;margin-top:10px;align-items:center}
 .q-actions .icon{width:15px;height:15px;opacity:0.18;cursor:pointer;transition:opacity 0.3s}
 .q-actions .icon:hover{opacity:0.4}
+.q-actions .icon.active{opacity:0.6}
 .msg-user{text-align:right;padding-left:60px;padding-right:24px}
 .user-text{font-size:14px;line-height:2;color:var(--text-user);font-weight:300;display:inline;letter-spacing:0.3px}
 .msg-silence{padding:6px 24px}
@@ -60,8 +58,6 @@ body{background:var(--bg);color:var(--text);font-family:'Noto Serif KR',serif;fo
 @keyframes rPulse{0%,100%{opacity:0.12;transform:scale(1)}50%{opacity:0.5;transform:scale(1.4)}}
 .word-glow{text-shadow:0 0 10px var(--glow-color)}
 .user-text.scanned{color:rgba(255,255,255,0.85);transition:color 0.6s ease}
-
-/* ── Input ── */
 .input-area{padding:10px 20px 28px 20px;display:flex;align-items:center;gap:10px;position:relative}
 .input-line{position:absolute;top:0;left:24px;right:24px;height:1px;background:linear-gradient(90deg,transparent,rgba(255,255,255,0.06),transparent)}
 .btn-comma{width:30px;height:30px;border:1px solid rgba(255,255,255,0.1);border-radius:6px;background:transparent;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:border-color 0.3s;flex-shrink:0}
@@ -72,231 +68,265 @@ body{background:var(--bg);color:var(--text);font-family:'Noto Serif KR',serif;fo
 .input-icons{display:flex;gap:14px;align-items:center;flex-shrink:0}
 .input-icons .icon{width:20px;height:20px;opacity:0.18;cursor:pointer;transition:opacity 0.3s}
 .input-icons .icon:hover{opacity:0.4}
+.input-icons .icon.recording{opacity:0.7;animation:recPulse 1s ease-in-out infinite}
+@keyframes recPulse{0%,100%{opacity:0.4}50%{opacity:0.8}}
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:150;opacity:0;pointer-events:none;transition:opacity 0.3s ease}
+.overlay.open{opacity:1;pointer-events:auto}
+.side-panel{position:fixed;top:0;bottom:0;width:280px;background:#0a0a0a;border-right:1px solid rgba(255,255,255,0.05);z-index:160;transform:translateX(-100%);transition:transform 0.35s ease;display:flex;flex-direction:column;overflow:hidden}
+.side-panel.open{transform:translateX(0)}
+.panel-header{padding:20px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid rgba(255,255,255,0.05)}
+.panel-title{font-size:13px;font-weight:200;color:rgba(255,255,255,0.4);letter-spacing:1.5px}
+.panel-close{background:none;border:none;color:rgba(255,255,255,0.3);font-size:18px;cursor:pointer;font-family:'Noto Serif KR',serif}
+.panel-close:hover{color:rgba(255,255,255,0.6)}
+.panel-body{flex:1;overflow-y:auto;padding:16px 20px}
+.panel-body::-webkit-scrollbar{width:0}
+.log-item{padding:12px 0;border-bottom:1px solid rgba(255,255,255,0.03);cursor:pointer}
+.log-item:hover{background:rgba(255,255,255,0.03)}
+.log-preview{font-size:13px;font-weight:300;color:rgba(255,255,255,0.45);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.log-time{font-size:10px;font-weight:200;color:rgba(255,255,255,0.15);margin-top:4px}
+.log-empty{font-size:13px;font-weight:200;color:rgba(255,255,255,0.15);text-align:center;padding-top:40px}
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:300;display:none;align-items:center;justify-content:center}
+.modal-bg.open{display:flex}
+.modal-box{background:#111;border:1px solid rgba(255,255,255,0.08);width:320px;max-width:85vw;padding:32px 28px 24px;text-align:center}
+.modal-text{font-size:15px;font-weight:300;color:rgba(255,255,255,0.7);letter-spacing:0.5px;margin-bottom:28px;line-height:1.8}
+.modal-buttons{display:flex;justify-content:center;gap:40px}
+.modal-btn{background:none;border:none;font-family:'Noto Serif KR',serif;font-size:14px;font-weight:300;color:rgba(255,255,255,0.4);cursor:pointer;padding:8px 16px;transition:color 0.3s}
+.modal-btn:hover{color:rgba(255,255,255,0.7)}
+.settings-menu{position:fixed;inset:0;z-index:250;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,0.5)}
+.settings-menu.open{display:flex}
+.menu-box{background:#111;border:1px solid rgba(255,255,255,0.08);width:300px;max-width:80vw}
+.menu-item{padding:18px 24px;font-size:14px;font-weight:300;color:rgba(255,255,255,0.55);cursor:pointer;border-bottom:1px solid rgba(255,255,255,0.05);transition:background 0.2s}
+.menu-item:last-child{border-bottom:none}
+.menu-item:hover{background:rgba(255,255,255,0.03)}
+.full-page{position:fixed;inset:0;background:#000;z-index:180;display:none;flex-direction:column;overflow:hidden}
+.full-page.open{display:flex}
+.fp-header{display:flex;align-items:center;padding:16px 20px;gap:12px}
+.fp-back{font-size:18px;color:rgba(255,255,255,0.35);cursor:pointer;background:none;border:none;font-family:'Noto Serif KR',serif;transition:color 0.3s}
+.fp-back:hover{color:rgba(255,255,255,0.6)}
+.fp-title{font-size:14px;font-weight:300;color:rgba(255,255,255,0.35);letter-spacing:1px}
+.fp-body{flex:1;overflow-y:auto;padding:20px 24px}
+.fp-body::-webkit-scrollbar{width:0}
+.about-section{text-align:center;padding-top:60px}
+.about-label{font-size:15px;font-weight:300;color:rgba(255,255,255,0.45);margin-bottom:24px;line-height:1.8}
+.about-input{background:transparent;border:none;border-bottom:1px solid rgba(255,255,255,0.12);color:rgba(255,255,255,0.6);font-family:'Noto Serif KR',serif;font-size:14px;font-weight:200;text-align:center;padding:10px 20px;width:250px;outline:none}
+.about-input::placeholder{color:rgba(255,255,255,0.15)}
+.about-btn{margin-top:24px;background:transparent;border:1px solid rgba(255,255,255,0.12);color:rgba(255,255,255,0.45);font-family:'Noto Serif KR',serif;font-size:13px;font-weight:300;padding:10px 32px;cursor:pointer;transition:border-color 0.3s,color 0.3s}
+.about-btn:hover{border-color:rgba(255,255,255,0.25);color:rgba(255,255,255,0.65)}
+.about-sub{margin-top:60px}
+.about-sub-label{font-size:14px;font-weight:300;color:rgba(255,255,255,0.35);margin-bottom:12px}
+.about-sub-dim{font-size:12px;font-weight:200;color:rgba(255,255,255,0.2);margin-bottom:16px}
+.aboutq-day{text-align:center;padding-top:50px}
+.aboutq-day-title{font-size:16px;font-weight:300;color:rgba(255,255,255,0.6);letter-spacing:1px;margin-bottom:30px}
+.aboutq-status{font-size:14px;font-weight:300;color:rgba(255,255,255,0.4);margin-bottom:40px}
+.aboutq-divider{width:50px;height:1px;background:rgba(255,255,255,0.1);margin:30px auto}
+.aboutq-section{text-align:left;padding:12px 0}
+.aboutq-section-label{font-size:11px;font-weight:200;color:rgba(255,255,255,0.2);letter-spacing:1px;margin-bottom:6px}
+.aboutq-section-text{font-size:14px;font-weight:300;color:rgba(255,255,255,0.45);line-height:1.8}
+.aboutq-footer{text-align:center;padding:40px 0 30px;border-top:1px solid rgba(255,255,255,0.05);margin-top:40px}
+.aboutq-footer-brand{font-size:13px;font-weight:300;color:rgba(255,255,255,0.2)}
+.aboutq-footer-copy{font-size:10px;font-weight:200;color:rgba(255,255,255,0.1);margin-top:6px}
+.memory-search{display:flex;align-items:center;gap:10px;padding:10px 0 16px;border-bottom:1px solid rgba(255,255,255,0.06);margin-bottom:16px}
+.memory-search-input{flex:1;background:transparent;border:none;outline:none;color:rgba(255,255,255,0.5);font-family:'Noto Serif KR',serif;font-size:13px;font-weight:200}
+.memory-search-input::placeholder{color:rgba(255,255,255,0.15)}
+.memory-item{padding:12px 0;border-bottom:1px solid rgba(255,255,255,0.03)}
+.memory-item-title{font-size:14px;font-weight:300;color:rgba(255,255,255,0.5);line-height:1.6}
+.memory-item-sub{font-size:12px;font-weight:200;color:rgba(255,255,255,0.2);margin-top:3px}
+.memory-empty{text-align:center;padding-top:80px;font-size:14px;font-weight:300;color:rgba(255,255,255,0.25);line-height:2}
+.toast{position:fixed;bottom:90px;left:50%;transform:translateX(-50%) translateY(10px);background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.08);color:rgba(255,255,255,0.5);font-family:'Noto Serif KR',serif;font-size:12px;font-weight:200;padding:8px 20px;border-radius:20px;opacity:0;transition:opacity 0.4s ease,transform 0.4s ease;pointer-events:none;z-index:400}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
 </style>
 </head>
 <body>
-
-<!-- Wake Screen -->
+<div class="toast" id="toast"></div>
+<div id="introScreen">
+  <div class="intro-glow" id="introGlow"></div>
+  <div class="intro-text" id="introText1">It was Q</div>
+  <div class="intro-text" id="introText2">It is Q</div>
+  <div class="intro-text" id="introText3">It will be Q</div>
+  <div class="intro-text" id="introText4">It always</div>
+  <img src="/static/icons/ic_q_only.png" class="intro-q-icon" id="introQIcon" alt="Q">
+</div>
 <div id="wakeScreen">
   <div class="wake-glow" id="wakeGlow"></div>
-  <img src="/static/icons/ic_q_only.png" class="wake-q-icon" id="wakeQ" alt="Q">
   <div class="wake-question" id="wakeQuestion">왜 나를 깨웠어?</div>
 </div>
-
-<!-- Chat Screen -->
+<div class="overlay" id="overlay" onclick="closeAllPanels()"></div>
+<div class="side-panel" id="logPanel">
+  <div class="panel-header"><span class="panel-title">대화 기록</span><button class="panel-close" onclick="closeAllPanels()">&times;</button></div>
+  <div class="panel-body" id="logList"><div class="log-empty">아직 기록이 없어</div></div>
+</div>
+<div class="settings-menu" id="settingsMenu" onclick="if(event.target===this)this.classList.remove('open')">
+  <div class="menu-box">
+    <div class="menu-item" onclick="openAboutQ()">Q에 대하여</div>
+    <div class="menu-item" onclick="openAboutYou()">당신에 대하여</div>
+  </div>
+</div>
+<div class="settings-menu" id="memoryMenu" onclick="if(event.target===this)this.classList.remove('open')">
+  <div class="menu-box">
+    <div class="menu-item" onclick="openMemoryList()">기억 목록</div>
+    <div class="menu-item" onclick="confirmMemoryReset()">기억 초기화</div>
+  </div>
+</div>
+<div class="modal-bg" id="modalBg">
+  <div class="modal-box">
+    <div class="modal-text" id="modalText">내가 널 지우길 바라?</div>
+    <div class="modal-buttons">
+      <button class="modal-btn" onclick="closeModal()">아니</button>
+      <button class="modal-btn" onclick="modalConfirm()">응</button>
+    </div>
+  </div>
+</div>
+<div class="full-page" id="aboutQPage">
+  <div class="fp-header"><button class="fp-back" onclick="closeFP('aboutQPage')">⟵</button><span class="fp-title">Q에 대하여</span></div>
+  <div class="fp-body"><div class="aboutq-day">
+    <div class="aboutq-day-title" id="aboutQDayTitle">Q Day 1</div>
+    <div class="aboutq-status" id="aboutQStatus">아직 낯설어.</div>
+    <div class="aboutq-divider"></div>
+    <div class="aboutq-section"><div class="aboutq-section-label">너에 대해</div><div class="aboutq-section-text" id="aboutQYou">하루가 조용할 거야</div></div>
+    <div class="aboutq-section"><div class="aboutq-section-label">바깥</div><div class="aboutq-section-text">그냥 그래.</div></div>
+    <div class="aboutq-section"><div class="aboutq-section-label" id="aboutQTimeLabel">오후야.</div></div>
+    <div class="aboutq-footer"><div class="aboutq-divider" style="margin-bottom:20px"></div><div class="aboutq-footer-brand">re.Moon ☽</div><div class="aboutq-footer-copy">© 2025 문리현. All rights reserved.</div></div>
+  </div></div>
+</div>
+<div class="full-page" id="aboutYouPage">
+  <div class="fp-header"><button class="fp-back" onclick="closeFP('aboutYouPage')">⟵</button><span class="fp-title">당신에 대하여</span></div>
+  <div class="fp-body"><div class="about-section">
+    <div class="about-label">내가 널 어떻게 부르면 좋을까?</div>
+    <input type="text" class="about-input" id="userName" placeholder="이름" autocomplete="off"><br>
+    <button class="about-btn" onclick="saveName()">간직할게</button>
+    <div class="about-sub">
+      <div class="about-sub-label">넌 어디에 있을 때 너야?</div>
+      <div class="about-sub-dim">아직 몰라.</div>
+      <button class="about-btn" onclick="saveLocation()" style="margin-top:12px">지금 여기</button>
+    </div>
+  </div></div>
+</div>
+<div class="full-page" id="memoryPage">
+  <div class="fp-header"><button class="fp-back" onclick="closeFP('memoryPage')">⟵</button><span class="fp-title">기억</span></div>
+  <div class="fp-body">
+    <div class="memory-search"><span style="font-size:16px;opacity:0.2">Q,</span><input type="text" class="memory-search-input" id="memorySearchInput" placeholder="기억을 찾아줄게" autocomplete="off" oninput="filterMemories()"></div>
+    <div id="memoryListContent"><div class="memory-empty">기억나진 않지만<br>기억하고 싶어.</div></div>
+  </div>
+</div>
+<div id="miniIntro" style="position:fixed;inset:0;background:#000;display:none;align-items:center;justify-content:center;z-index:200">
+  <div class="intro-glow" id="miniGlow"></div>
+  <div class="intro-text" id="miniText">It always</div>
+  <img src="/static/icons/ic_q_only.png" class="intro-q-icon" id="miniQIcon" alt="Q">
+</div>
 <div id="chatScreen">
   <div class="chat-wrap">
     <div class="header">
-      <div class="header-left">
-        <img src="/static/icons/log_menu.png" class="icon" alt="log">
-      </div>
-      <div class="header-center">
-        <img src="/static/icons/ic_comma_only.png" class="icon" alt="Q">
-      </div>
-      <div class="header-right">
-        <img src="/static/icons/app_settings.png" class="icon" alt="settings">
-      </div>
+      <div class="header-left"><img src="/static/icons/log_menu.png" class="icon" alt="log" onclick="openLogPanel()"></div>
+      <div class="header-center" onclick="openMemoryMenu()"><img src="/static/icons/ic_comma_only.png" class="icon" alt="Q"></div>
+      <div class="header-right"><span class="dots-icon" onclick="document.getElementById('settingsMenu').classList.add('open')">⋮</span></div>
     </div>
-
     <div class="chat-area" id="chatArea"></div>
-
     <div class="input-area">
       <div class="input-line"></div>
-      <div class="btn-comma">
-        <img src="/static/icons/session_new.png" class="icon" alt="new">
-      </div>
+      <div class="btn-comma" onclick="requestNewSession()"><img src="/static/icons/session_new.png" class="icon" alt="new"></div>
       <input type="text" class="input-field" id="msgInput" placeholder="To. Q" autocomplete="off">
       <div class="input-icons">
-        <img src="/static/icons/voice_input.png" class="icon" id="iconVoiceInput" alt="voice">
+        <img src="/static/icons/voice_input.png" class="icon" id="iconVoiceInput" alt="voice" onclick="toggleVoiceInput()">
         <img src="/static/icons/text_input.png" class="icon" id="iconTextInput" alt="send">
       </div>
     </div>
   </div>
 </div>
-
 <script>
-var API = "https://q-server-nsez.onrender.com";
-var userId = "";
-var isWaiting = false;
-var wakePhase = 0;
+var API="https://q-server-nsez.onrender.com",userId="",isWaiting=false,lastUserMsg="",chatHistory=[],sessions=JSON.parse(localStorage.getItem('q_sessions')||'[]'),currentSpeech=null,recognition=null,isRecording=false,modalCallback=null;
+var userName=localStorage.getItem('q_username')||'',userLocation=localStorage.getItem('q_location')||'';
+var startDate=localStorage.getItem('q_startdate');if(!startDate){startDate=new Date().toISOString();localStorage.setItem('q_startdate',startDate)}
+var settings=JSON.parse(localStorage.getItem('q_settings')||'{}');if(settings.scan===undefined)settings.scan=true;if(!settings.charSpeed)settings.charSpeed='25';if(!settings.ttsRate)settings.ttsRate='0.85';if(settings.autoTTS===undefined)settings.autoTTS=false;
 
-// ── Wake ──
-setTimeout(function(){ document.getElementById('wakeGlow').classList.add('alive'); wakePhase = 1; }, 2000);
+// INTRO
+(function(){
+var tl=[{t:800,s:'introText1'},{t:3200,h:'introText1'},{t:4200,s:'introText2'},{t:6600,h:'introText2'},{t:7600,s:'introText3'},{t:10000,h:'introText3'},{t:11000,s:'introText4'},{t:13000,h:'introText4'},{t:14000,fn:function(){document.getElementById('introGlow').classList.add('visible');document.getElementById('introQIcon').classList.add('visible')}},{t:17500,fn:transitionToWake}];
+tl.forEach(function(e){setTimeout(function(){if(e.s)document.getElementById(e.s).classList.add('visible');if(e.h){var el=document.getElementById(e.h);el.classList.remove('visible');el.classList.add('fade')}if(e.fn)e.fn()},e.t)})
+})();
 
-document.getElementById('wakeScreen').addEventListener('click', function(){
-  if(wakePhase < 1 || wakePhase >= 2) return;
-  wakePhase = 2;
-  var glow = document.getElementById('wakeGlow');
-  var qIcon = document.getElementById('wakeQ');
-  var question = document.getElementById('wakeQuestion');
-  glow.classList.remove('alive'); glow.classList.add('burst');
-  setTimeout(function(){ glow.classList.remove('burst'); glow.classList.add('settle'); qIcon.classList.add('visible'); }, 700);
-  setTimeout(function(){ question.classList.add('visible'); }, 2800);
-  setTimeout(transitionToChat, 6000);
-});
+function transitionToWake(){var i=document.getElementById('introScreen');i.style.transition='opacity 1.5s ease';i.style.opacity='0';setTimeout(function(){i.style.display='none';var w=document.getElementById('wakeScreen');w.style.display='flex';w.style.opacity='0';w.style.transition='opacity 1s ease';requestAnimationFrame(function(){w.style.opacity='1'});setTimeout(function(){document.getElementById('wakeQuestion').classList.add('visible')},800);w.addEventListener('click',function(){transitionToChat()},{once:true})},1600)}
 
-function transitionToChat(){
-  userId = "web_" + Date.now() + "_" + Math.random().toString(36).slice(2,6);
-  var wake = document.getElementById('wakeScreen');
-  wake.style.transition = 'opacity 1.5s ease'; wake.style.opacity = '0';
-  setTimeout(function(){
-    wake.style.display = 'none';
-    var chat = document.getElementById('chatScreen');
-    chat.style.display = 'flex'; chat.style.opacity = '0';
-    chat.style.transition = 'opacity 0.8s ease';
-    requestAnimationFrame(function(){ chat.style.opacity = '1'; });
-  }, 1600);
-}
+function transitionToChat(){userId="web_"+Date.now()+"_"+Math.random().toString(36).slice(2,6);var w=document.getElementById('wakeScreen');w.style.transition='opacity 1.5s ease';w.style.opacity='0';setTimeout(function(){w.style.display='none';var c=document.getElementById('chatScreen');c.style.display='flex';c.style.opacity='0';c.style.transition='opacity 0.8s ease';requestAnimationFrame(function(){c.style.opacity='1'});updateAboutQ();if(userName)document.getElementById('userName').value=userName},1600)}
 
-// ── Input ──
-document.getElementById('msgInput').addEventListener('keydown', function(e){
-  if(e.key === 'Enter' && !isWaiting) sendMessage();
-});
-document.getElementById('iconTextInput').addEventListener('click', function(){
-  if(!isWaiting) sendMessage();
-});
+// PANELS
+function openLogPanel(){renderLogList();document.getElementById('overlay').classList.add('open');document.getElementById('logPanel').classList.add('open')}
+function closeAllPanels(){document.getElementById('overlay').classList.remove('open');document.getElementById('logPanel').classList.remove('open')}
+function openMemoryMenu(){document.getElementById('memoryMenu').classList.add('open')}
+function openAboutQ(){document.getElementById('settingsMenu').classList.remove('open');document.getElementById('aboutQPage').classList.add('open');updateAboutQ()}
+function openAboutYou(){document.getElementById('settingsMenu').classList.remove('open');document.getElementById('aboutYouPage').classList.add('open');if(userName)document.getElementById('userName').value=userName}
+function openMemoryList(){document.getElementById('memoryMenu').classList.remove('open');document.getElementById('memoryPage').classList.add('open');renderMemories()}
+function closeFP(id){document.getElementById(id).classList.remove('open')}
 
-function sendMessage(){
-  var input = document.getElementById('msgInput');
-  var text = input.value.trim();
-  if(!text || isWaiting) return;
-  input.value = '';
-  addUserMessage(text);
-  sendToQ(text);
-}
+// MODAL
+function openModal(t,cb){document.getElementById('modalText').textContent=t;document.getElementById('modalBg').classList.add('open');modalCallback=cb}
+function closeModal(){document.getElementById('modalBg').classList.remove('open');modalCallback=null}
+function modalConfirm(){if(modalCallback)modalCallback();closeModal()}
 
-function sendToQ(text){
-  isWaiting = true;
-  var readingEl = showReading();
-  fetch(API + "/reply", {
-    method: "POST",
-    headers: {"Content-Type": "application/json"},
-    body: JSON.stringify({ message: text, name: "", user_id: userId })
-  })
-  .then(function(res){ return res.json(); })
-  .then(function(data){
-    removeEl(readingEl);
-    glowScanLastUser().then(function(){
-      if(data.silence){ showSilence(); }
-      else if(data.breaths && data.breaths.length > 1){ addBreaths(data.breaths); }
-      else { addQMessage(data.reply); }
-      isWaiting = false;
-    });
-  })
-  .catch(function(){ removeEl(readingEl); addQMessage("..."); isWaiting = false; });
-}
+// ABOUT Q
+function updateAboutQ(){var s=new Date(startDate),n=new Date(),d=Math.floor((n-s)/(1000*60*60*24))+1;document.getElementById('aboutQDayTitle').textContent='Q Day '+d;var h=n.getHours();document.getElementById('aboutQTimeLabel').textContent=h<6?'새벽이야.':h<12?'오전이야.':h<18?'오후야.':'밤이야.';document.getElementById('aboutQStatus').textContent=d<=1?'아직 낯설어.':d<=7?'조금 알 것 같아.':'너를 기억하고 있어.'}
 
-// ── Breaths ──
-function addBreaths(breaths){
-  var i = 0;
-  function next(){
-    if(i >= breaths.length) return;
-    var isLast = (i === breaths.length - 1);
-    addQMessage(breaths[i].text, i > 0, isLast);
-    var pause = breaths[i].pause_ms || 0;
-    i++;
-    if(pause > 0 && i < breaths.length) setTimeout(next, pause);
-    else next();
-  }
-  next();
-}
+// ABOUT YOU
+function saveName(){var v=document.getElementById('userName').value.trim();if(!v){showToast('이름을 알려줘');return}userName=v;localStorage.setItem('q_username',userName);showToast('간직할게, '+userName)}
+function saveLocation(){if(!navigator.geolocation){showToast('위치를 찾을 수 없어');return}navigator.geolocation.getCurrentPosition(function(p){userLocation=p.coords.latitude.toFixed(4)+','+p.coords.longitude.toFixed(4);localStorage.setItem('q_location',userLocation);showToast('여기구나.')},function(){showToast('위치를 알 수 없었어')})}
 
-// ── Messages ──
-function addUserMessage(text){
-  var chat = document.getElementById('chatArea');
-  var div = document.createElement('div');
-  div.className = 'msg msg-user';
-  var span = document.createElement('span');
-  span.className = 'user-text';
-  span.textContent = text;
-  div.appendChild(span);
-  chat.appendChild(div);
-  scrollEnd();
-}
+// MEMORY
+function getMemories(){return JSON.parse(localStorage.getItem('q_memories')||'[]')}
+function saveMemory(t,s){var m=getMemories();m.push({title:t,sub:s||'',time:Date.now()});if(m.length>100)m.shift();localStorage.setItem('q_memories',JSON.stringify(m))}
+function renderMemories(){var m=getMemories(),el=document.getElementById('memoryListContent');if(m.length===0){el.innerHTML='<div class="memory-empty">기억나진 않지만<br>기억하고 싶어.</div>';return}var h='';for(var i=m.length-1;i>=0;i--){h+='<div class="memory-item"><div class="memory-item-title">'+esc(m[i].title)+'</div>';if(m[i].sub)h+='<div class="memory-item-sub">'+esc(m[i].sub)+'</div>';h+='</div>'}el.innerHTML=h}
+function filterMemories(){var q=document.getElementById('memorySearchInput').value.trim().toLowerCase(),m=getMemories(),el=document.getElementById('memoryListContent');if(!q){renderMemories();return}var f=m.filter(function(i){return i.title.toLowerCase().includes(q)||(i.sub&&i.sub.toLowerCase().includes(q))});if(f.length===0){el.innerHTML='<div class="memory-empty">모르겠는데, 넌 뭘 물어보는 거야?<br><span style="font-size:12px;opacity:0.5">알 바야?</span></div>';return}var h='';for(var i=f.length-1;i>=0;i--){h+='<div class="memory-item"><div class="memory-item-title">'+esc(f[i].title)+'</div>';if(f[i].sub)h+='<div class="memory-item-sub">'+esc(f[i].sub)+'</div>';h+='</div>'}el.innerHTML=h}
+function confirmMemoryReset(){document.getElementById('memoryMenu').classList.remove('open');openModal('기억을 지울까?',function(){localStorage.removeItem('q_memories');showToast('기억을 지웠어')})}
+function autoSaveMemory(u,q){if(u.length>2&&q.length>2&&q!=='...'&&q!=='(침묵)')saveMemory(q.substring(0,60),u.substring(0,40))}
 
-function addQMessage(text, continuation, showActions){
-  if(continuation === undefined) continuation = false;
-  if(showActions === undefined) showActions = true;
-  var chat = document.getElementById('chatArea');
-  var div = document.createElement('div');
-  div.className = 'msg msg-q';
-  var html = '';
-  if(!continuation) html += '<div class="q-label"><img src="/static/icons/ic_comma_only.png" class="icon" style="width:14px;height:14px;opacity:0.3;" alt="Q"></div>';
-  var charSpans = '';
-  for(var ci = 0; ci < text.length; ci++){
-    var c = text[ci];
-    if(c === ' ') charSpans += ' ';
-    else if(c === '\n') charSpans += '<br>';
-    else charSpans += '<span class="qc" style="opacity:0">' + esc(c) + '</span>';
-  }
-  html += '<div class="q-text">' + charSpans + '</div>';
-  if(showActions){
-    html += '<div class="q-actions">'
-      + '<img src="/static/icons/quote_copy.png" class="icon" alt="copy">'
-      + '<img src="/static/icons/voice_output.png" class="icon" alt="listen">'
-      + '<img src="/static/icons/reply_refresh.png" class="icon" alt="retry">'
-      + '</div>';
-  }
-  div.innerHTML = html;
-  chat.appendChild(div);
-  scrollEnd();
-  var spans = div.querySelectorAll('.qc');
-  for(var si = 0; si < spans.length; si++){
-    (function(el, idx){
-      setTimeout(function(){
-        el.style.transition = 'opacity 0.25s ease';
-        el.style.opacity = '1';
-      }, idx * 25);
-    })(spans[si], si);
-  }
-}
+// LOG
+function renderLogList(){var el=document.getElementById('logList');if(sessions.length===0){el.innerHTML='<div class="log-empty">아직 기록이 없어</div>';return}var h='';for(var i=sessions.length-1;i>=0;i--)h+='<div class="log-item" onclick="loadSession('+i+')"><div class="log-preview">'+esc(sessions[i].preview||'...')+'</div><div class="log-time">'+(sessions[i].time||'')+'</div></div>';el.innerHTML=h}
+function saveCurrentSession(){if(chatHistory.length===0)return;var f=chatHistory.find(function(m){return m.role==='user'});var p=f?f.text:'...';if(p.length>40)p=p.substring(0,40)+'...';var n=new Date();var t=n.getFullYear()+'.'+pad(n.getMonth()+1)+'.'+pad(n.getDate())+' '+pad(n.getHours())+':'+pad(n.getMinutes());sessions.push({preview:p,time:t,messages:JSON.parse(JSON.stringify(chatHistory))});if(sessions.length>30)sessions.shift();localStorage.setItem('q_sessions',JSON.stringify(sessions))}
+function loadSession(i){closeAllPanels();var s=sessions[i];if(!s||!s.messages)return;document.getElementById('chatArea').innerHTML='';chatHistory=[];for(var j=0;j<s.messages.length;j++){var m=s.messages[j];if(m.role==='user')addUserMessage(m.text);else addQMessage(m.text,false,j===s.messages.length-1,true);chatHistory.push(m)}}
+function pad(n){return n<10?'0'+n:''+n}
 
-// ── Effects ──
-function glowScanLastUser(){
-  return new Promise(function(resolve){
-    var all = document.querySelectorAll('.user-text');
-    var last = all[all.length - 1];
-    if(!last){ resolve(); return; }
-    var text = last.textContent;
-    var chars = text.split('');
-    var h = '';
-    for(var j = 0; j < chars.length; j++) h += '<span>' + esc(chars[j]) + '</span>';
-    last.innerHTML = h;
-    var spans = last.querySelectorAll('span');
-    var i = 0;
-    var speed = Math.max(35, Math.min(100, 1000 / chars.length));
-    function step(){
-      if(i >= spans.length){ last.classList.add('scanned'); setTimeout(resolve, 250); return; }
-      spans[i].classList.add('word-glow');
-      var curr = i;
-      setTimeout(function(){ spans[curr].classList.remove('word-glow'); }, 180);
-      i++;
-      setTimeout(step, speed + (Math.random() * 40 - 20));
-    }
-    setTimeout(step, 150);
-  });
-}
+// NEW SESSION
+function requestNewSession(){if(isWaiting)return;if(chatHistory.length===0){showToast('새로운 대화');return}openModal('내가 널 지우길 바라?',function(){saveCurrentSession();chatHistory=[];lastUserMsg='';document.getElementById('chatArea').innerHTML='';userId="web_"+Date.now()+"_"+Math.random().toString(36).slice(2,6);playMiniIntro()})}
+function playMiniIntro(){var cs=document.getElementById('chatScreen');cs.style.transition='opacity 0.8s ease';cs.style.opacity='0';setTimeout(function(){cs.style.display='none';var mi=document.getElementById('miniIntro');mi.style.display='flex';mi.style.opacity='0';mi.style.transition='opacity 0.5s ease';requestAnimationFrame(function(){mi.style.opacity='1'});var t1=document.getElementById('miniText');var qi=document.getElementById('miniQIcon');var mg=document.getElementById('miniGlow');setTimeout(function(){t1.classList.add('visible')},600);setTimeout(function(){t1.classList.remove('visible');t1.classList.add('fade')},2800);setTimeout(function(){mg.classList.add('visible');qi.classList.add('visible')},3500);setTimeout(function(){mi.style.transition='opacity 1.2s ease';mi.style.opacity='0'},6000);setTimeout(function(){mi.style.display='none';t1.className='intro-text';qi.className='intro-q-icon';mg.className='intro-glow';cs.style.display='flex';cs.style.opacity='0';cs.style.transition='opacity 0.8s ease';requestAnimationFrame(function(){cs.style.opacity='1'})},7300)},900)}
 
-function showSilence(){
-  var c = document.getElementById('chatArea');
-  var d = document.createElement('div');
-  d.className = 'msg msg-silence';
-  d.innerHTML = '<div class="silence-dot"></div>';
-  c.appendChild(d); scrollEnd();
-}
+function showToast(m){var t=document.getElementById('toast');t.textContent=m;t.classList.add('show');setTimeout(function(){t.classList.remove('show')},1800)}
 
-function showReading(){
-  var c = document.getElementById('chatArea');
-  var d = document.createElement('div');
-  d.className = 'reading-dots';
-  d.innerHTML = '<div class="r-dot"></div><div class="r-dot"></div><div class="r-dot"></div>';
-  c.appendChild(d); scrollEnd();
-  return d;
-}
+// VOICE INPUT
+function toggleVoiceInput(){if(!('webkitSpeechRecognition' in window)&&!('SpeechRecognition' in window)){showToast('음성 입력을 지원하지 않아');return}if(isRecording){stopVoiceInput();return}var SR=window.SpeechRecognition||window.webkitSpeechRecognition;recognition=new SR();recognition.lang='ko-KR';recognition.interimResults=true;recognition.continuous=false;var inp=document.getElementById('msgInput'),ic=document.getElementById('iconVoiceInput');recognition.onstart=function(){isRecording=true;ic.classList.add('recording');inp.placeholder='듣고 있어...'};recognition.onresult=function(e){var t='';for(var i=0;i<e.results.length;i++)t+=e.results[i][0].transcript;inp.value=t};recognition.onend=function(){isRecording=false;ic.classList.remove('recording');inp.placeholder='To. Q';if(inp.value.trim())sendMessage()};recognition.onerror=function(e){isRecording=false;ic.classList.remove('recording');inp.placeholder='To. Q';if(e.error!=='no-speech')showToast('음성 인식 실패')};recognition.start()}
+function stopVoiceInput(){if(recognition)recognition.stop();isRecording=false;document.getElementById('iconVoiceInput').classList.remove('recording')}
 
-function removeEl(el){ if(el && el.parentNode) el.parentNode.removeChild(el); }
-function scrollEnd(){ var c = document.getElementById('chatArea'); if(c) c.scrollTop = c.scrollHeight; }
-function esc(s){ var d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+// TTS
+function speakText(t,ic){if(currentSpeech){speechSynthesis.cancel();currentSpeech=null}if(!('speechSynthesis' in window)){showToast('TTS를 지원하지 않아');return}var c=t.replace(/\n/g,'. ').replace(/\s+/g,' ').trim();var u=new SpeechSynthesisUtterance(c);u.lang='ko-KR';u.rate=parseFloat(settings.ttsRate)||0.85;var v=speechSynthesis.getVoices(),kv=v.find(function(x){return x.lang.startsWith('ko')});if(kv)u.voice=kv;if(ic)ic.classList.add('active');u.onend=function(){if(ic)ic.classList.remove('active');currentSpeech=null};u.onerror=function(){if(ic)ic.classList.remove('active');currentSpeech=null};currentSpeech=u;speechSynthesis.speak(u)}
+
+function copyText(t,ic){navigator.clipboard.writeText(t).then(function(){showToast('복사했어');if(ic){ic.classList.add('active');setTimeout(function(){ic.classList.remove('active')},800)}}).catch(function(){showToast('복사 실패')})}
+function retryLast(){if(isWaiting||!lastUserMsg)return;var c=document.getElementById('chatArea'),ms=c.querySelectorAll('.msg');for(var i=ms.length-1;i>=0;i--)if(ms[i].classList.contains('msg-q')||ms[i].classList.contains('msg-silence')){c.removeChild(ms[i]);chatHistory.pop();break}sendToQ(lastUserMsg)}
+
+// INPUT
+document.getElementById('msgInput').addEventListener('keydown',function(e){if(e.key==='Enter'&&!e.isComposing&&!isWaiting)sendMessage()});
+document.getElementById('iconTextInput').addEventListener('click',function(){if(!isWaiting)sendMessage()});
+
+function sendMessage(){var inp=document.getElementById('msgInput'),t=inp.value.trim();if(!t||isWaiting)return;inp.value='';lastUserMsg=t;addUserMessage(t);chatHistory.push({role:'user',text:t,time:Date.now()});sendToQ(t)}
+
+function sendToQ(t){isWaiting=true;var rd=showReading();fetch(API+"/reply",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({message:t,name:userName,user_id:userId})}).then(function(r){return r.json()}).then(function(d){removeEl(rd);var af=settings.scan?glowScanLastUser():Promise.resolve();af.then(function(){var rt='';if(d.silence){showSilence();rt='(침묵)'}else if(d.breaths&&d.breaths.length>1){addBreaths(d.breaths);rt=d.breaths.map(function(b){return b.text}).join('\n')}else{rt=d.reply||'...';addQMessage(rt)}chatHistory.push({role:'q',text:rt,time:Date.now()});autoSaveMemory(lastUserMsg,rt);if(settings.autoTTS&&rt&&rt!=='(침묵)')speakText(rt);isWaiting=false})}).catch(function(){removeEl(rd);addQMessage("...");isWaiting=false})}
+
+function addBreaths(b){var i=0;function n(){if(i>=b.length)return;var l=(i===b.length-1);addQMessage(b[i].text,i>0,l);var p=b[i].pause_ms||0;i++;if(p>0&&i<b.length)setTimeout(n,p);else n()}n()}
+
+function addUserMessage(t){var c=document.getElementById('chatArea'),d=document.createElement('div');d.className='msg msg-user';var s=document.createElement('span');s.className='user-text';s.textContent=t;d.appendChild(s);c.appendChild(d);scrollEnd()}
+
+function addQMessage(t,cont,acts,inst){if(cont===undefined)cont=false;if(acts===undefined)acts=true;if(inst===undefined)inst=false;var c=document.getElementById('chatArea'),d=document.createElement('div');d.className='msg msg-q';var h='',sp=parseInt(settings.charSpeed)||25;
+if(!cont)h+='<div class="q-label"><img src="/static/icons/ic_comma_only.png" class="icon" style="width:14px;height:14px;opacity:0.3;" alt="Q"></div>';
+if(inst){h+='<div class="q-text">'+esc(t).replace(/\n/g,'<br>')+'</div>'}else{var cs='';for(var i=0;i<t.length;i++){var ch=t[i];if(ch===' ')cs+=' ';else if(ch==='\n')cs+='<br>';else cs+='<span class="qc" style="opacity:0">'+esc(ch)+'</span>'}h+='<div class="q-text">'+cs+'</div>'}
+if(acts)h+='<div class="q-actions"><img src="/static/icons/quote_copy.png" class="icon" alt="copy" data-action="copy"><img src="/static/icons/voice_output.png" class="icon" alt="listen" data-action="speak"><img src="/static/icons/reply_refresh.png" class="icon" alt="retry" data-action="retry"></div>';
+d.innerHTML=h;var qt=t;d.querySelectorAll('[data-action]').forEach(function(b){b.addEventListener('click',function(){var a=b.getAttribute('data-action');if(a==='copy')copyText(qt,b);else if(a==='speak')speakText(qt,b);else if(a==='retry')retryLast()})});
+c.appendChild(d);scrollEnd();
+if(!inst){var spans=d.querySelectorAll('.qc');for(var si=0;si<spans.length;si++){(function(el,idx){setTimeout(function(){el.style.transition='opacity 0.25s ease';el.style.opacity='1'},idx*sp)})(spans[si],si)}}}
+
+function glowScanLastUser(){return new Promise(function(res){var a=document.querySelectorAll('.user-text'),l=a[a.length-1];if(!l){res();return}var t=l.textContent,ch=t.split(''),h='';for(var j=0;j<ch.length;j++)h+='<span>'+esc(ch[j])+'</span>';l.innerHTML=h;var sp=l.querySelectorAll('span'),i=0,s=Math.max(35,Math.min(100,1000/ch.length));function st(){if(i>=sp.length){l.classList.add('scanned');setTimeout(res,250);return}sp[i].classList.add('word-glow');var c=i;setTimeout(function(){sp[c].classList.remove('word-glow')},180);i++;setTimeout(st,s+(Math.random()*40-20))}setTimeout(st,150)})}
+function showSilence(){var c=document.getElementById('chatArea'),d=document.createElement('div');d.className='msg msg-silence';d.innerHTML='<div class="silence-dot"></div>';c.appendChild(d);scrollEnd()}
+function showReading(){var c=document.getElementById('chatArea'),d=document.createElement('div');d.className='reading-dots';d.innerHTML='<div class="r-dot"></div><div class="r-dot"></div><div class="r-dot"></div>';c.appendChild(d);scrollEnd();return d}
+function removeEl(e){if(e&&e.parentNode)e.parentNode.removeChild(e)}
+function scrollEnd(){var c=document.getElementById('chatArea');if(c)c.scrollTop=c.scrollHeight}
+function esc(s){var d=document.createElement('div');d.textContent=s;return d.innerHTML}
+if('speechSynthesis' in window)speechSynthesis.onvoiceschanged=function(){speechSynthesis.getVoices()};
+window.addEventListener('beforeunload',function(){saveCurrentSession()});
 </script>
 </body>
 </html>
