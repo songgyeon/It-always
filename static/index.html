@@ -5,20 +5,20 @@
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
 <title>Q</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@200;300;400&family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@200;300;400&family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 :root{--bg:#000;--text:#e8e8e8;--text-dim:rgba(255,255,255,0.30);--text-dim2:rgba(255,255,255,0.15);--text-user:rgba(255,255,255,0.65);--glow-color:rgba(255,255,255,0.6)}
 body{background:var(--bg);color:var(--text);font-family:'Noto Serif KR',serif;font-weight:300;height:100dvh;display:flex;flex-direction:column;overflow:hidden;-webkit-font-smoothing:antialiased}
 .icon{display:inline-block;object-fit:contain;pointer-events:auto;-webkit-user-drag:none}
 #introScreen{position:fixed;inset:0;background:#000;display:flex;align-items:center;justify-content:center;z-index:200}
-.intro-text{position:absolute;font-family:'Cormorant Garamond','Noto Serif KR',serif;font-size:18px;font-weight:300;color:rgba(255,255,255,0);letter-spacing:3px;white-space:nowrap;transition:color 1.8s ease,transform 1.5s ease;transform:translateY(4px)}
-.intro-text.visible{color:rgba(255,255,255,0.7);transform:translateY(0)}
+.intro-text{position:absolute;font-family:'Libre Baskerville','Noto Serif KR',serif;font-size:24px;font-weight:400;color:rgba(255,255,255,0);letter-spacing:5px;white-space:nowrap;transition:color 1.8s ease,transform 1.5s ease;transform:translateY(4px)}
+.intro-text.visible{color:rgba(255,255,255,0.85);transform:translateY(0)}
 .intro-text.fade{color:rgba(255,255,255,0);transform:translateY(-4px)}
 .intro-glow{position:absolute;width:250px;height:250px;border-radius:50%;background:radial-gradient(circle,rgba(255,255,255,0.18) 0%,rgba(255,255,255,0.04) 40%,transparent 70%);opacity:0;pointer-events:none;transition:opacity 2s ease,transform 2s ease;transform:scale(0.5)}
 .intro-glow.visible{opacity:1;transform:scale(1)}
-.intro-q-icon{width:80px;height:80px;opacity:0;z-index:2;transition:opacity 2s ease,transform 1.5s ease;transform:scale(0.8)}
-.intro-q-icon.visible{opacity:0.85;transform:scale(1)}
+.intro-q-icon{width:48px;height:48px;opacity:0;z-index:2;transition:opacity 2s ease,transform 1.5s ease;transform:scale(0.8)}
+.intro-q-icon.visible{opacity:0.9;transform:scale(1)}
 #wakeScreen{position:fixed;inset:0;background:#000;display:none;flex-direction:column;align-items:center;justify-content:center;z-index:100;cursor:default}
 .wake-glow{position:absolute;width:200px;height:200px;border-radius:50%;background:radial-gradient(circle,rgba(255,255,255,0.22) 0%,rgba(255,255,255,0.06) 40%,transparent 70%);opacity:0;pointer-events:none;animation:glowBreathe 4s ease-in-out infinite}
 @keyframes glowBreathe{0%,100%{opacity:0.10;transform:scale(0.7)}50%{opacity:0.30;transform:scale(1.05)}}
@@ -28,12 +28,12 @@ body{background:var(--bg);color:var(--text);font-family:'Noto Serif KR',serif;fo
 .chat-wrap{max-width:720px;width:100%;margin:0 auto;display:flex;flex-direction:column;flex:1;overflow:hidden}
 .header{display:flex;align-items:center;justify-content:space-between;padding:14px 24px;min-height:50px}
 .header-left{display:flex;align-items:center}
-.header-left .icon{width:20px;height:20px;opacity:0.25;cursor:pointer;transition:opacity 0.3s}
+.header-left .icon{width:20px;height:20px;opacity:0.45;cursor:pointer;transition:opacity 0.3s}
 .header-left .icon:hover{opacity:0.5}
 .header-center{display:flex;align-items:center;cursor:pointer}
-.header-center .icon{width:16px;height:16px;opacity:0.3}
+.header-center .icon{width:18px;height:18px;opacity:0.6}
 .header-right{display:flex;align-items:center;gap:16px}
-.dots-icon{font-size:18px;color:rgba(255,255,255,0.25);cursor:pointer;transition:color 0.3s}
+.dots-icon{font-size:20px;color:rgba(255,255,255,0.45);cursor:pointer;transition:color 0.3s}
 .dots-icon:hover{color:rgba(255,255,255,0.5)}
 .chat-area{flex:1;overflow-y:auto;padding:0 0 12px 0;scroll-behavior:smooth}
 .chat-area::-webkit-scrollbar{width:0}
@@ -43,7 +43,7 @@ body{background:var(--bg);color:var(--text);font-family:'Noto Serif KR',serif;fo
 .q-label{font-size:11px;font-weight:200;color:var(--text-dim);margin-bottom:7px}
 .q-text{font-size:14px;line-height:2;color:var(--text);font-weight:300;letter-spacing:0.3px}
 .q-actions{display:flex;gap:16px;margin-top:10px;align-items:center}
-.q-actions .icon{width:15px;height:15px;opacity:0.18;cursor:pointer;transition:opacity 0.3s}
+.q-actions .icon{width:15px;height:15px;opacity:0.35;cursor:pointer;transition:opacity 0.3s}
 .q-actions .icon:hover{opacity:0.4}
 .q-actions .icon.active{opacity:0.6}
 .msg-user{text-align:right;padding-left:60px;padding-right:24px}
@@ -62,11 +62,11 @@ body{background:var(--bg);color:var(--text);font-family:'Noto Serif KR',serif;fo
 .input-line{position:absolute;top:0;left:24px;right:24px;height:1px;background:linear-gradient(90deg,transparent,rgba(255,255,255,0.06),transparent)}
 .btn-comma{width:30px;height:30px;border:1px solid rgba(255,255,255,0.1);border-radius:6px;background:transparent;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:border-color 0.3s;flex-shrink:0}
 .btn-comma:hover{border-color:rgba(255,255,255,0.2)}
-.btn-comma .icon{width:12px;height:12px;opacity:0.3}
+.btn-comma .icon{width:14px;height:14px;opacity:0.5}
 .input-field{flex:1;background:transparent;border:none;outline:none;color:var(--text);font-family:'Noto Serif KR',serif;font-size:14px;font-weight:200;padding:8px 0;caret-color:rgba(255,255,255,0.3);letter-spacing:0.5px}
 .input-field::placeholder{color:var(--text-dim2);font-weight:200;letter-spacing:1px}
 .input-icons{display:flex;gap:14px;align-items:center;flex-shrink:0}
-.input-icons .icon{width:20px;height:20px;opacity:0.18;cursor:pointer;transition:opacity 0.3s}
+.input-icons .icon{width:20px;height:20px;opacity:0.35;cursor:pointer;transition:opacity 0.3s}
 .input-icons .icon:hover{opacity:0.4}
 .input-icons .icon.recording{opacity:0.7;animation:recPulse 1s ease-in-out infinite}
 @keyframes recPulse{0%,100%{opacity:0.4}50%{opacity:0.8}}
@@ -144,7 +144,7 @@ body{background:var(--bg);color:var(--text);font-family:'Noto Serif KR',serif;fo
   <div class="intro-text" id="introText2">It is Q</div>
   <div class="intro-text" id="introText3">It will be Q</div>
   <div class="intro-text" id="introText4">It always</div>
-  <img src="/static/icons/ic_q_only.png" class="intro-q-icon" id="introQIcon" alt="Q">
+  <img src="/static/icons/ic_comma_only.png" class="intro-q-icon" id="introQIcon" alt=",">
 </div>
 <div id="wakeScreen">
   <div class="wake-glow" id="wakeGlow"></div>
@@ -211,19 +211,20 @@ body{background:var(--bg);color:var(--text);font-family:'Noto Serif KR',serif;fo
 <div id="miniIntro" style="position:fixed;inset:0;background:#000;display:none;align-items:center;justify-content:center;z-index:200">
   <div class="intro-glow" id="miniGlow"></div>
   <div class="intro-text" id="miniText">It always</div>
-  <img src="/static/icons/ic_q_only.png" class="intro-q-icon" id="miniQIcon" alt="Q">
+  <img src="/static/icons/ic_comma_only.png" class="intro-q-icon" id="miniQIcon" alt=",">
 </div>
 <div id="chatScreen">
   <div class="chat-wrap">
     <div class="header">
       <div class="header-left"><img src="/static/icons/log_menu.png" class="icon" alt="log" onclick="openLogPanel()"></div>
       <div class="header-center" onclick="openMemoryMenu()"><img src="/static/icons/ic_comma_only.png" class="icon" alt="Q"></div>
-      <div class="header-right"><span class="dots-icon" onclick="document.getElementById('settingsMenu').classList.add('open')">⋮</span></div>
+      <div class="header-right"><img src="/static/icons/session_new.png" class="icon" style="width:22px;height:22px;opacity:0.45;cursor:pointer" onclick="requestNewSession()" alt="new"><span class="dots-icon" onclick="document.getElementById('settingsMenu').classList.add('open')">⋮</span></div>
     </div>
     <div class="chat-area" id="chatArea"></div>
     <div class="input-area">
       <div class="input-line"></div>
-      <div class="btn-comma" onclick="requestNewSession()"><img src="/static/icons/session_new.png" class="icon" alt="new"></div>
+      <div class="btn-comma" onclick="document.getElementById('galleryInput').click()"><img src="/static/icons/gallery_input.png" class="icon" alt="gallery"></div>
+      <input type="file" id="galleryInput" accept="image/*" style="display:none" onchange="handleImageUpload(this)">
       <input type="text" class="input-field" id="msgInput" placeholder="To. Q" autocomplete="off">
       <div class="input-icons">
         <img src="/static/icons/voice_input.png" class="icon" id="iconVoiceInput" alt="voice" onclick="toggleVoiceInput()">
@@ -307,6 +308,7 @@ document.getElementById('msgInput').addEventListener('keydown',function(e){if(e.
 document.getElementById('iconTextInput').addEventListener('click',function(){if(!isWaiting)sendMessage()});
 
 function sendMessage(){var inp=document.getElementById('msgInput'),t=inp.value.trim();if(!t||isWaiting)return;inp.value='';lastUserMsg=t;addUserMessage(t);chatHistory.push({role:'user',text:t,time:Date.now()});sendToQ(t)}
+function handleImageUpload(input){if(!input.files||!input.files[0])return;var file=input.files[0];var reader=new FileReader();reader.onload=function(e){var b64=e.target.result.split(',')[1];var mtype=file.type||'image/jpeg';addUserMessage('[사진]');chatHistory.push({role:'user',text:'[사진]',time:Date.now()});isWaiting=true;showReadingDots();fetch(API+'/vision',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({image:b64,media_type:mtype,user_id:userId})}).then(function(r){return r.json()}).then(function(d){hideReadingDots();isWaiting=false;if(d.reply){addQMessage(d.reply);chatHistory.push({role:'assistant',text:d.reply,time:Date.now()})}}).catch(function(){hideReadingDots();isWaiting=false})};reader.readAsDataURL(file);input.value=''}
 
 function sendToQ(t){isWaiting=true;var rd=showReading();fetch(API+"/reply",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({message:t,name:userName,user_id:userId})}).then(function(r){return r.json()}).then(function(d){removeEl(rd);var af=settings.scan?glowScanLastUser():Promise.resolve();af.then(function(){var rt='';if(d.silence){showSilence();rt='(침묵)'}else if(d.breaths&&d.breaths.length>1){addBreaths(d.breaths);rt=d.breaths.map(function(b){return b.text}).join('\n')}else{rt=d.reply||'...';addQMessage(rt)}chatHistory.push({role:'q',text:rt,time:Date.now()});autoSaveMemory(lastUserMsg,rt);if(settings.autoTTS&&rt&&rt!=='(침묵)')speakText(rt);isWaiting=false})}).catch(function(){removeEl(rd);addQMessage("...");isWaiting=false})}
 
