@@ -145,7 +145,6 @@ function transitionToChat(){
     chat.style.display = 'flex'; chat.style.opacity = '0';
     chat.style.transition = 'opacity 0.8s ease';
     requestAnimationFrame(function(){ chat.style.opacity = '1'; });
-    setTimeout(function(){ sendToQ("안녕"); }, 800);
   }, 1600);
 }
 
@@ -222,7 +221,7 @@ function addQMessage(text, continuation, showActions){
   var div = document.createElement('div');
   div.className = 'msg msg-q';
   var html = '';
-  if(!continuation) html += '<div class="q-label">Q.</div>';
+  if(!continuation) html += '<div class="q-label"><img src="/static/icons/ic_comma_only.png" class="icon" style="width:14px;height:14px;opacity:0.3;" alt="Q"></div>';
   var charSpans = '';
   for(var ci = 0; ci < text.length; ci++){
     var c = text[ci];
