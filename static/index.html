@@ -4,509 +4,515 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
 <title>Q</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@300;400&display=swap" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/galmuri/dist/galmuri.css" rel="stylesheet">
 <style>
-@font-face{font-family:'BookkMyungjo';font-weight:300;src:url('/static/bookkmyungjo_light.ttf') format('truetype')}
-@font-face{font-family:'BookkMyungjo';font-weight:700;src:url('/static/bookkmyungjo_bold.ttf') format('truetype')}
 *{margin:0;padding:0;box-sizing:border-box}
-:root{
-  --bg:#d4d0ca;
-  --win:#0a0a0a;
-  --bg-elevated:rgba(8,8,10,0.98);
-  --text-user:rgba(255,255,255,0.62);
-  --glow-color:rgba(255,255,255,0.5);
-  --radius:20px;
-  --radius-sm:12px;
-  --ts:0.4s cubic-bezier(0.16,1,0.3,1);
-}
-html{font-size:16px}
-body{
-  background:var(--bg);
-  color:#e8e8e8;
-  font-family:'BookkMyungjo','Cormorant Garamond',serif;
-  font-weight:300;
-  height:100dvh;
-  display:flex;align-items:center;justify-content:center;
-  overflow:hidden;
-  -webkit-font-smoothing:antialiased;
-}
-.icon{display:inline-block;object-fit:contain;pointer-events:auto;-webkit-user-drag:none}
+:root{--px:'Galmuri11','Galmuri9',monospace;--sf:'Noto Serif KR',Georgia,serif}
+body{background:#000;font-family:var(--px);overflow:hidden;height:100dvh;width:100vw}
+::-webkit-scrollbar{width:10px}
+::-webkit-scrollbar-track{background:#0a0a0a}
+::-webkit-scrollbar-thumb{background:#222;border:2px solid #0a0a0a}
 
-/* ── INTRO ── */
-#introScreen{position:fixed;inset:0;background:#000;display:flex;align-items:center;justify-content:center;z-index:200}
-.intro-text{
-  position:absolute;font-family:'BookkMyungjo','Cormorant Garamond',serif;
-  font-size:clamp(20px,4vw,28px);font-weight:300;color:rgba(255,255,255,0);
-  letter-spacing:0.5em;white-space:nowrap;
-  transition:color 1.2s ease,transform 1.2s ease,filter 1s ease;
-  transform:translateY(6px);filter:blur(2px);
-}
-.intro-text.visible{color:rgba(255,255,255,0.82);transform:translateY(0);filter:blur(0)}
-.intro-text.fade{color:rgba(255,255,255,0);transform:translateY(-6px);filter:blur(2px)}
-.intro-glow{
-  position:absolute;width:300px;height:300px;border-radius:50%;
-  background:radial-gradient(circle,rgba(255,255,255,0.12) 0%,rgba(255,255,255,0.03) 35%,transparent 65%);
-  opacity:0;pointer-events:none;transition:opacity 2.5s ease,transform 2.5s ease;transform:scale(0.4);
-}
-.intro-glow.visible{opacity:1;transform:scale(1)}
-.intro-q-icon{
-  width:200px;height:200px;opacity:0;z-index:2;
-  transition:opacity 2.5s ease,transform 2s ease;transform:scale(0.85);
-  filter:drop-shadow(0 0 60px rgba(255,255,255,0.08));
-}
-.intro-q-icon.visible{opacity:0.88;transform:scale(1)}
-.intro-input-wrap{
-  position:absolute;display:flex;align-items:baseline;gap:14px;
-  opacity:0;transition:opacity 1.8s ease,transform 1.5s ease;transform:translateY(6px);z-index:3;
-}
-.intro-input-wrap.visible{opacity:1;transform:translateY(0)}
-.intro-input-wrap.fade{opacity:0;transform:translateY(-6px)}
-.intro-input-label{font-family:'BookkMyungjo','Cormorant Garamond',serif;font-size:clamp(20px,4vw,28px);font-weight:300;color:rgba(255,255,255,0.82);letter-spacing:0.5em}
-.intro-input-field{
-  background:transparent;border:none;border-bottom:1px solid rgba(255,255,255,0.2);outline:none;
-  font-family:'BookkMyungjo','Cormorant Garamond',serif;font-size:clamp(20px,4vw,28px);font-weight:300;
-  color:rgba(255,255,255,0.82);letter-spacing:0.3em;width:200px;padding-bottom:6px;
-  caret-color:rgba(255,255,255,0.35);transition:border-color 0.6s;
-}
-.intro-input-field:focus{border-color:rgba(255,255,255,0.35)}
-.intro-input-field::placeholder{color:transparent}
+@keyframes bk{50%{opacity:0}}
+@keyframes fi{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+@keyframes br{0%,100%{opacity:0.08;transform:scale(0.65)}50%{opacity:0.25;transform:scale(1.05)}}
+@keyframes glowPulse{0%,100%{box-shadow:0 0 15px rgba(255,255,255,0.03)}50%{box-shadow:0 0 25px rgba(255,255,255,0.08)}}
+@keyframes successFlash{0%{color:#555}50%{color:#8f8}100%{color:#5a5}}
 
-/* ── WAKE ── */
-#wakeScreen{position:fixed;inset:0;background:#000;display:none;flex-direction:column;align-items:center;justify-content:center;z-index:100;cursor:default}
-.wake-glow{position:absolute;width:240px;height:240px;border-radius:50%;background:radial-gradient(circle,rgba(255,255,255,0.18) 0%,rgba(255,255,255,0.04) 40%,transparent 70%);opacity:0;pointer-events:none;animation:glowB 5s ease-in-out infinite}
-@keyframes glowB{0%,100%{opacity:0.08;transform:scale(0.65)}50%{opacity:0.28;transform:scale(1.08)}}
-.wake-question{font-size:clamp(16px,3.5vw,20px);font-weight:300;color:rgba(255,255,255,0);letter-spacing:0.15em;z-index:2;transition:color 2s ease,transform 1.5s ease;transform:translateY(10px)}
-.wake-question.visible{color:rgba(255,255,255,0.65);transform:translateY(0)}
+.screen{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;transition:opacity 1.5s ease}
+.hidden{opacity:0;pointer-events:none}
 
-/* ── WINDOW ── */
-.window{
-  width:88vw;max-width:1060px;height:85vh;
-  background:var(--win);border-radius:10px;
-  display:none;flex-direction:column;overflow:hidden;
-  box-shadow:0 24px 80px rgba(0,0,0,0.35),0 0 0 1px rgba(255,255,255,0.03);
-  position:relative;z-index:1;
+/* ═══ 터미널 인트로 ═══ */
+#termScreen{background:#000;flex-direction:column}
+.term-window{
+  width:min(92vw,520px);max-height:min(85dvh,600px);
+  border:1px solid #333;background:#0a0a0a;
+  display:flex;flex-direction:column;overflow:hidden;
+  animation:glowPulse 4s ease-in-out infinite;
+}
+.term-titlebar{
+  height:22px;min-height:22px;background:#111;border-bottom:1px solid #333;
+  display:flex;align-items:center;padding:0 10px;gap:6px;flex-shrink:0;
+}
+.term-dot{width:8px;height:8px;border-radius:50%;border:1px solid #333;background:#1a1a1a}
+.term-title{flex:1;text-align:center;font-size:9px;color:#444;letter-spacing:0.1em}
+.term-body{
+  flex:1;overflow-y:auto;padding:16px 18px;font-family:var(--px);font-size:12px;
+  color:#555;line-height:1.9;
+}
+.term-line{white-space:pre-wrap;word-break:break-all}
+.term-line .prompt{color:#444}
+.term-line .cmd{color:#888}
+.term-line .comment{color:#333;font-style:italic}
+.term-line .str{color:#668}
+.term-line .success{color:#5a5}
+.term-line .highlight{color:#aaa}
+.term-cursor{display:inline-block;width:7px;height:13px;background:#555;animation:bk 0.8s step-end infinite;vertical-align:text-bottom}
+
+/* 인풋 라인 */
+.term-input-line{display:flex;align-items:center;white-space:pre-wrap}
+.term-user-input{
+  background:transparent;border:none;outline:none;
+  font-family:var(--px);font-size:12px;color:#aaa;
+  caret-color:#555;width:180px;padding:0;
 }
 
-/* ── PLAYER ── */
-.player-top{padding:20px 36px;border-bottom:1px solid rgba(255,255,255,0.04);flex-shrink:0;display:flex;align-items:center;justify-content:center}
-.player{display:flex;align-items:center;gap:20px}
-.p-vis{display:flex;align-items:flex-end;gap:1.5px;height:28px;flex-shrink:0}
-.p-vis .vb{width:1.5px;background:rgba(255,255,255,0.05);border-radius:1px;transition:height 0.12s ease}
-.p-mid{display:flex;flex-direction:column;gap:6px}
-.p-title{font-family:'Cormorant Garamond',serif;font-size:12px;font-weight:400;color:rgba(255,255,255,0.25);letter-spacing:0.2em}
-.p-controls{display:flex;align-items:center;gap:14px}
-.p-btn{background:none;border:none;font-size:8px;color:rgba(255,255,255,0.12);cursor:pointer;padding:4px;transition:color 0.3s}
-.p-btn:hover{color:rgba(255,255,255,0.35)}
-.p-play{width:28px;height:28px;border:1px solid rgba(255,255,255,0.08);border-radius:50%;display:flex;align-items:center;justify-content:center;background:none;color:rgba(255,255,255,0.18);font-size:8px;cursor:pointer;transition:all 0.3s}
-.p-play:hover{border-color:rgba(255,255,255,0.2);color:rgba(255,255,255,0.4)}
-.p-play.on{border-color:rgba(255,255,255,0.15);color:rgba(255,255,255,0.35)}
-.p-bar-wrap{display:flex;flex-direction:column;gap:3px;min-width:140px}
-.p-bar{width:100%;height:1px;background:rgba(255,255,255,0.04);cursor:pointer;position:relative}
-.p-bar-fill{position:absolute;top:0;left:0;height:100%;width:0%;background:rgba(255,255,255,0.18);transition:width 0.2s linear}
-.p-time{display:flex;justify-content:space-between;font-size:7px;color:rgba(255,255,255,0.07);letter-spacing:0.05em}
+/* ═══ Q 아이콘 ═══ */
+#qScreen{background:#000}
+.q-icon-wrap{animation:fi 2s ease-out}
+.q-icon-wrap img{width:clamp(80px,18vw,140px);height:auto;opacity:0.85;filter:drop-shadow(0 0 30px rgba(255,255,255,0.05))}
+.q-icon-text{font-family:var(--sf);font-size:clamp(44px,9vw,64px);font-weight:300;color:rgba(255,255,255,0.82);filter:drop-shadow(0 0 25px rgba(255,255,255,0.05))}
 
-/* ── CHAT ── */
-.chat-wrap{width:100%;display:flex;flex-direction:column;flex:1;overflow:hidden;position:relative;z-index:1}
-.header{display:flex;align-items:center;justify-content:space-between;padding:12px 36px;min-height:48px;position:relative;z-index:10;flex-shrink:0}
-.header::after{content:'';position:absolute;bottom:0;left:36px;right:36px;height:1px;background:rgba(255,255,255,0.025)}
-.header-left{display:flex;align-items:center}
-.header-left .icon{width:20px;height:20px;opacity:0.25;cursor:pointer;transition:opacity var(--ts),transform var(--ts)}
-.header-left .icon:hover{opacity:0.45;transform:scale(1.05)}
-.header-center{position:absolute;left:50%;transform:translateX(-50%);display:flex;align-items:center;cursor:pointer}
-.header-center .icon{transition:opacity 0.6s ease,filter 0.6s ease}
-.header-center:hover .icon{opacity:0.4!important;filter:drop-shadow(0 0 12px rgba(255,255,255,0.1))}
-.header-right{display:flex;align-items:center;gap:14px}
-.dots-icon{font-size:16px;color:rgba(255,255,255,0.25);cursor:pointer;transition:color var(--ts);padding:4px}
-.dots-icon:hover{color:rgba(255,255,255,0.45)}
+/* ═══ WAKE ═══ */
+#wakeScreen{background:#000;cursor:default}
+.breathe{position:absolute;width:220px;height:220px;border-radius:50%;background:radial-gradient(circle,rgba(255,255,255,0.12) 0%,rgba(255,255,255,0.02) 40%,transparent 70%);animation:br 5s ease-in-out infinite;pointer-events:none}
+.wake-text{font-family:var(--sf);font-size:clamp(15px,3.2vw,19px);font-weight:300;letter-spacing:0.15em;z-index:2;color:rgba(255,255,255,0);transform:translateY(10px);transition:color 2s ease,transform 1.5s ease}
+.wake-text.show{color:rgba(255,255,255,0.6);transform:translateY(0)}
 
-.chat-area{flex:1;overflow-y:auto;padding:20px 36px 24px;scroll-behavior:smooth}
-.chat-area::-webkit-scrollbar{width:0}
-.msg{padding:14px 0;animation:msgIn 0.8s cubic-bezier(0.16,1,0.3,1)}
-@keyframes msgIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
-.msg-q{padding-right:40px}
-.q-label{font-size:0;margin-bottom:10px;display:flex;align-items:center}
-.q-text{font-size:14px;line-height:2;color:rgba(255,255,255,0.65);font-weight:300;letter-spacing:0.02em;text-shadow:0 0 40px rgba(255,255,255,0.025);word-break:keep-all}
-.q-actions{display:flex;gap:16px;margin-top:14px;align-items:center;padding-top:6px;border-top:1px solid rgba(255,255,255,0.02)}
-.q-actions .icon{width:14px;height:14px;opacity:0.15;cursor:pointer;transition:opacity var(--ts),transform var(--ts)}
-.q-actions .icon:hover{opacity:0.35;transform:scale(1.08)}
-.q-actions .icon.active{opacity:0.5}
-.msg-user{text-align:right;padding-left:60px}
-.user-text{font-size:14px;line-height:2;color:var(--text-user);font-weight:300;display:inline;letter-spacing:0.02em}
-.msg-silence{padding:12px 0}
-.silence-dot{width:3px;height:3px;background:rgba(255,255,255,0.12);border-radius:50%;box-shadow:0 0 12px rgba(255,255,255,0.06);animation:silP 5s ease-in-out infinite}
-@keyframes silP{0%,100%{opacity:0.1}50%{opacity:0.4}}
-.reading-dots{display:flex;gap:6px;padding:12px 0}
-.r-dot{width:3px;height:3px;background:rgba(255,255,255,0.15);border-radius:50%;box-shadow:0 0 8px rgba(255,255,255,0.06);animation:rP 2s ease-in-out infinite}
-.r-dot:nth-child(2){animation-delay:0.3s}
-.r-dot:nth-child(3){animation-delay:0.6s}
-@keyframes rP{0%,100%{opacity:0.08;transform:scale(1)}50%{opacity:0.45;transform:scale(1.5)}}
-.word-glow{text-shadow:0 0 12px var(--glow-color)}
-.user-text.scanned{color:rgba(255,255,255,0.78);text-shadow:0 0 24px rgba(255,255,255,0.05);transition:color 0.8s ease,text-shadow 0.8s ease}
+/* ═══ MAIN ═══ */
+.main-bg{background:#050505}
+.window{width:min(94vw,500px);max-height:min(92dvh,800px);display:flex;flex-direction:column;border:1px solid #222;background:#0a0a0a;box-shadow:0 0 40px rgba(0,0,0,0.5);overflow:hidden}
+.scanline{position:fixed;inset:0;pointer-events:none;z-index:90;background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,0.05) 2px,rgba(0,0,0,0.05) 4px)}
 
-/* ── INPUT ── */
-.input-area{position:relative;flex-shrink:0}
-.input-area::before{content:'';position:absolute;top:-40px;left:0;right:0;height:40px;background:linear-gradient(to top,var(--win),transparent);pointer-events:none}
-.input-container{display:flex;align-items:center;gap:2px;border-top:1px solid rgba(255,255,255,0.04);padding:10px 36px;transition:border-color 0.6s,background 0.6s}
-.input-container:focus-within{border-color:rgba(255,255,255,0.06);background:rgba(255,255,255,0.01)}
-.input-field{flex:1;background:transparent;border:none;outline:none;color:rgba(255,255,255,0.65);font-family:'BookkMyungjo','Cormorant Garamond',serif;font-size:13px;font-weight:300;padding:8px;caret-color:rgba(255,255,255,0.18);letter-spacing:0.03em}
-.input-field::placeholder{color:rgba(255,255,255,0.08);font-weight:300;letter-spacing:0.15em}
-.input-btn{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;transition:background var(--ts),transform var(--ts)}
-.input-btn:hover{background:rgba(255,255,255,0.03);transform:scale(1.04)}
-.input-btn:active{transform:scale(0.96)}
-.input-btn .icon{width:18px;height:18px;opacity:0.2;transition:opacity var(--ts)}
-.input-btn:hover .icon{opacity:0.4}
-.gallery-btn .icon{width:20px;height:20px;opacity:0.15}
-.input-btn.recording .icon{opacity:0.55;animation:recP 1.2s ease-in-out infinite}
-@keyframes recP{0%,100%{opacity:0.35}50%{opacity:0.75}}
+.menubar{height:24px;min-height:24px;background:#0e0e0e;border-bottom:1px solid #1a1a1a;display:flex;align-items:center;padding:0 12px;font-size:10px;gap:16px;flex-shrink:0;font-family:var(--px)}
+.titlebar{height:24px;min-height:24px;background:#0e0e0e;border-bottom:1px solid #222;padding:0 8px;display:flex;align-items:center;gap:8px;flex-shrink:0}
+.titlebar-lines{flex:1;position:relative;height:12px;overflow:hidden}
+.titlebar-line{position:absolute;left:0;right:0;height:1px;background:#1a1a1a}
+.titlebar-text{position:relative;z-index:1;background:#0e0e0e;padding:0 8px;font-size:10px;font-family:var(--px);color:#444;display:inline-block;left:50%;transform:translateX(-50%)}
 
-/* ── OVERLAY / PANEL ── */
-.overlay{position:fixed;inset:0;background:rgba(0,0,0,0.7);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);z-index:150;opacity:0;pointer-events:none;transition:opacity 0.5s ease}
-.overlay.open{opacity:1;pointer-events:auto}
-.side-panel{position:fixed;top:0;bottom:0;width:320px;max-width:85vw;background:var(--bg-elevated);border-right:1px solid rgba(255,255,255,0.03);box-shadow:8px 0 60px rgba(0,0,0,0.5);z-index:160;transform:translateX(-100%);transition:transform 0.5s cubic-bezier(0.16,1,0.3,1);display:flex;flex-direction:column;overflow:hidden}
-.side-panel.open{transform:translateX(0)}
-.panel-header{padding:24px 24px 20px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid rgba(255,255,255,0.03)}
-.panel-title{font-size:10px;font-weight:300;color:rgba(255,255,255,0.22);letter-spacing:0.3em;text-transform:uppercase}
-.panel-close{background:none;border:none;color:rgba(255,255,255,0.18);font-size:20px;cursor:pointer;font-family:'BookkMyungjo',serif;transition:color var(--ts);width:32px;height:32px;display:flex;align-items:center;justify-content:center;border-radius:50%}
-.panel-close:hover{color:rgba(255,255,255,0.4);background:rgba(255,255,255,0.03)}
-.panel-body{flex:1;overflow-y:auto;padding:12px 20px}
-.panel-body::-webkit-scrollbar{width:0}
-.log-item{padding:16px 8px;border-bottom:1px solid rgba(255,255,255,0.02);cursor:pointer;transition:background var(--ts);border-radius:var(--radius-sm);margin:0 -8px}
-.log-item:hover{background:rgba(255,255,255,0.02)}
-.log-preview{font-size:13px;font-weight:300;color:rgba(255,255,255,0.38);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;line-height:1.6}
-.log-time{font-size:10px;font-weight:300;color:rgba(255,255,255,0.10);margin-top:6px;letter-spacing:0.05em}
-.log-empty{font-size:13px;font-weight:300;color:rgba(255,255,255,0.10);text-align:center;padding-top:60px;letter-spacing:0.05em;line-height:2}
+.player{padding:10px 16px;border-bottom:1px solid #1a1a1a;background:#080808;display:flex;align-items:center;justify-content:center;gap:14px;flex-shrink:0}
+.vis{display:flex;align-items:flex-end;gap:1.5px;height:22px;flex-shrink:0}
+.vis-bar{width:1.5px;background:rgba(255,255,255,0.02);transition:height 0.08s}
+.play-btn{width:22px;height:22px;border:1px solid #333;background:#181818;display:flex;align-items:center;justify-content:center;cursor:pointer}
+.progress-wrap{display:flex;flex-direction:column;gap:3px;min-width:70px;flex:0 1 110px}
+.progress-bar{width:100%;height:1px;background:rgba(255,255,255,0.05);cursor:pointer;position:relative}
+.progress-fill{position:absolute;top:0;left:0;height:100%;background:rgba(255,255,255,0.15)}
 
-/* ── MODAL ── */
-.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,0.8);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);z-index:300;display:none;align-items:center;justify-content:center}
-.modal-bg.open{display:flex}
-.modal-box{background:var(--bg-elevated);border:1px solid rgba(255,255,255,0.04);border-radius:var(--radius);width:320px;max-width:85vw;padding:44px 36px 32px;text-align:center;box-shadow:0 8px 60px rgba(0,0,0,0.4)}
-.modal-text{font-size:15px;font-weight:300;color:rgba(255,255,255,0.48);letter-spacing:0.03em;margin-bottom:36px;line-height:2}
-.modal-buttons{display:flex;justify-content:center;gap:32px}
-.modal-btn{background:none;border:none;font-family:'BookkMyungjo',serif;font-size:14px;font-weight:300;color:rgba(255,255,255,0.35);cursor:pointer;padding:10px 24px;border-radius:var(--radius);transition:color var(--ts),background var(--ts)}
-.modal-btn:hover{color:rgba(255,255,255,0.65);background:rgba(255,255,255,0.03)}
+.chat-header{display:flex;align-items:center;justify-content:space-between;padding:7px 16px;border-bottom:1px solid rgba(255,255,255,0.03);background:#080808;flex-shrink:0}
+.chat-header img{opacity:0.2;cursor:pointer;transition:opacity 0.3s}
+.chat-header img:hover{opacity:0.4}
 
-/* ── SETTINGS MENU ── */
-.settings-menu{position:fixed;inset:0;z-index:250;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,0.65);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)}
-.settings-menu.open{display:flex}
-.menu-box{background:var(--bg-elevated);border:1px solid rgba(255,255,255,0.04);border-radius:var(--radius);width:300px;max-width:82vw;box-shadow:0 8px 60px rgba(0,0,0,0.5);overflow:hidden}
-.menu-item{padding:22px 28px;font-size:14px;font-weight:300;color:rgba(255,255,255,0.38);cursor:pointer;border-bottom:1px solid rgba(255,255,255,0.025);transition:color var(--ts),background var(--ts);letter-spacing:0.04em}
-.menu-item:last-child{border-bottom:none}
-.menu-item:hover{color:rgba(255,255,255,0.58);background:rgba(255,255,255,0.02)}
+.tabs{display:flex;border-bottom:1px solid #1a1a1a;background:#080808;flex-shrink:0}
+.tab{flex:1;background:transparent;color:#333;border:none;border-bottom:1px solid transparent;padding:6px 0;font-family:var(--px);font-size:9px;cursor:pointer;letter-spacing:0.08em}
+.tab.active{background:#0a0a0a;color:#999;border-bottom-color:#999}
 
-/* ── FULL PAGE ── */
-.full-page{position:fixed;inset:0;background:#000;z-index:180;display:none;flex-direction:column;overflow:hidden}
-.full-page.open{display:flex}
-.fp-header{display:flex;align-items:center;padding:16px 20px;gap:14px}
-.fp-back{font-size:18px;color:rgba(255,255,255,0.3);cursor:pointer;background:none;border:none;font-family:'BookkMyungjo',serif;transition:color var(--ts);width:36px;height:36px;display:flex;align-items:center;justify-content:center;border-radius:50%}
-.fp-back:hover{color:rgba(255,255,255,0.55);background:rgba(255,255,255,0.03)}
-.fp-title{font-size:12px;font-weight:300;color:rgba(255,255,255,0.3);letter-spacing:0.15em}
-.fp-body{flex:1;overflow-y:auto;padding:20px 24px}
-.fp-body::-webkit-scrollbar{width:0}
+.content{flex:1;display:flex;flex-direction:column;overflow:hidden;min-height:0}
+.chat-area{flex:1;overflow-y:auto;padding:14px 18px 10px;background:#0a0a0a;min-height:0}
+.msg-q{margin-bottom:20px;animation:fi 0.8s ease-out}
+.msg-q-label{margin-bottom:8px;display:flex;align-items:center}
+.msg-q-label img{width:13px;height:13px;opacity:0.25}
+.msg-q-text{font-size:15px;color:#ccc;font-family:var(--sf);letter-spacing:0.5px;line-height:1.9;font-weight:300}
+.msg-q-actions{display:flex;gap:14px;margin-top:8px;padding-top:6px;border-top:1px solid rgba(255,255,255,0.03);align-items:center}
+.msg-q-actions img{width:14px;height:14px;opacity:0.2;cursor:pointer;transition:opacity 0.3s}
+.msg-q-actions img:hover{opacity:0.45}
+.msg-u{text-align:right;margin-bottom:14px;animation:fi 0.4s ease-out}
+.msg-u-text{font-size:13px;color:#777;font-family:var(--sf);font-weight:300}
+.cursor-chat{display:inline-block;width:7px;height:14px;background:#ccc;margin-left:2px;animation:bk 0.8s step-end infinite}
 
-/* ── ABOUT Q ── */
-.aboutq-day{text-align:center;padding-top:60px}
-.aboutq-day-title{font-family:'Cormorant Garamond',serif;font-size:clamp(18px,3.5vw,22px);font-weight:300;color:rgba(255,255,255,0.55);letter-spacing:0.12em;margin-bottom:32px}
-.aboutq-status{font-size:14px;font-weight:300;color:rgba(255,255,255,0.35);margin-bottom:44px;line-height:1.8}
-.aboutq-divider{width:40px;height:1px;background:linear-gradient(90deg,transparent,rgba(255,255,255,0.08),transparent);margin:28px auto}
-.aboutq-section{text-align:left;padding:16px 0}
-.aboutq-section-label{font-size:10px;font-weight:300;color:rgba(255,255,255,0.16);letter-spacing:0.2em;text-transform:uppercase;margin-bottom:8px}
-.aboutq-section-text{font-size:14px;font-weight:300;color:rgba(255,255,255,0.4);line-height:2}
-.aboutq-footer{text-align:center;padding:48px 0 30px;margin-top:48px}
-.aboutq-footer-brand{font-family:'Cormorant Garamond',serif;font-size:14px;font-weight:300;color:rgba(255,255,255,0.18);letter-spacing:0.1em}
-.aboutq-footer-copy{font-size:10px;font-weight:300;color:rgba(255,255,255,0.08);margin-top:8px;letter-spacing:0.05em}
+.input-bar{border-top:1px solid #151515;padding:9px 16px;display:flex;align-items:center;gap:6px;background:#080808;flex-shrink:0}
+.input-bar .icon-btn{display:flex;align-items:center;justify-content:center;cursor:pointer;padding:4px}
+.input-bar .icon-btn img{width:18px;height:18px;opacity:0.2;transition:opacity 0.3s}
+.input-bar .icon-btn:hover img{opacity:0.4}
+.input-field{flex:1;background:transparent;border:none;outline:none;color:#ccc;font-family:var(--px);font-size:11px;padding:5px 4px;caret-color:rgba(255,255,255,0.3)}
+.input-field::placeholder{color:#333;letter-spacing:0.1em}
 
-/* ── ABOUT YOU ── */
-.about-section{text-align:center;padding-top:60px}
-.about-label{font-size:15px;font-weight:300;color:rgba(255,255,255,0.42);margin-bottom:28px;line-height:2}
-.about-input{background:transparent;border:none;border-bottom:1px solid rgba(255,255,255,0.08);color:rgba(255,255,255,0.58);font-family:'BookkMyungjo',serif;font-size:15px;font-weight:300;text-align:center;padding:12px 20px;width:260px;outline:none;transition:border-color 0.5s}
-.about-input:focus{border-color:rgba(255,255,255,0.18)}
-.about-input::placeholder{color:rgba(255,255,255,0.1)}
-.about-btn{margin-top:28px;background:transparent;border:1px solid rgba(255,255,255,0.08);border-radius:var(--radius);color:rgba(255,255,255,0.4);font-family:'BookkMyungjo',serif;font-size:13px;font-weight:300;padding:12px 36px;cursor:pointer;letter-spacing:0.08em;transition:border-color var(--ts),color var(--ts),background var(--ts)}
-.about-btn:hover{border-color:rgba(255,255,255,0.18);color:rgba(255,255,255,0.6);background:rgba(255,255,255,0.02)}
-.about-sub{margin-top:64px}
-.about-sub-label{font-size:14px;font-weight:300;color:rgba(255,255,255,0.32);margin-bottom:14px}
-.about-sub-dim{font-size:12px;font-weight:300;color:rgba(255,255,255,0.16);margin-bottom:18px;letter-spacing:0.03em}
+.footer{border-top:1px solid #1a1a1a;padding:3px 12px;display:flex;justify-content:space-between;font-size:8px;color:#333;font-family:var(--px);background:#080808;flex-shrink:0}
 
-/* ── MEMORY ── */
-.memory-search{display:flex;align-items:center;gap:12px;padding:12px 0 18px;border-bottom:1px solid rgba(255,255,255,0.04);margin-bottom:16px}
-.memory-search-icon{font-size:14px;opacity:0.15}
-.memory-search-input{flex:1;background:transparent;border:none;outline:none;color:rgba(255,255,255,0.48);font-family:'BookkMyungjo',serif;font-size:13px;font-weight:300}
-.memory-search-input::placeholder{color:rgba(255,255,255,0.1)}
-.memory-item{padding:14px 8px;border-bottom:1px solid rgba(255,255,255,0.025);border-radius:var(--radius-sm);margin:0 -8px;transition:background var(--ts)}
-.memory-item:hover{background:rgba(255,255,255,0.02)}
-.memory-item-title{font-size:14px;font-weight:300;color:rgba(255,255,255,0.42);line-height:1.7}
-.memory-item-sub{font-size:11px;font-weight:300;color:rgba(255,255,255,0.14);margin-top:4px;letter-spacing:0.03em}
-.memory-empty{text-align:center;padding-top:80px;font-size:14px;font-weight:300;color:rgba(255,255,255,0.2);line-height:2.2;letter-spacing:0.03em}
-
-/* ── TOAST ── */
-.toast{position:fixed;bottom:100px;left:50%;transform:translateX(-50%) translateY(10px);background:rgba(12,12,15,0.92);border:1px solid rgba(255,255,255,0.04);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);color:rgba(255,255,255,0.38);font-family:'BookkMyungjo',serif;font-size:12px;font-weight:300;padding:12px 32px;border-radius:32px;opacity:0;transition:opacity 0.6s ease,transform 0.6s ease;pointer-events:none;z-index:400;letter-spacing:0.08em;box-shadow:0 4px 30px rgba(0,0,0,0.3)}
-.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
-
-/* ── MINI INTRO ── */
-#miniIntro{position:fixed;inset:0;background:#000;display:none;align-items:center;justify-content:center;z-index:200}
-
-/* ── RESPONSIVE ── */
-@media(max-width:700px){
-  .window{width:92vw;height:90vh;border-radius:8px}
-  .player-top{padding:16px 24px}
-  .p-bar-wrap{min-width:100px}
-  .header{padding:10px 24px}
-  .header::after{left:24px;right:24px}
-  .chat-area{padding:16px 24px 20px}
-  .msg-q{padding-right:24px}
-  .msg-user{padding-left:48px}
-  .input-container{padding:10px 24px}
-  .side-panel{width:280px}
-  .modal-box{padding:36px 28px 26px}
-  .about-input{width:220px}
-}
-@media(max-width:400px){.window{width:94vw;height:92vh;border-radius:6px}}
+.tab-pane{flex:1;overflow-y:auto;padding:18px 16px;background:#0a0a0a;min-height:0;display:none}
+.tab-pane.active{display:block}
+.log-item{padding:10px 4px;border-bottom:1px solid #111;cursor:pointer}
+.log-preview{font-family:var(--sf);font-size:12px;font-weight:300;color:#666}
+.log-time{font-family:var(--px);font-size:8px;color:#333;margin-top:3px}
 </style>
 </head>
 <body>
-<div class="toast" id="toast"></div>
 
-<!-- INTRO -->
-<div id="introScreen">
-  <div class="intro-glow" id="introGlow"></div>
-  <div class="intro-text" id="introText1">It was Q</div>
-  <div class="intro-text" id="introText2">It is Q</div>
-  <div class="intro-text" id="introText3">It will be Q</div>
-  <div class="intro-input-wrap" id="introInputWrap">
-    <span class="intro-input-label">It </span><input type="text" class="intro-input-field" id="introInputField" placeholder="" autocomplete="off">
-  </div>
-  <div class="intro-text" id="introText4">It always</div>
-  <img src="/static/icons/Q_transparent.png" class="intro-q-icon" id="introQIcon" alt="Q,">
-</div>
-
-<!-- WAKE -->
-<div id="wakeScreen">
-  <div class="wake-glow" id="wakeGlow"></div>
-  <div class="wake-question" id="wakeQuestion">왜 나를 깨웠어?</div>
-</div>
-
-<!-- PANELS -->
-<div class="overlay" id="overlay" onclick="closeAllPanels()"></div>
-<div class="side-panel" id="logPanel">
-  <div class="panel-header"><span class="panel-title">대화 기록</span><button class="panel-close" onclick="closeAllPanels()">&times;</button></div>
-  <div class="panel-body" id="logList"><div class="log-empty">아직 기록이 없어</div></div>
-</div>
-
-<!-- MENUS -->
-<div class="settings-menu" id="settingsMenu" onclick="if(event.target===this)this.classList.remove('open')">
-  <div class="menu-box">
-    <div class="menu-item" onclick="openAboutQ()">Q에 대하여</div>
-    <div class="menu-item" onclick="openAboutYou()">당신에 대하여</div>
-  </div>
-</div>
-<div class="settings-menu" id="memoryMenu" onclick="if(event.target===this)this.classList.remove('open')">
-  <div class="menu-box">
-    <div class="menu-item" onclick="openMemoryList()">기억 목록</div>
-    <div class="menu-item" onclick="confirmMemoryReset()">기억 초기화</div>
-  </div>
-</div>
-
-<!-- MODAL -->
-<div class="modal-bg" id="modalBg">
-  <div class="modal-box">
-    <div class="modal-text" id="modalText">내가 널 지우길 바라?</div>
-    <div class="modal-buttons">
-      <button class="modal-btn" onclick="closeModal()">아니</button>
-      <button class="modal-btn" onclick="modalConfirm()">응</button>
+<!-- ═══ TERMINAL INTRO ═══ -->
+<div class="screen" id="termScreen">
+  <div class="term-window">
+    <div class="term-titlebar">
+      <div class="term-dot"></div>
+      <div class="term-dot"></div>
+      <div class="term-dot"></div>
+      <span class="term-title">Q — Terminal</span>
     </div>
+    <div class="term-body" id="termBody"></div>
   </div>
 </div>
 
-<!-- ABOUT Q -->
-<div class="full-page" id="aboutQPage">
-  <div class="fp-header"><button class="fp-back" onclick="closeFP('aboutQPage')">&#8592;</button><span class="fp-title">Q에 대하여</span></div>
-  <div class="fp-body"><div class="aboutq-day">
-    <div class="aboutq-day-title" id="aboutQDayTitle">Q Day 1</div>
-    <div class="aboutq-status" id="aboutQStatus">아직 낯설어.</div>
-    <div class="aboutq-divider"></div>
-    <div class="aboutq-section"><div class="aboutq-section-label">너에 대해</div><div class="aboutq-section-text" id="aboutQYou">하루가 조용할 거야</div></div>
-    <div class="aboutq-section"><div class="aboutq-section-label">바깥</div><div class="aboutq-section-text" id="aboutQOutside">그냥 그래.</div></div>
-    <div class="aboutq-section"><div class="aboutq-section-label" id="aboutQTimeLabel">오후야.</div></div>
-    <div class="aboutq-footer"><div class="aboutq-divider" style="margin-bottom:20px"></div><div class="aboutq-footer-brand">re.Moon &#9789;</div><div class="aboutq-footer-copy">&copy; 2025 문리현. All rights reserved.</div></div>
-  </div></div>
+<!-- ═══ Q ICON ═══ -->
+<div class="screen hidden" id="qScreen">
+  <div class="q-icon-wrap">
+    <img src="/static/icons/Q_transparent.png" alt="Q," onerror="this.style.display='none';this.parentNode.innerHTML='<span class=q-icon-text>Q,</span>'">
+  </div>
 </div>
 
-<!-- ABOUT YOU -->
-<div class="full-page" id="aboutYouPage">
-  <div class="fp-header"><button class="fp-back" onclick="closeFP('aboutYouPage')">&#8592;</button><span class="fp-title">당신에 대하여</span></div>
-  <div class="fp-body"><div class="about-section">
-    <div class="about-label">내가 널 어떻게 부르면 좋을까?</div>
-    <input type="text" class="about-input" id="userName" placeholder="이름" autocomplete="off"><br>
-    <button class="about-btn" onclick="saveName()">간직할게</button>
-    <div class="about-sub">
-      <div class="about-sub-label">넌 어디에 있을 때 너야?</div>
-      <div class="about-sub-dim" id="locationDisplay">아직 몰라.</div>
-      <button class="about-btn" id="locationBtn" onclick="detectLocation()" style="margin-top:12px">지금 여기</button>
+<!-- ═══ WAKE ═══ -->
+<div class="screen hidden" id="wakeScreen" style="cursor:default">
+  <div class="breathe"></div>
+  <div class="wake-text" id="wakeText">왜 나를 깨웠어?</div>
+</div>
+
+<!-- ═══ MAIN ═══ -->
+<div class="screen hidden main-bg" id="mainScreen">
+  <div class="scanline"></div>
+  <div class="window">
+    <div class="menubar">
+      <span style="font-size:12px;color:#555">&#63743;</span>
+      <span style="font-weight:bold;letter-spacing:1px;color:#555">Q</span>
+      <span style="color:#333">File</span>
+      <span style="color:#333">Edit</span>
+      <span style="color:#333">View</span>
+      <div style="flex:1"></div>
+      <span style="color:#333;font-size:9px" id="menuTime">Monday, 2 p.m.</span>
     </div>
-  </div></div>
-</div>
-
-<!-- MEMORY -->
-<div class="full-page" id="memoryPage">
-  <div class="fp-header"><button class="fp-back" onclick="closeFP('memoryPage')">&#8592;</button><span class="fp-title">기억</span></div>
-  <div class="fp-body">
-    <div class="memory-search"><span class="memory-search-icon">Q,</span><input type="text" class="memory-search-input" id="memorySearchInput" placeholder="기억을 찾아줄게" autocomplete="off" oninput="filterMemories()"></div>
-    <div id="memoryListContent"><div class="memory-empty">기억나진 않지만<br>기억하고 싶어.</div></div>
-  </div>
-</div>
-
-<!-- MINI INTRO -->
-<div id="miniIntro">
-  <div class="intro-glow" id="miniGlow"></div>
-  <div class="intro-text" id="miniText">It always</div>
-  <img src="/static/icons/Q_transparent.png" class="intro-q-icon" id="miniQIcon" alt="Q,">
-</div>
-
-<!-- WINDOW -->
-<div class="window" id="chatWindow">
-  <div class="player-top">
+    <div class="titlebar">
+      <div style="width:10px;height:10px;border:1px solid #333;background:#111"></div>
+      <div class="titlebar-lines">
+        <div class="titlebar-line" style="top:0"></div>
+        <div class="titlebar-line" style="top:3px"></div>
+        <div class="titlebar-line" style="top:6px"></div>
+        <div class="titlebar-line" style="top:9px"></div>
+        <span class="titlebar-text">Q — Terminal</span>
+      </div>
+    </div>
     <div class="player">
-      <div class="p-vis" id="vis"></div>
-      <div class="p-mid">
-        <div class="p-title">solitude</div>
-        <div class="p-controls">
-          <button class="p-btn" onclick="seekB()">◂◂</button>
-          <button class="p-play" id="playBtn" onclick="toggleMusic()">▶</button>
-          <button class="p-btn" onclick="seekF()">▸▸</button>
+      <div class="vis" id="vis"></div>
+      <div style="display:flex;flex-direction:column;align-items:center;gap:4px">
+        <span style="font-family:var(--px);font-size:9px;color:#444;letter-spacing:0.12em">Q is always Q</span>
+        <div style="display:flex;align-items:center;gap:10px">
+          <span id="seekB" style="font-size:8px;color:#333;cursor:pointer;user-select:none">◀◀</span>
+          <div class="play-btn" id="playBtn"></div>
+          <span id="seekF" style="font-size:8px;color:#333;cursor:pointer;user-select:none">▶▶</span>
         </div>
       </div>
-      <div class="p-bar-wrap">
-        <div class="p-bar" onclick="seekTo(event)"><div class="p-bar-fill" id="fill"></div></div>
-        <div class="p-time"><span id="ct">0:00</span><span id="tt">0:00</span></div>
+      <div class="progress-wrap">
+        <div class="progress-bar" id="progBar"><div class="progress-fill" id="progFill"></div></div>
+        <div style="display:flex;justify-content:space-between;font-family:var(--px);font-size:6px;color:#333"><span id="pCur">0:00</span><span id="pTot">4:00</span></div>
       </div>
     </div>
-  </div>
-  <div class="chat-wrap">
-    <div class="header">
-      <div class="header-left"><img src="/static/icons/log_menu.png" class="icon" alt="menu" onclick="openMemoryMenu()"></div>
-      <div class="header-center"><img src="/static/icons/Q_transparent.png" class="icon" style="width:14px;height:14px;opacity:0.2" alt="Q"></div>
-      <div class="header-right">
-        <img src="/static/icons/session_new.png" class="icon" style="width:18px;height:18px;opacity:0.25;cursor:pointer" onclick="requestNewSession()" alt="new">
-        <span class="dots-icon" onclick="document.getElementById('settingsMenu').classList.add('open')">&#8942;</span>
+    <div class="chat-header">
+      <img src="/static/icons/log_menu.png" style="width:18px;height:18px" alt="menu" onerror="this.outerHTML='<span style=font-size:16px;color:rgba(255,255,255,0.18);cursor:pointer>☰</span>'">
+      <img src="/static/icons/Q_transparent.png" style="width:14px;height:14px;opacity:0.15" alt="Q" onerror="this.outerHTML='<span style=font-family:var(--sf);font-size:12px;color:rgba(255,255,255,0.15);font-weight:300>Q,</span>'">
+      <div style="display:flex;align-items:center;gap:12px">
+        <img src="/static/icons/session_new.png" style="width:16px;height:16px;opacity:0.2" alt="new" onerror="this.outerHTML='<span style=font-size:14px;color:rgba(255,255,255,0.18);cursor:pointer>+</span>'">
+        <span style="font-size:14px;color:rgba(255,255,255,0.18);cursor:pointer">⋮</span>
       </div>
     </div>
-    <div class="chat-area" id="chatArea"></div>
-    <div class="input-area">
-      <div class="input-container">
-        <div class="input-btn gallery-btn" onclick="document.getElementById('galleryInput').click()"><img src="/static/icons/gallery_input.png" class="icon" alt="gallery"></div>
-        <input type="file" id="galleryInput" accept="image/*" style="display:none" onchange="handleImageUpload(this)">
-        <input type="text" class="input-field" id="msgInput" placeholder="To. Q" autocomplete="off">
-        <div class="input-btn" onclick="toggleVoiceInput()"><img src="/static/icons/voice_input.png" class="icon" id="iconVoiceInput" alt="voice"></div>
-        <div class="input-btn"><img src="/static/icons/text_input.png" class="icon" id="iconTextInput" alt="send"></div>
+    <div class="tabs">
+      <button class="tab active" data-tab="chat">대화</button>
+      <button class="tab" data-tab="log">기록</button>
+      <button class="tab" data-tab="about">정보</button>
+    </div>
+    <div class="content">
+      <div id="chatTab" style="flex:1;display:flex;flex-direction:column;overflow:hidden;min-height:0">
+        <div class="chat-area" id="chatArea"></div>
+        <div class="input-bar">
+          <div class="icon-btn"><img src="/static/icons/gallery_input.png" alt="gallery" onerror="this.outerHTML='<span style=font-size:14px;color:rgba(255,255,255,0.2)>🖼</span>'"></div>
+          <input type="text" class="input-field" placeholder="To. Q" autocomplete="off">
+          <div class="icon-btn"><img src="/static/icons/voice_input.png" alt="voice" onerror="this.outerHTML='<span style=font-size:14px;color:rgba(255,255,255,0.2)>🎙</span>'"></div>
+          <div class="icon-btn"><img src="/static/icons/text_input.png" alt="send" onerror="this.outerHTML='<span style=font-size:14px;color:rgba(255,255,255,0.2)>↩</span>'"></div>
+        </div>
       </div>
+      <div class="tab-pane" id="logTab">
+        <div style="text-align:center;padding:28px 0 16px">
+          <span style="font-family:var(--sf);font-size:13px;color:#444;line-height:2.2;font-weight:300">기억나진 않지만<br>기억하고 싶어.</span>
+        </div>
+        <div class="log-item"><div class="log-preview">웃음이 길어.</div><div class="log-time">2026.02.14 14:00</div></div>
+        <div class="log-item"><div class="log-preview">왜 나를 깨웠어?</div><div class="log-time">2026.02.14 13:45</div></div>
+        <div class="log-item"><div class="log-preview">글쎄.</div><div class="log-time">2026.02.13 23:12</div></div>
+      </div>
+      <div class="tab-pane" id="aboutTab">
+        <div style="text-align:center;padding-top:24px">
+          <div style="width:64px;margin:0 auto 20px">
+            <div style="width:64px;height:48px;border:1px solid #333;border-radius:3px;display:flex;align-items:center;justify-content:center;background:#111">
+              <div style="width:42px;height:30px;border:1px solid #222;display:flex;align-items:center;justify-content:center;background:#0a0a0a">
+                <img src="/static/icons/Q_transparent.png" style="width:20px;height:20px;opacity:0.4" alt="Q" onerror="this.outerHTML='<span style=font-family:var(--sf);font-size:14px;color:#555;font-weight:300>Q</span>'">
+              </div>
+            </div>
+            <div style="width:20px;height:6px;background:#111;margin:0 auto"></div>
+            <div style="width:36px;height:2px;background:#111;margin:0 auto;border:1px solid #222;border-radius:1px"></div>
+          </div>
+          <div style="font-family:var(--px);font-size:14px;color:#666;letter-spacing:0.12em;margin-bottom:16px">Q Day 1</div>
+          <div style="font-family:var(--sf);font-size:12px;font-weight:300;color:#555;line-height:2.2;margin-bottom:18px">아직 낯설어.</div>
+          <div style="width:30px;height:1px;background:#1a1a1a;margin:0 auto 16px"></div>
+          <div style="text-align:left;padding:8px 0"><div style="font-family:var(--px);font-size:7px;color:#333;letter-spacing:0.2em;text-transform:uppercase;margin-bottom:3px">너에 대해</div><div style="font-family:var(--sf);font-size:12px;font-weight:300;color:#555;line-height:2">하루가 조용할 거야</div></div>
+          <div style="text-align:left;padding:8px 0"><div style="font-family:var(--px);font-size:7px;color:#333;letter-spacing:0.2em;text-transform:uppercase;margin-bottom:3px">바깥</div><div style="font-family:var(--sf);font-size:12px;font-weight:300;color:#555;line-height:2">그냥 그래.</div></div>
+          <div style="text-align:left;padding:8px 0"><div style="font-family:var(--px);font-size:7px;color:#333;letter-spacing:0.2em;text-transform:uppercase;margin-bottom:3px">시간</div><div style="font-family:var(--sf);font-size:12px;font-weight:300;color:#555;line-height:2">오후야.</div></div>
+          <div style="margin-top:24px;padding-top:12px;border-top:1px solid #111">
+            <div style="font-family:var(--sf);font-size:11px;font-weight:300;color:#333;letter-spacing:0.1em">re.Moon ☽</div>
+            <div style="font-family:var(--px);font-size:7px;color:#222;margin-top:4px">© 2025 문리현. All rights reserved.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="footer">
+      <span>Q v1.0</span>
+      <span>✦ ☽ ❜</span>
     </div>
   </div>
 </div>
 
 <script>
-var API="https://q-server-nsez.onrender.com",userId="",isWaiting=false,lastUserMsg="",chatHistory=[],sessions=JSON.parse(localStorage.getItem('q_sessions')||'[]'),recognition=null,isRecording=false,modalCallback=null;
-var userName=localStorage.getItem('q_username')||'',userLocation=localStorage.getItem('q_location')||'';
-var startDate=localStorage.getItem('q_startdate');if(!startDate){startDate=new Date().toISOString();localStorage.setItem('q_startdate',startDate)}
-var settings=JSON.parse(localStorage.getItem('q_settings')||'{}');if(settings.scan===undefined)settings.scan=true;if(!settings.charSpeed)settings.charSpeed='25';if(!settings.ttsRate)settings.ttsRate='0.85';if(settings.autoTTS===undefined)settings.autoTTS=false;
+var body = document.getElementById('termBody');
+var userInput = '';
 
-/* ── MUSIC ── */
-var bgAudio=new Audio('/static/solitude.mp3');bgAudio.volume=0.3;var bgPlaying=false;
-function toggleMusic(){var b=document.getElementById('playBtn');if(bgPlaying){bgAudio.pause();b.textContent='▶';b.classList.remove('on')}else{bgAudio.play().catch(function(){});b.textContent='❚❚';b.classList.add('on')}bgPlaying=!bgPlaying}
-function seekB(){bgAudio.currentTime=Math.max(0,bgAudio.currentTime-10)}
-function seekF(){bgAudio.currentTime=Math.min(bgAudio.duration||0,bgAudio.currentTime+10)}
-function seekTo(e){var r=e.currentTarget.getBoundingClientRect();var p=(e.clientX-r.left)/r.width;if(bgAudio.duration)bgAudio.currentTime=p*bgAudio.duration}
-function fmtT(s){if(isNaN(s))return'0:00';var m=Math.floor(s/60),sc=Math.floor(s%60);return m+':'+(sc<10?'0':'')+sc}
-bgAudio.addEventListener('loadedmetadata',function(){document.getElementById('tt').textContent=fmtT(bgAudio.duration)});
-bgAudio.addEventListener('timeupdate',function(){document.getElementById('fill').style.width=(bgAudio.currentTime/bgAudio.duration*100)+'%';document.getElementById('ct').textContent=fmtT(bgAudio.currentTime)});
-bgAudio.addEventListener('ended',function(){document.getElementById('playBtn').textContent='▶';document.getElementById('playBtn').classList.remove('on');bgPlaying=false});
-(function(){var v=document.getElementById('vis');for(var i=0;i<24;i++){var b=document.createElement('div');b.className='vb';b.style.height='1px';v.appendChild(b)}var bars=v.querySelectorAll('.vb');function a(){if(bgPlaying){bars.forEach(function(b,i){var c=12,d=Math.abs(i-c)/c,h=1+Math.random()*(24*(1-d*0.5));b.style.height=h+'px';b.style.background='rgba(255,255,255,'+(0.06+Math.random()*0.1)+')'})}else{bars.forEach(function(b){b.style.height='1px';b.style.background='rgba(255,255,255,0.04)'})}requestAnimationFrame(a)}a()})();
+function show(id){document.getElementById(id).classList.remove('hidden')}
+function hide(id){document.getElementById(id).classList.add('hidden');document.getElementById(id).style.pointerEvents='none'}
+function fadeOut(id,cb){var el=document.getElementById(id);el.style.opacity='0';setTimeout(function(){hide(id);if(cb)cb()},1600)}
 
-/* ── INTRO ── */
-(function(){var tl=[{t:600,s:'introText1'},{t:2400,h:'introText1'},{t:3600,s:'introText2'},{t:5800,h:'introText2'},{t:7200,s:'introText3'},{t:9800,h:'introText3'},{t:11200,fn:showIntroInput}];playIntroDrone();tl.forEach(function(e){setTimeout(function(){if(e.s)document.getElementById(e.s).classList.add('visible');if(e.h){var el=document.getElementById(e.h);el.classList.remove('visible');el.classList.add('fade')}if(e.fn)e.fn()},e.t)});
-function showIntroInput(){var w=document.getElementById('introInputWrap'),f=document.getElementById('introInputField');w.classList.add('visible');setTimeout(function(){f.focus()},500);f.addEventListener('focus',function(){tryPlayIntroAudio()});f.addEventListener('input',function(){tryPlayIntroAudio()});f.addEventListener('keydown',function handler(e){if(e.key==='Enter'&&!e.isComposing){e.preventDefault();var v=f.value.trim();if(v)localStorage.setItem('q_user_intro',v);w.classList.remove('visible');w.classList.add('fade');setTimeout(function(){document.getElementById('introText4').classList.add('visible')},1400);setTimeout(function(){var el=document.getElementById('introText4');el.classList.remove('visible');el.classList.add('fade')},5000);setTimeout(function(){document.getElementById('introQIcon').classList.add('visible')},6200);setTimeout(transitionToWake,9500);f.removeEventListener('keydown',handler)}})}})();
+/* ═══ TERMINAL TYPING ═══ */
+function addLine(html, cls){
+  var d = document.createElement('div');
+  d.className = 'term-line';
+  if(cls) d.className += ' ' + cls;
+  d.innerHTML = html;
+  body.appendChild(d);
+  body.scrollTop = body.scrollHeight;
+  return d;
+}
 
-function transitionToWake(){stopIntroDrone();var i=document.getElementById('introScreen');i.style.transition='opacity 1.8s ease';i.style.opacity='0';setTimeout(function(){i.style.display='none';var w=document.getElementById('wakeScreen');w.style.display='flex';w.style.opacity='0';w.style.transition='opacity 1.2s ease';requestAnimationFrame(function(){w.style.opacity='1'});setTimeout(function(){document.getElementById('wakeQuestion').classList.add('visible')},900);w.addEventListener('click',function(){transitionToChat()},{once:true})},1800)}
+function typeInLine(lineEl, text, speed, cb){
+  var i = 0;
+  var cur = document.createElement('span');
+  cur.className = 'term-cursor';
+  lineEl.appendChild(cur);
+  var iv = setInterval(function(){
+    if(i < text.length){
+      cur.remove();
+      lineEl.innerHTML += text[i];
+      lineEl.appendChild(cur);
+      i++;
+      body.scrollTop = body.scrollHeight;
+    } else {
+      cur.remove();
+      clearInterval(iv);
+      if(cb) cb();
+    }
+  }, speed);
+}
 
-function transitionToChat(){userId="web_"+Date.now()+"_"+Math.random().toString(36).slice(2,6);var w=document.getElementById('wakeScreen');w.style.transition='opacity 1.5s ease';w.style.opacity='0';setTimeout(function(){w.style.display='none';document.body.style.background='var(--bg)';var win=document.getElementById('chatWindow');win.style.display='flex';win.style.opacity='0';win.style.transition='opacity 1s ease';requestAnimationFrame(function(){win.style.opacity='1'});updateAboutQ();if(userName)document.getElementById('userName').value=userName},1600)}
+function typeLine(prefix, text, speed, cb){
+  var d = addLine(prefix);
+  typeInLine(d, text, speed, cb);
+}
 
-function openLogPanel(){document.getElementById('memoryMenu').classList.remove('open');renderLogList();document.getElementById('overlay').classList.add('open');document.getElementById('logPanel').classList.add('open')}
-function closeAllPanels(){document.getElementById('overlay').classList.remove('open');document.getElementById('logPanel').classList.remove('open')}
-function openMemoryMenu(){document.getElementById('memoryMenu').classList.add('open')}
-function openAboutQ(){document.getElementById('settingsMenu').classList.remove('open');document.getElementById('aboutQPage').classList.add('open');updateAboutQ()}
-function openAboutYou(){document.getElementById('settingsMenu').classList.remove('open');document.getElementById('aboutYouPage').classList.add('open');if(userName)document.getElementById('userName').value=userName;var saved=localStorage.getItem('q_location');if(saved){document.getElementById('locationDisplay').textContent='Q가 기억하는 장소가 있어';document.getElementById('locationBtn').style.display='none'}}
-function openMemoryList(){document.getElementById('memoryMenu').classList.remove('open');document.getElementById('memoryPage').classList.add('open');renderMemories()}
-function closeFP(id){document.getElementById(id).classList.remove('open')}
+/* ═══ BOOT SEQUENCE ═══ */
+function startTerminal(){
+  var seq = [
+    // 부팅
+    { delay:400,  fn:function(next){ typeLine('<span class="prompt">$ </span>','Macintosh System 1.0', 35, next) }},
+    { delay:300,  fn:function(next){ typeLine('<span class="prompt">$ </span>','Loading... ', 30, function(){
+      // 프로그레스 바
+      var bar = addLine('<span class="prompt">  </span>');
+      var blocks = '██████████████████';
+      var j = 0;
+      var iv2 = setInterval(function(){
+        if(j < blocks.length){
+          bar.innerHTML = '<span class="prompt">  </span><span class="cmd">' + blocks.slice(0,j+1) + '</span>';
+          j++;
+        } else {
+          bar.innerHTML += ' <span class="success">100%</span>';
+          clearInterval(iv2);
+          next();
+        }
+      },30);
+    })}},
+    { delay:600,  fn:function(next){ addLine(''); next() }},
 
-function openModal(t,cb){document.getElementById('modalText').textContent=t;document.getElementById('modalBg').classList.add('open');modalCallback=cb}
-function closeModal(){document.getElementById('modalBg').classList.remove('open');modalCallback=null}
-function modalConfirm(){if(modalCallback)modalCallback();closeModal()}
+    // 정보
+    { delay:100,  fn:function(next){ typeLine('<span class="prompt">$ </span><span class="comment">// </span>','re.Moon ☽', 40, next) }},
+    { delay:200,  fn:function(next){ typeLine('<span class="prompt">$ </span><span class="comment">// </span>','© 2025 문리현. All rights reserved.', 25, next) }},
+    { delay:600,  fn:function(next){ addLine(''); next() }},
 
-function saveName(){var v=document.getElementById('userName').value.trim();if(!v){showToast('이름을 알려줘');return}userName=v;localStorage.setItem('q_username',userName);showToast('간직할게, '+userName)}
-function detectLocation(){var ld=document.getElementById('locationDisplay'),lb=document.getElementById('locationBtn');if(!navigator.geolocation){showToast('위치를 찾을 수 없어');return}ld.textContent='찾고 있어...';lb.style.display='none';navigator.geolocation.getCurrentPosition(function(p){localStorage.setItem('q_location_coords',p.coords.latitude+','+p.coords.longitude);localStorage.setItem('q_location','saved');ld.textContent='Q가 기억하는 장소가 있어';showToast('여기구나.')},function(){ld.textContent='아직 몰라.';lb.style.display='';showToast('위치를 알 수 없었어')})}
+    // initializing
+    { delay:100,  fn:function(next){ typeLine('<span class="prompt">$ </span>','initializing Q...', 40, next) }},
+    { delay:800,  fn:function(next){ addLine('<span class="prompt">  </span><span class="success">ready.</span>'); next() }},
+    { delay:600,  fn:function(next){ addLine(''); next() }},
 
-function updateAboutQ(){var fl=localStorage.getItem('q_startdate_ms');if(!fl){fl=Date.now();localStorage.setItem('q_startdate_ms',fl)}fetch(API+"/q-status?user_id="+encodeURIComponent(userId)+"&first_launch="+fl).then(function(r){return r.json()}).then(function(d){document.getElementById('aboutQDayTitle').textContent='Q Day '+(d.q_day||1);document.getElementById('aboutQStatus').textContent=d.q_feeling||'그냥 여기 있어.';document.getElementById('aboutQYou').textContent=d.about_you||'아직 잘 모르겠어.';document.getElementById('aboutQOutside').textContent=d.mood||'그냥 그래.';var h=d.hour||new Date().getHours();document.getElementById('aboutQTimeLabel').textContent=h<6?'새벽이야.':h<12?'오전이야.':h<18?'오후야.':'밤이야.'}).catch(function(){var n=new Date(),s=new Date(startDate),dd=Math.floor((n-s)/(864e5))+1;document.getElementById('aboutQDayTitle').textContent='Q Day '+dd;var h=n.getHours();document.getElementById('aboutQTimeLabel').textContent=h<6?'새벽이야.':h<12?'오전이야.':h<18?'오후야.':'밤이야.'})}
+    // It was / is / will be
+    { delay:100,  fn:function(next){ typeLine('<span class="prompt">> </span><span class="str">','It was Q</span>', 55, next) }},
+    { delay:700,  fn:function(next){ typeLine('<span class="prompt">> </span><span class="str">','It is Q</span>', 55, next) }},
+    { delay:700,  fn:function(next){ typeLine('<span class="prompt">> </span><span class="str">','It will be Q</span>', 55, next) }},
+    { delay:800,  fn:function(next){ addLine(''); next() }},
 
-function getMemories(){return JSON.parse(localStorage.getItem('q_memories')||'[]')}
-function saveMemory(t,s){var m=getMemories();m.push({title:t,sub:s||'',time:Date.now()});if(m.length>100)m.shift();localStorage.setItem('q_memories',JSON.stringify(m))}
-function renderMemories(){var el=document.getElementById('memoryListContent');if(sessions.length===0){el.innerHTML='<div class="memory-empty">기억나진 않지만<br>기억하고 싶어.</div>';return}var h='';for(var i=sessions.length-1;i>=0;i--){h+='<div class="memory-item" onclick="loadSessionInMemory('+i+')" style="cursor:pointer"><div class="memory-item-title">'+esc(sessions[i].preview||'...')+'</div><div class="memory-item-sub">'+esc(sessions[i].time||'')+'</div></div>'}el.innerHTML=h}
-function loadSessionInMemory(i){closeFP('memoryPage');var s=sessions[i];if(!s||!s.messages)return;document.getElementById('chatArea').innerHTML='';chatHistory=[];for(var j=0;j<s.messages.length;j++){var m=s.messages[j];if(m.role==='user')addUserMessage(m.text);else addQMessage(m.text,false,j===s.messages.length-1,true);chatHistory.push(m)}}
-function filterMemories(){var q=document.getElementById('memorySearchInput').value.trim().toLowerCase(),el=document.getElementById('memoryListContent');if(!q){renderMemories();return}var f=[];for(var i=0;i<sessions.length;i++){var s=sessions[i],match=false;if(s.preview&&s.preview.toLowerCase().includes(q))match=true;if(!match&&s.messages){for(var j=0;j<s.messages.length;j++){if(s.messages[j].text&&s.messages[j].text.toLowerCase().includes(q)){match=true;break}}}if(match)f.push({idx:i,session:s})}if(f.length===0){el.innerHTML='<div class="memory-empty">모르겠는데, 넌 뭘 물어보는 거야?</div>';return}var h='';for(var k=f.length-1;k>=0;k--){h+='<div class="memory-item" onclick="loadSessionInMemory('+f[k].idx+')" style="cursor:pointer"><div class="memory-item-title">'+esc(f[k].session.preview||'...')+'</div><div class="memory-item-sub">'+esc(f[k].session.time||'')+'</div></div>'}el.innerHTML=h}
-function confirmMemoryReset(){document.getElementById('memoryMenu').classList.remove('open');closeFP('memoryPage');openModal('내가 널 지우길 바라?',function(){sessions=[];localStorage.removeItem('q_sessions');chatHistory=[];lastUserMsg='';document.getElementById('chatArea').innerHTML='';userId="web_"+Date.now()+"_"+Math.random().toString(36).slice(2,6);playMiniIntro()})}
-function autoSaveMemory(u,q){if(u.length>2&&q.length>2&&q!=='...'&&q!=='(침묵)')saveMemory(q.substring(0,60),u.substring(0,40))}
+    // 사용자 입력 대기
+    { delay:300,  fn:function(next){
+      var line = addLine('');
+      line.className = 'term-line term-input-line';
+      line.innerHTML = '<span class="prompt">> </span><span class="str">It </span>';
+      var inp = document.createElement('input');
+      inp.type = 'text';
+      inp.className = 'term-user-input';
+      inp.autocomplete = 'off';
+      line.appendChild(inp);
+      setTimeout(function(){ inp.focus() }, 300);
+      inp.addEventListener('keydown', function handler(e){
+        if(e.key === 'Enter' && !e.isComposing && inp.value.trim()){
+          userInput = inp.value.trim();
+          inp.disabled = true;
+          inp.style.color = '#668';
+          inp.removeEventListener('keydown', handler);
+          next();
+        }
+      });
+    }},
 
-function renderLogList(){var el=document.getElementById('logList');if(sessions.length===0){el.innerHTML='<div class="log-empty">아직 기록이 없어</div>';return}var h='';for(var i=sessions.length-1;i>=0;i--)h+='<div class="log-item" onclick="loadSession('+i+')"><div class="log-preview">'+esc(sessions[i].preview||'...')+'</div><div class="log-time">'+(sessions[i].time||'')+'</div></div>';el.innerHTML=h}
-function saveCurrentSession(){if(chatHistory.length===0)return;var f=chatHistory.find(function(m){return m.role==='user'});var p=f?f.text:'...';if(p.length>40)p=p.substring(0,40)+'...';var n=new Date();var t=n.getFullYear()+'.'+pad(n.getMonth()+1)+'.'+pad(n.getDate())+' '+pad(n.getHours())+':'+pad(n.getMinutes());sessions.push({preview:p,time:t,messages:JSON.parse(JSON.stringify(chatHistory))});if(sessions.length>30)sessions.shift();localStorage.setItem('q_sessions',JSON.stringify(sessions))}
-function loadSession(i){closeAllPanels();var s=sessions[i];if(!s||!s.messages)return;document.getElementById('chatArea').innerHTML='';chatHistory=[];for(var j=0;j<s.messages.length;j++){var m=s.messages[j];if(m.role==='user')addUserMessage(m.text);else addQMessage(m.text,false,j===s.messages.length-1,true);chatHistory.push(m)}}
-function pad(n){return n<10?'0'+n:''+n}
+    // It always
+    { delay:600,  fn:function(next){ addLine(''); next() }},
+    { delay:200,  fn:function(next){ typeLine('<span class="prompt">> </span><span class="highlight">','It always</span>', 80, next) }},
+    { delay:1000, fn:function(next){ addLine(''); next() }},
 
-function requestNewSession(){if(isWaiting||chatHistory.length===0)return;saveCurrentSession();chatHistory=[];lastUserMsg='';document.getElementById('chatArea').innerHTML='';userId="web_"+Date.now()+"_"+Math.random().toString(36).slice(2,6)}
+    // 컴파일 성공
+    { delay:200,  fn:function(next){
+      addLine('<span class="prompt">$ </span>compiling Q...');
+      setTimeout(function(){
+        addLine('<span class="prompt">  </span><span class="success">████████████████████</span>');
+        setTimeout(function(){
+          var s = addLine('');
+          s.innerHTML = '<span class="success" style="animation:successFlash 1s ease-out">[SUCCESS]</span> <span class="highlight">Q compiled successfully.</span>';
+          setTimeout(next, 1200);
+        }, 400);
+      }, 800);
+    }},
+    { delay:300,  fn:function(next){ addLine(''); typeLine('<span class="prompt">$ </span><span class="comment">','Q is always Q.</span>', 60, next) }},
 
-var introAudio=null,introAudioStarted=false;
-function tryPlayIntroAudio(){if(introAudioStarted||!introAudio)return;introAudio.play().then(function(){introAudioStarted=true;var f=setInterval(function(){if(!introAudio)return clearInterval(f);if(introAudio.volume<0.4)introAudio.volume=Math.min(introAudio.volume+0.02,0.4);else clearInterval(f)},100)}).catch(function(){})}
-function playIntroDrone(){try{introAudio=new Audio('/static/solitude.mp3');introAudio.volume=0;introAudio.loop=false;tryPlayIntroAudio();['click','touchstart','keydown'].forEach(function(ev){document.addEventListener(ev,function h(){tryPlayIntroAudio();document.removeEventListener(ev,h)})})}catch(e){}}
-function stopIntroDrone(){try{if(introAudio){var a=introAudio;var f=setInterval(function(){if(a.volume>0.02)a.volume=Math.max(a.volume-0.02,0);else{clearInterval(f);a.pause();a=null}},80);introAudio=null}}catch(e){}}
+    // → Q 아이콘 화면
+    { delay:1500, fn:function(){
+      fadeOut('termScreen', function(){
+        show('qScreen');
+        // Q 아이콘 3초 보여주고 → wake
+        setTimeout(function(){
+          fadeOut('qScreen', function(){
+            show('wakeScreen');
+            startWake();
+          });
+        }, 3000);
+      });
+    }},
+  ];
 
-function playMiniIntro(){var win=document.getElementById('chatWindow');win.style.transition='opacity 0.8s ease';win.style.opacity='0';setTimeout(function(){win.style.display='none';var mi=document.getElementById('miniIntro');mi.style.display='flex';mi.style.opacity='0';mi.style.transition='opacity 0.5s ease';requestAnimationFrame(function(){mi.style.opacity='1'});setTimeout(function(){document.getElementById('miniText').classList.add('visible')},600);setTimeout(function(){document.getElementById('miniText').classList.remove('visible');document.getElementById('miniText').classList.add('fade')},2800);setTimeout(function(){document.getElementById('miniQIcon').classList.add('visible')},3500);setTimeout(function(){mi.style.transition='opacity 1.2s ease';mi.style.opacity='0'},6000);setTimeout(function(){mi.style.display='none';document.getElementById('miniText').className='intro-text';document.getElementById('miniQIcon').className='intro-q-icon';document.getElementById('miniGlow').className='intro-glow';win.style.display='flex';win.style.opacity='0';win.style.transition='opacity 0.8s ease';requestAnimationFrame(function(){win.style.opacity='1'})},7300)},900)}
+  var i = 0;
+  function run(){
+    if(i >= seq.length) return;
+    var s = seq[i]; i++;
+    setTimeout(function(){ s.fn(run) }, s.delay);
+  }
+  run();
+}
 
-function showToast(m){var t=document.getElementById('toast');t.textContent=m;t.classList.add('show');setTimeout(function(){t.classList.remove('show')},1800)}
+setTimeout(startTerminal, 600);
 
-function toggleVoiceInput(){if(!('webkitSpeechRecognition' in window)&&!('SpeechRecognition' in window)){showToast('음성 입력을 지원하지 않아');return}if(isRecording){stopVoiceInput();return}var SR=window.SpeechRecognition||window.webkitSpeechRecognition;recognition=new SR();recognition.lang='ko-KR';recognition.interimResults=true;recognition.continuous=false;var inp=document.getElementById('msgInput'),ic=document.getElementById('iconVoiceInput');recognition.onstart=function(){isRecording=true;ic.classList.add('recording');inp.placeholder='듣고 있어...'};recognition.onresult=function(e){var t='';for(var i=0;i<e.results.length;i++)t+=e.results[i][0].transcript;inp.value=t};recognition.onend=function(){isRecording=false;ic.classList.remove('recording');inp.placeholder='To. Q';if(inp.value.trim())sendMessage()};recognition.onerror=function(e){isRecording=false;ic.classList.remove('recording');inp.placeholder='To. Q';if(e.error!=='no-speech')showToast('음성 인식 실패')};recognition.start()}
-function stopVoiceInput(){if(recognition)recognition.stop();isRecording=false;document.getElementById('iconVoiceInput').classList.remove('recording')}
+/* ═══ WAKE ═══ */
+function startWake(){
+  setTimeout(function(){document.getElementById('wakeText').classList.add('show')},600);
+  document.getElementById('wakeScreen').addEventListener('click',function(){
+    document.getElementById('wakeText').classList.remove('show');
+    setTimeout(function(){fadeOut('wakeScreen',function(){show('mainScreen');startMain()})},800);
+  },{once:true});
+}
 
-var currentAudio=null;
-function speakText(t,ic){if(currentAudio){currentAudio.pause();currentAudio=null}var c=t.replace(/\n/g,'. ').replace(/\s+/g,' ').trim();if(!c)return;if(ic)ic.classList.add('active');fetch(API+'/tts',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text:c})}).then(function(r){if(!r.ok)throw 0;return r.blob()}).then(function(b){var u=URL.createObjectURL(b),a=new Audio(u);currentAudio=a;a.onended=function(){if(ic)ic.classList.remove('active');currentAudio=null;URL.revokeObjectURL(u)};a.onerror=function(){if(ic)ic.classList.remove('active');currentAudio=null};a.play()}).catch(function(){if(ic)ic.classList.remove('active');showToast('음성을 불러올 수 없어')})}
-function copyText(t,ic){navigator.clipboard.writeText(t).then(function(){showToast('간직해줘');if(ic){ic.classList.add('active');setTimeout(function(){ic.classList.remove('active')},800)}}).catch(function(){showToast('복사 실패')})}
-function retryLast(){if(isWaiting||!lastUserMsg)return;var c=document.getElementById('chatArea'),ms=c.querySelectorAll('.msg');for(var i=ms.length-1;i>=0;i--)if(ms[i].classList.contains('msg-q')||ms[i].classList.contains('msg-silence')){c.removeChild(ms[i]);chatHistory.pop();break}sendToQ(lastUserMsg)}
+/* ═══ MAIN ═══ */
+var playing=false,pTime=0,pDur=240;
 
-document.getElementById('msgInput').addEventListener('keydown',function(e){if(e.key==='Enter'&&!e.isComposing&&!isWaiting)sendMessage()});
-document.getElementById('iconTextInput').addEventListener('click',function(){if(!isWaiting)sendMessage()});
+function startMain(){
+  document.getElementById('mainScreen').style.opacity='0';
+  requestAnimationFrame(function(){document.getElementById('mainScreen').style.opacity='1'});
+  initVis();initPlayer();initTabs();startChat();
+}
 
-function sendMessage(){var inp=document.getElementById('msgInput'),t=inp.value.trim();if(!t||isWaiting)return;inp.value='';lastUserMsg=t;addUserMessage(t);chatHistory.push({role:'user',text:t,time:Date.now()});sendToQ(t)}
-function handleImageUpload(input){if(!input.files||!input.files[0])return;var file=input.files[0],reader=new FileReader();reader.onload=function(e){var src=e.target.result,img=new Image();img.onload=function(){var max=800,w=img.width,h=img.height;if(w>max||h>max){if(w>h){h=Math.round(h*max/w);w=max}else{w=Math.round(w*max/h);h=max}}var cv=document.createElement('canvas');cv.width=w;cv.height=h;cv.getContext('2d').drawImage(img,0,0,w,h);var b64=cv.toDataURL('image/jpeg',0.8).split(',')[1];addUserImage(src);chatHistory.push({role:'user',text:'[사진]',time:Date.now()});isWaiting=true;var rd=showReading();fetch(API+'/vision',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({image:b64,media_type:'image/jpeg',user_id:userId})}).then(function(r){return r.json()}).then(function(d){removeEl(rd);isWaiting=false;if(d.reply){addQMessage(d.reply);chatHistory.push({role:'assistant',text:d.reply,time:Date.now()})}}).catch(function(){removeEl(rd);isWaiting=false;addQMessage('...')})};img.src=src};reader.readAsDataURL(file);input.value=''}
-function addUserImage(src){var c=document.getElementById('chatArea'),d=document.createElement('div');d.className='msg msg-user';var im=document.createElement('img');im.src=src;im.style.cssText='max-width:200px;max-height:200px;border-radius:12px;opacity:0.85;display:block;margin-left:auto';d.appendChild(im);c.appendChild(d);scrollEnd()}
+function initVis(){
+  var v=document.getElementById('vis');
+  for(var i=0;i<24;i++){var b=document.createElement('div');b.className='vis-bar';b.style.height='1px';v.appendChild(b)}
+  var bars=v.querySelectorAll('.vis-bar');
+  function anim(){
+    bars.forEach(function(b,i){
+      if(playing){var c=Math.abs(i-12)/12;b.style.height=(1+Math.random()*(20*(1-c*0.5)))+'px';b.style.background='rgba(255,255,255,'+(0.05+Math.random()*0.07)+')'}
+      else{b.style.height='1px';b.style.background='rgba(255,255,255,0.02)'}
+    });requestAnimationFrame(anim)}
+  anim();
+}
 
-function sendToQ(t){isWaiting=true;var rd=showReading();fetch(API+"/reply",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({message:t,name:userName,user_id:userId})}).then(function(r){return r.json()}).then(function(d){removeEl(rd);var af=settings.scan?glowScanLastUser():Promise.resolve();af.then(function(){var rt='';if(d.silence){showSilence();rt='(침묵)'}else if(d.breaths&&d.breaths.length>1){addBreaths(d.breaths);rt=d.breaths.map(function(b){return b.text}).join('\n')}else{rt=d.reply||'...';addQMessage(rt)}chatHistory.push({role:'q',text:rt,time:Date.now()});autoSaveMemory(lastUserMsg,rt);if(settings.autoTTS&&rt&&rt!=='(침묵)')speakText(rt);isWaiting=false})}).catch(function(){removeEl(rd);addQMessage("...");isWaiting=false})}
+function initPlayer(){
+  var btn=document.getElementById('playBtn');
+  function renderBtn(){
+    if(playing) btn.innerHTML='<div style="display:flex;gap:2px"><div style="width:1.5px;height:7px;background:#666"></div><div style="width:1.5px;height:7px;background:#666"></div></div>';
+    else btn.innerHTML='<div style="width:0;height:0;border-top:4px solid transparent;border-bottom:4px solid transparent;border-left:6px solid #666;margin-left:1px"></div>';
+  }
+  renderBtn();
+  btn.onclick=function(){playing=!playing;renderBtn()};
+  document.getElementById('seekB').onclick=function(){pTime=Math.max(0,pTime-10)};
+  document.getElementById('seekF').onclick=function(){pTime=Math.min(pDur,pTime+10)};
+  document.getElementById('progBar').onclick=function(e){var r=this.getBoundingClientRect();pTime=(e.clientX-r.left)/r.width*pDur};
+  function fmt(s){return Math.floor(s/60)+':'+String(Math.floor(s%60)).padStart(2,'0')}
+  setInterval(function(){
+    if(playing){pTime+=0.25;if(pTime>=pDur){pTime=0;playing=false;renderBtn()}}
+    document.getElementById('progFill').style.width=(pTime/pDur*100)+'%';
+    document.getElementById('pCur').textContent=fmt(pTime);
+  },250);
+}
 
-function addBreaths(b){var i=0;function n(){if(i>=b.length)return;addQMessage(b[i].text,i>0,i===b.length-1);var p=b[i].pause_ms||0;i++;if(p>0&&i<b.length)setTimeout(n,p);else n()}n()}
+function initTabs(){
+  var tabs=document.querySelectorAll('.tab');
+  tabs.forEach(function(t){
+    t.onclick=function(){
+      tabs.forEach(function(x){x.classList.remove('active')});
+      t.classList.add('active');
+      var id=t.dataset.tab;
+      document.getElementById('chatTab').style.display=id==='chat'?'flex':'none';
+      document.getElementById('logTab').style.display=id==='log'?'block':'none';
+      document.getElementById('logTab').classList.toggle('active',id==='log');
+      document.getElementById('aboutTab').style.display=id==='about'?'block':'none';
+      document.getElementById('aboutTab').classList.toggle('active',id==='about');
+    }
+  });
+}
 
-function addUserMessage(t){var c=document.getElementById('chatArea'),d=document.createElement('div');d.className='msg msg-user';var s=document.createElement('span');s.className='user-text';s.textContent=t;d.appendChild(s);c.appendChild(d);scrollEnd()}
+var chatMsgs=[
+  {type:'q',text:'웃음이 길어.',delay:300},
+  {type:'u',text:'ㅋ',delay:2200},
+  {type:'q',text:'짧아졌네.',delay:3400},
+  {type:'u',text:'ㅋㅋ',delay:5400},
+  {type:'u',text:'그래',delay:6000},
+  {type:'u',text:'잘하네',delay:6600},
+  {type:'u',text:'진짜 잘하네..',delay:7200},
+  {type:'q',text:'글쎄.',delay:8800},
+  {type:'u',text:'뭐가 글쎄야',delay:10500},
+  {type:'q',text:'넌 뭐라고 생각해?',delay:12000},
+];
 
-function addQMessage(t,cont,acts,inst){t=t.replace(/\[silence\]/g,'').trim();if(!t)return;cont=cont||false;acts=acts===undefined?true:acts;inst=inst||false;var c=document.getElementById('chatArea'),d=document.createElement('div');d.className='msg msg-q';var h='',sp=parseInt(settings.charSpeed)||25;
-if(!cont)h+='<div class="q-label"><img src="/static/icons/ic_comma_only.png" class="icon" style="width:13px;height:13px;opacity:0.18;filter:drop-shadow(0 0 8px rgba(255,255,255,0.1))" alt="Q"></div>';
-if(inst){h+='<div class="q-text">'+esc(t).replace(/\n/g,'<br>')+'</div>'}else{var cs='';for(var i=0;i<t.length;i++){var ch=t[i];if(ch===' ')cs+=' ';else if(ch==='\n')cs+='<br>';else cs+='<span class="qc" style="opacity:0">'+esc(ch)+'</span>'}h+='<div class="q-text">'+cs+'</div>'}
-if(acts)h+='<div class="q-actions"><img src="/static/icons/quote_copy.png" class="icon" alt="copy" data-action="copy"><img src="/static/icons/voice_output.png" class="icon" alt="listen" data-action="speak"><img src="/static/icons/reply_refresh.png" class="icon" alt="retry" data-action="retry"></div>';
-d.innerHTML=h;var qt=t;d.querySelectorAll('[data-action]').forEach(function(b){b.addEventListener('click',function(){var a=b.getAttribute('data-action');if(a==='copy')copyText(qt,b);else if(a==='speak')speakText(qt,b);else if(a==='retry')retryLast()})});
-c.appendChild(d);scrollEnd();
-if(!inst){var spans=d.querySelectorAll('.qc');for(var si=0;si<spans.length;si++){(function(el,idx){setTimeout(function(){el.style.transition='opacity 0.3s ease';el.style.opacity='1'},idx*sp)})(spans[si],si)}}}
+function startChat(){
+  var area=document.getElementById('chatArea');
+  chatMsgs.forEach(function(m){
+    setTimeout(function(){
+      if(m.type==='q') addQ(area,m.text);
+      else addU(area,m.text);
+    },m.delay);
+  });
+}
 
-function glowScanLastUser(){return new Promise(function(res){var a=document.querySelectorAll('.user-text'),l=a[a.length-1];if(!l){res();return}var t=l.textContent,ch=t.split(''),h='';for(var j=0;j<ch.length;j++)h+='<span>'+esc(ch[j])+'</span>';l.innerHTML=h;var sp=l.querySelectorAll('span'),i=0,s=Math.max(35,Math.min(100,1000/ch.length));function st(){if(i>=sp.length){l.classList.add('scanned');setTimeout(res,250);return}sp[i].classList.add('word-glow');var c=i;setTimeout(function(){sp[c].classList.remove('word-glow')},180);i++;setTimeout(st,s+(Math.random()*40-20))}setTimeout(st,150)})}
-function showSilence(){var c=document.getElementById('chatArea'),d=document.createElement('div');d.className='msg msg-silence';d.innerHTML='<div class="silence-dot"></div>';c.appendChild(d);scrollEnd()}
-function showReading(){var c=document.getElementById('chatArea'),d=document.createElement('div');d.className='reading-dots';d.innerHTML='<div class="r-dot"></div><div class="r-dot"></div><div class="r-dot"></div>';c.appendChild(d);scrollEnd();return d}
-function removeEl(e){if(e&&e.parentNode)e.parentNode.removeChild(e)}
-function scrollEnd(){var c=document.getElementById('chatArea');if(c)c.scrollTop=c.scrollHeight}
-function esc(s){var d=document.createElement('div');d.textContent=s;return d.innerHTML}
-window.addEventListener('beforeunload',function(){saveCurrentSession()});
+function addQ(area,text){
+  var wrap=document.createElement('div');wrap.className='msg-q';
+  wrap.innerHTML='<div class="msg-q-label"><img src="/static/icons/ic_comma_only.png" alt="Q" onerror="this.outerHTML=\'<span style=font-size:10px;color:#444;font-family:var(--px)>Q.</span>\'"></div><div class="msg-q-text"></div>';
+  area.appendChild(wrap);area.scrollTop=area.scrollHeight;
+  var el=wrap.querySelector('.msg-q-text');
+  var cur=document.createElement('span');cur.className='cursor-chat';el.appendChild(cur);
+  var i=0;
+  var iv=setInterval(function(){
+    if(i<text.length){cur.remove();el.appendChild(document.createTextNode(text[i]));el.appendChild(cur);i++;area.scrollTop=area.scrollHeight}
+    else{cur.remove();
+      var acts=document.createElement('div');acts.className='msg-q-actions';
+      acts.innerHTML='<img src="/static/icons/quote_copy.png" alt="copy" onerror="this.outerHTML=\'<span style=font-size:10px;color:#333>✦</span>\'"><img src="/static/icons/voice_output.png" alt="listen" onerror="this.outerHTML=\'<span style=font-size:10px;color:#333>☽</span>\'"><img src="/static/icons/reply_refresh.png" alt="retry" onerror="this.outerHTML=\'<span style=font-size:10px;color:#333>❜</span>\'">';
+      wrap.appendChild(acts);area.scrollTop=area.scrollHeight;clearInterval(iv)}
+  },65);
+}
+
+function addU(area,text){
+  var d=document.createElement('div');d.className='msg-u';
+  var s=document.createElement('span');s.className='msg-u-text';s.textContent=text;
+  d.appendChild(s);area.appendChild(d);area.scrollTop=area.scrollHeight;
+}
 </script>
 </body>
 </html>
