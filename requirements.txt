@@ -4,3 +4,4 @@ python-dotenv
 kiwipiepy
 gunicorn
 cryptography
+requests
