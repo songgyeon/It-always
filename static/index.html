@@ -47,7 +47,7 @@ body{background:var(--bg);color:var(--text);font-family:'Noto Serif KR',serif;fo
 @keyframes msgIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
 .msg-q{padding-right:60px}
 .q-label{font-size:11px;font-weight:200;color:var(--text-dim);margin-bottom:7px}
-.q-text{font-size:14px;line-height:2;color:var(--text);font-weight:300;letter-spacing:0.3px}
+.q-text{font-size:14px;line-height:1.8;color:var(--text);font-weight:300;letter-spacing:0.3px}
 .q-actions{display:flex;gap:16px;margin-top:10px;align-items:center}
 .q-actions .icon{width:15px;height:15px;opacity:0.55;cursor:pointer;transition:opacity 0.3s}
 .q-actions .icon:hover{opacity:0.4}
@@ -155,7 +155,7 @@ body{background:var(--bg);color:var(--text);font-family:'Noto Serif KR',serif;fo
     <span class="intro-input-label">It </span><input type="text" class="intro-input-field" id="introInputField" placeholder="" autocomplete="off">
   </div>
   <div class="intro-text" id="introText4">It always</div>
-  <img src="/static/icons/ic_comma_only.png" class="intro-q-icon" id="introQIcon" alt=",">
+  <img src="/static/icons/Q_transparent.png" class="intro-q-icon" id="introQIcon" alt="Q,">
 </div>
 <div id="wakeScreen">
   <div class="wake-glow" id="wakeGlow"></div>
@@ -222,7 +222,7 @@ body{background:var(--bg);color:var(--text);font-family:'Noto Serif KR',serif;fo
 <div id="miniIntro" style="position:fixed;inset:0;background:#000;display:none;align-items:center;justify-content:center;z-index:200">
   <div class="intro-glow" id="miniGlow"></div>
   <div class="intro-text" id="miniText">It always</div>
-  <img src="/static/icons/ic_comma_only.png" class="intro-q-icon" id="miniQIcon" alt=",">
+  <img src="/static/icons/Q_transparent.png" class="intro-q-icon" id="miniQIcon" alt="Q,">
 </div>
 <div id="chatScreen">
   <div class="chat-wrap">
@@ -263,7 +263,7 @@ function transitionToWake(){var i=document.getElementById('introScreen');i.style
 function transitionToChat(){userId="web_"+Date.now()+"_"+Math.random().toString(36).slice(2,6);var w=document.getElementById('wakeScreen');w.style.transition='opacity 1.5s ease';w.style.opacity='0';setTimeout(function(){w.style.display='none';var c=document.getElementById('chatScreen');c.style.display='flex';c.style.opacity='0';c.style.transition='opacity 0.8s ease';requestAnimationFrame(function(){c.style.opacity='1'});updateAboutQ();if(userName)document.getElementById('userName').value=userName},1600)}
 
 // PANELS
-function openLogPanel(){renderLogList();document.getElementById('overlay').classList.add('open');document.getElementById('logPanel').classList.add('open')}
+function openLogPanel(){document.getElementById('memoryMenu').classList.remove('open');renderLogList();document.getElementById('overlay').classList.add('open');document.getElementById('logPanel').classList.add('open')}
 function closeAllPanels(){document.getElementById('overlay').classList.remove('open');document.getElementById('logPanel').classList.remove('open')}
 function openMemoryMenu(){document.getElementById('memoryMenu').classList.add('open')}
 function openAboutQ(){document.getElementById('settingsMenu').classList.remove('open');document.getElementById('aboutQPage').classList.add('open');updateAboutQ()}
@@ -289,9 +289,10 @@ function updateAboutQ(){var firstLaunch=localStorage.getItem('q_startdate_ms');i
 // MEMORY
 function getMemories(){return JSON.parse(localStorage.getItem('q_memories')||'[]')}
 function saveMemory(t,s){var m=getMemories();m.push({title:t,sub:s||'',time:Date.now()});if(m.length>100)m.shift();localStorage.setItem('q_memories',JSON.stringify(m))}
-function renderMemories(){var m=getMemories(),el=document.getElementById('memoryListContent');if(m.length===0){el.innerHTML='<div class="memory-empty">기억나진 않지만<br>기억하고 싶어.</div>';return}var h='';for(var i=m.length-1;i>=0;i--){h+='<div class="memory-item"><div class="memory-item-title">'+esc(m[i].title)+'</div>';if(m[i].sub)h+='<div class="memory-item-sub">'+esc(m[i].sub)+'</div>';h+='</div>'}el.innerHTML=h}
-function filterMemories(){var q=document.getElementById('memorySearchInput').value.trim().toLowerCase(),m=getMemories(),el=document.getElementById('memoryListContent');if(!q){renderMemories();return}var f=m.filter(function(i){return i.title.toLowerCase().includes(q)||(i.sub&&i.sub.toLowerCase().includes(q))});if(f.length===0){el.innerHTML='<div class="memory-empty">모르겠는데, 넌 뭘 물어보는 거야?<br><span style="font-size:12px;opacity:0.5">알 바야?</span></div>';return}var h='';for(var i=f.length-1;i>=0;i--){h+='<div class="memory-item"><div class="memory-item-title">'+esc(f[i].title)+'</div>';if(f[i].sub)h+='<div class="memory-item-sub">'+esc(f[i].sub)+'</div>';h+='</div>'}el.innerHTML=h}
-function confirmMemoryReset(){document.getElementById('memoryMenu').classList.remove('open');openModal('기억을 지울까?',function(){localStorage.removeItem('q_memories');showToast('기억을 지웠어')})}
+function renderMemories(){var el=document.getElementById('memoryListContent');if(sessions.length===0){el.innerHTML='<div class="memory-empty">기억나진 않지만<br>기억하고 싶어.</div>';return}var h='';for(var i=sessions.length-1;i>=0;i--){var p=sessions[i].preview||'...';var t=sessions[i].time||'';h+='<div class="memory-item" onclick="loadSessionInMemory('+i+')" style="cursor:pointer"><div class="memory-item-title">'+esc(p)+'</div><div class="memory-item-sub">'+esc(t)+'</div></div>'}el.innerHTML=h}
+function loadSessionInMemory(i){closeFP('memoryPage');var s=sessions[i];if(!s||!s.messages)return;document.getElementById('chatArea').innerHTML='';chatHistory=[];for(var j=0;j<s.messages.length;j++){var m=s.messages[j];if(m.role==='user')addUserMessage(m.text);else addQMessage(m.text,false,j===s.messages.length-1,true);chatHistory.push(m)}}
+function filterMemories(){var q=document.getElementById('memorySearchInput').value.trim().toLowerCase(),el=document.getElementById('memoryListContent');if(!q){renderMemories();return}var f=[];for(var i=0;i<sessions.length;i++){var s=sessions[i],match=false;if(s.preview&&s.preview.toLowerCase().includes(q))match=true;if(!match&&s.messages){for(var j=0;j<s.messages.length;j++){if(s.messages[j].text&&s.messages[j].text.toLowerCase().includes(q)){match=true;break}}}if(match)f.push({idx:i,session:s})}if(f.length===0){el.innerHTML='<div class="memory-empty">모르겠는데, 넌 뭘 물어보는 거야?<br><span style="font-size:12px;opacity:0.5">알 바야?</span></div>';return}var h='';for(var k=f.length-1;k>=0;k--){var p=f[k].session.preview||'...';var t=f[k].session.time||'';h+='<div class="memory-item" onclick="loadSessionInMemory('+f[k].idx+')" style="cursor:pointer"><div class="memory-item-title">'+esc(p)+'</div><div class="memory-item-sub">'+esc(t)+'</div></div>'}el.innerHTML=h}
+function confirmMemoryReset(){document.getElementById('memoryMenu').classList.remove('open');openModal('기억을 지울까?',function(){sessions=[];localStorage.removeItem('q_sessions');showToast('기억을 지웠어')})}
 function autoSaveMemory(u,q){if(u.length>2&&q.length>2&&q!=='...'&&q!=='(침묵)')saveMemory(q.substring(0,60),u.substring(0,40))}
 
 // LOG
@@ -330,7 +331,7 @@ function addBreaths(b){var i=0;function n(){if(i>=b.length)return;var l=(i===b.l
 function addUserMessage(t){var c=document.getElementById('chatArea'),d=document.createElement('div');d.className='msg msg-user';var s=document.createElement('span');s.className='user-text';s.textContent=t;d.appendChild(s);c.appendChild(d);scrollEnd()}
 
 function addQMessage(t,cont,acts,inst){if(cont===undefined)cont=false;if(acts===undefined)acts=true;if(inst===undefined)inst=false;var c=document.getElementById('chatArea'),d=document.createElement('div');d.className='msg msg-q';var h='',sp=parseInt(settings.charSpeed)||25;
-if(!cont)h+='<div class="q-label"><img src="/static/icons/ic_comma_only.png" class="icon" style="width:14px;height:14px;opacity:0.6;" alt="Q"></div>';
+if(!cont)h+='<div class="q-label"><img src="/static/icons/ic_comma_only.png" class="icon" style="width:18px;height:18px;opacity:0.6;" alt="Q"></div>';
 if(inst){h+='<div class="q-text">'+esc(t).replace(/\n/g,'<br>')+'</div>'}else{var cs='';for(var i=0;i<t.length;i++){var ch=t[i];if(ch===' ')cs+=' ';else if(ch==='\n')cs+='<br>';else cs+='<span class="qc" style="opacity:0">'+esc(ch)+'</span>'}h+='<div class="q-text">'+cs+'</div>'}
 if(acts)h+='<div class="q-actions"><img src="/static/icons/quote_copy.png" class="icon" alt="copy" data-action="copy"><img src="/static/icons/voice_output.png" class="icon" alt="listen" data-action="speak"><img src="/static/icons/reply_refresh.png" class="icon" alt="retry" data-action="retry"></div>';
 d.innerHTML=h;var qt=t;d.querySelectorAll('[data-action]').forEach(function(b){b.addEventListener('click',function(){var a=b.getAttribute('data-action');if(a==='copy')copyText(qt,b);else if(a==='speak')speakText(qt,b);else if(a==='retry')retryLast()})});
