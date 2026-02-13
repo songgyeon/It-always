@@ -34,12 +34,12 @@ body{background:var(--bg);color:var(--text);font-family:'Noto Serif KR',serif;fo
 .chat-wrap{max-width:720px;width:100%;margin:0 auto;display:flex;flex-direction:column;flex:1;overflow:hidden}
 .header{display:flex;align-items:center;justify-content:space-between;padding:14px 24px;min-height:50px}
 .header-left{display:flex;align-items:center}
-.header-left .icon{width:20px;height:20px;opacity:0.45;cursor:pointer;transition:opacity 0.3s}
+.header-left .icon{width:22px;height:22px;opacity:0.75;cursor:pointer;transition:opacity 0.3s}
 .header-left .icon:hover{opacity:0.5}
 .header-center{display:flex;align-items:center;cursor:pointer}
 .header-center .icon{width:18px;height:18px;opacity:0.6}
 .header-right{display:flex;align-items:center;gap:16px}
-.dots-icon{font-size:20px;color:rgba(255,255,255,0.45);cursor:pointer;transition:color 0.3s}
+.dots-icon{font-size:22px;color:rgba(255,255,255,0.7);cursor:pointer;transition:color 0.3s}
 .dots-icon:hover{color:rgba(255,255,255,0.5)}
 .chat-area{flex:1;overflow-y:auto;padding:0 0 12px 0;scroll-behavior:smooth}
 .chat-area::-webkit-scrollbar{width:0}
@@ -49,7 +49,7 @@ body{background:var(--bg);color:var(--text);font-family:'Noto Serif KR',serif;fo
 .q-label{font-size:11px;font-weight:200;color:var(--text-dim);margin-bottom:7px}
 .q-text{font-size:14px;line-height:2;color:var(--text);font-weight:300;letter-spacing:0.3px}
 .q-actions{display:flex;gap:16px;margin-top:10px;align-items:center}
-.q-actions .icon{width:15px;height:15px;opacity:0.35;cursor:pointer;transition:opacity 0.3s}
+.q-actions .icon{width:15px;height:15px;opacity:0.55;cursor:pointer;transition:opacity 0.3s}
 .q-actions .icon:hover{opacity:0.4}
 .q-actions .icon.active{opacity:0.6}
 .msg-user{text-align:right;padding-left:60px;padding-right:24px}
@@ -70,11 +70,11 @@ body{background:var(--bg);color:var(--text);font-family:'Noto Serif KR',serif;fo
 .btn-comma:hover{border-color:rgba(255,255,255,0.2)}
 .btn-comma .icon{width:14px;height:14px;opacity:0.5}
 .btn-gallery{width:30px;height:30px;background:transparent;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0}
-.btn-gallery .icon{width:24px;height:24px;opacity:0.45}
+.btn-gallery .icon{width:26px;height:26px;opacity:0.7}
 .input-field{flex:1;background:transparent;border:none;outline:none;color:var(--text);font-family:'Noto Serif KR',serif;font-size:14px;font-weight:200;padding:8px 0;caret-color:rgba(255,255,255,0.3);letter-spacing:0.5px}
 .input-field::placeholder{color:var(--text-dim2);font-weight:200;letter-spacing:1px}
 .input-icons{display:flex;gap:14px;align-items:center;flex-shrink:0}
-.input-icons .icon{width:20px;height:20px;opacity:0.35;cursor:pointer;transition:opacity 0.3s}
+.input-icons .icon{width:22px;height:22px;opacity:0.6;cursor:pointer;transition:opacity 0.3s}
 .input-icons .icon:hover{opacity:0.4}
 .input-icons .icon.recording{opacity:0.7;animation:recPulse 1s ease-in-out infinite}
 @keyframes recPulse{0%,100%{opacity:0.4}50%{opacity:0.8}}
@@ -229,7 +229,7 @@ body{background:var(--bg);color:var(--text);font-family:'Noto Serif KR',serif;fo
     <div class="header">
       <div class="header-left"><img src="/static/icons/log_menu.png" class="icon" alt="menu" onclick="openMemoryMenu()"></div>
       <div class="header-center"></div>
-      <div class="header-right"><img src="/static/icons/session_new.png" class="icon" style="width:22px;height:22px;opacity:0.45;cursor:pointer" onclick="requestNewSession()" alt="new"><span class="dots-icon" onclick="document.getElementById('settingsMenu').classList.add('open')">⋮</span></div>
+      <div class="header-right"><img src="/static/icons/session_new.png" class="icon" style="width:24px;height:24px;opacity:0.7;cursor:pointer" onclick="requestNewSession()" alt="new"><span class="dots-icon" onclick="document.getElementById('settingsMenu').classList.add('open')">⋮</span></div>
     </div>
     <div class="chat-area" id="chatArea"></div>
     <div class="input-area">
@@ -330,7 +330,7 @@ function addBreaths(b){var i=0;function n(){if(i>=b.length)return;var l=(i===b.l
 function addUserMessage(t){var c=document.getElementById('chatArea'),d=document.createElement('div');d.className='msg msg-user';var s=document.createElement('span');s.className='user-text';s.textContent=t;d.appendChild(s);c.appendChild(d);scrollEnd()}
 
 function addQMessage(t,cont,acts,inst){if(cont===undefined)cont=false;if(acts===undefined)acts=true;if(inst===undefined)inst=false;var c=document.getElementById('chatArea'),d=document.createElement('div');d.className='msg msg-q';var h='',sp=parseInt(settings.charSpeed)||25;
-if(!cont)h+='<div class="q-label"><img src="/static/icons/ic_comma_only.png" class="icon" style="width:14px;height:14px;opacity:0.3;" alt="Q"></div>';
+if(!cont)h+='<div class="q-label"><img src="/static/icons/ic_comma_only.png" class="icon" style="width:14px;height:14px;opacity:0.6;" alt="Q"></div>';
 if(inst){h+='<div class="q-text">'+esc(t).replace(/\n/g,'<br>')+'</div>'}else{var cs='';for(var i=0;i<t.length;i++){var ch=t[i];if(ch===' ')cs+=' ';else if(ch==='\n')cs+='<br>';else cs+='<span class="qc" style="opacity:0">'+esc(ch)+'</span>'}h+='<div class="q-text">'+cs+'</div>'}
 if(acts)h+='<div class="q-actions"><img src="/static/icons/quote_copy.png" class="icon" alt="copy" data-action="copy"><img src="/static/icons/voice_output.png" class="icon" alt="listen" data-action="speak"><img src="/static/icons/reply_refresh.png" class="icon" alt="retry" data-action="retry"></div>';
 d.innerHTML=h;var qt=t;d.querySelectorAll('[data-action]').forEach(function(b){b.addEventListener('click',function(){var a=b.getAttribute('data-action');if(a==='copy')copyText(qt,b);else if(a==='speak')speakText(qt,b);else if(a==='retry')retryLast()})});
