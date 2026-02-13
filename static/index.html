@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
+<title>Q</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@200;300;400&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--bg:#000;--text:#e8e8e8;--text-dim:rgba(255,255,255,0.30);--text-dim2:rgba(255,255,255,0.15);--text-user:rgba(255,255,255,0.65);--glow-color:rgba(255,255,255,0.6)}
+body{background:var(--bg);color:var(--text);font-family:'Noto Serif KR',serif;font-weight:300;height:100dvh;display:flex;flex-direction:column;overflow:hidden;-webkit-font-smoothing:antialiased}
+.icon{display:inline-block;object-fit:contain;pointer-events:auto;-webkit-user-drag:none}
+
+/* ── Wake Screen ── */
+#wakeScreen{position:fixed;inset:0;background:#000;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:100;cursor:default}
+.wake-glow{position:absolute;width:200px;height:200px;border-radius:50%;background:radial-gradient(circle,rgba(255,255,255,0.22) 0%,rgba(255,255,255,0.06) 40%,transparent 70%);opacity:0;transform:scale(0.5);pointer-events:none;transition:opacity 3s ease}
+.wake-glow.alive{opacity:1;animation:glowBreathe 4s ease-in-out infinite}
+@keyframes glowBreathe{0%,100%{opacity:0.10;transform:scale(0.7)}50%{opacity:0.30;transform:scale(1.05)}}
+.wake-glow.burst{animation:none;opacity:0.7;transform:scale(2.2);transition:opacity 0.6s ease,transform 0.6s ease}
+.wake-glow.settle{opacity:0.12;transform:scale(1.0);transition:opacity 1.5s ease,transform 1.5s ease}
+.wake-q-icon{width:56px;height:56px;opacity:0;z-index:2;transition:opacity 2.5s ease;pointer-events:none}
+.wake-q-icon.visible{opacity:0.85}
+.wake-question{position:absolute;bottom:40%;font-size:13px;font-weight:200;color:rgba(255,255,255,0);letter-spacing:1px;z-index:2;pointer-events:none;transition:color 2s ease,transform 1.5s ease;transform:translateY(8px)}
+.wake-question.visible{color:rgba(255,255,255,0.45);transform:translateY(0)}
+
+/* ── Chat Screen ── */
+#chatScreen{display:none;flex:1;flex-direction:column;height:100dvh}
+.chat-wrap{max-width:720px;width:100%;margin:0 auto;display:flex;flex-direction:column;flex:1;overflow:hidden}
+.header{display:flex;align-items:center;justify-content:space-between;padding:14px 24px;min-height:50px}
+.header-left{width:36px;display:flex;align-items:center}
+.header-left .icon{width:20px;height:20px;opacity:0.25;cursor:pointer;transition:opacity 0.3s}
+.header-left .icon:hover{opacity:0.5}
+.header-center{display:flex;align-items:center}
+.header-center .icon{width:16px;height:16px;opacity:0.3}
+.header-right{width:36px;display:flex;align-items:center;justify-content:flex-end}
+.header-right .icon{width:18px;height:18px;opacity:0.25;cursor:pointer;transition:opacity 0.3s}
+.header-right .icon:hover{opacity:0.5}
+
+/* ── Chat ── */
+.chat-area{flex:1;overflow-y:auto;padding:0 0 12px 0;scroll-behavior:smooth}
+.chat-area::-webkit-scrollbar{width:0}
+.msg{padding:14px 24px;animation:msgIn 0.6s ease}
+@keyframes msgIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+.msg-q{padding-right:60px}
+.q-label{font-size:11px;font-weight:200;color:var(--text-dim);margin-bottom:7px;letter-spacing:1.5px}
+.q-text{font-size:14px;line-height:2;color:var(--text);font-weight:300;letter-spacing:0.3px}
+.q-actions{display:flex;gap:16px;margin-top:10px;align-items:center}
+.q-actions .icon{width:15px;height:15px;opacity:0.18;cursor:pointer;transition:opacity 0.3s}
+.q-actions .icon:hover{opacity:0.4}
+.msg-user{text-align:right;padding-left:60px;padding-right:24px}
+.user-text{font-size:14px;line-height:2;color:var(--text-user);font-weight:300;display:inline;letter-spacing:0.3px}
+.msg-silence{padding:6px 24px}
+.silence-dot{width:3px;height:3px;background:rgba(255,255,255,0.15);border-radius:50%;animation:silencePulse 3s ease-in-out infinite}
+@keyframes silencePulse{0%,100%{opacity:0.12}50%{opacity:0.45}}
+.reading-dots{display:flex;gap:5px;padding:8px 24px}
+.r-dot{width:3px;height:3px;background:rgba(255,255,255,0.18);border-radius:50%;animation:rPulse 1.6s ease-in-out infinite}
+.r-dot:nth-child(2){animation-delay:0.25s}
+.r-dot:nth-child(3){animation-delay:0.5s}
+@keyframes rPulse{0%,100%{opacity:0.12;transform:scale(1)}50%{opacity:0.5;transform:scale(1.4)}}
+.word-glow{text-shadow:0 0 10px var(--glow-color)}
+.user-text.scanned{color:rgba(255,255,255,0.85);transition:color 0.6s ease}
+
+/* ── Input ── */
+.input-area{padding:10px 20px 28px 20px;display:flex;align-items:center;gap:10px;position:relative}
+.input-line{position:absolute;top:0;left:24px;right:24px;height:1px;background:linear-gradient(90deg,transparent,rgba(255,255,255,0.06),transparent)}
+.btn-comma{width:30px;height:30px;border:1px solid rgba(255,255,255,0.1);border-radius:6px;background:transparent;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:border-color 0.3s;flex-shrink:0}
+.btn-comma:hover{border-color:rgba(255,255,255,0.2)}
+.btn-comma .icon{width:12px;height:12px;opacity:0.3}
+.input-field{flex:1;background:transparent;border:none;outline:none;color:var(--text);font-family:'Noto Serif KR',serif;font-size:14px;font-weight:200;padding:8px 0;caret-color:rgba(255,255,255,0.3);letter-spacing:0.5px}
+.input-field::placeholder{color:var(--text-dim2);font-weight:200;letter-spacing:1px}
+.input-icons{display:flex;gap:14px;align-items:center;flex-shrink:0}
+.input-icons .icon{width:20px;height:20px;opacity:0.18;cursor:pointer;transition:opacity 0.3s}
+.input-icons .icon:hover{opacity:0.4}
+</style>
+</head>
+<body>
+
+<!-- Wake Screen -->
+<div id="wakeScreen">
+  <div class="wake-glow" id="wakeGlow"></div>
+  <img src="/static/icons/ic_q_only.png" class="wake-q-icon" id="wakeQ" alt="Q">
+  <div class="wake-question" id="wakeQuestion">나를 부른 적 없는데, 왜 여기 왔어?</div>
+</div>
+
+<!-- Chat Screen -->
+<div id="chatScreen">
+  <div class="chat-wrap">
+    <div class="header">
+      <div class="header-left">
+        <img src="/static/icons/log_menu.png" class="icon" alt="log">
+      </div>
+      <div class="header-center">
+        <img src="/static/icons/ic_comma_only.png" class="icon" alt="Q">
+      </div>
+      <div class="header-right">
+        <img src="/static/icons/app_settings.png" class="icon" alt="settings">
+      </div>
+    </div>
+
+    <div class="chat-area" id="chatArea"></div>
+
+    <div class="input-area">
+      <div class="input-line"></div>
+      <div class="btn-comma">
+        <img src="/static/icons/session_new.png" class="icon" alt="new">
+      </div>
+      <input type="text" class="input-field" id="msgInput" placeholder="To. Q" autocomplete="off">
+      <div class="input-icons">
+        <img src="/static/icons/voice_input.png" class="icon" id="iconVoiceInput" alt="voice">
+        <img src="/static/icons/text_input.png" class="icon" id="iconTextInput" alt="send">
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+var API = "https://q-server-nsez.onrender.com";
+var userId = "";
+var isWaiting = false;
+var wakePhase = 0;
+
+// ── Wake ──
+setTimeout(function(){ document.getElementById('wakeGlow').classList.add('alive'); wakePhase = 1; }, 2000);
+
+document.getElementById('wakeScreen').addEventListener('click', function(){
+  if(wakePhase < 1 || wakePhase >= 2) return;
+  wakePhase = 2;
+  var glow = document.getElementById('wakeGlow');
+  var qIcon = document.getElementById('wakeQ');
+  var question = document.getElementById('wakeQuestion');
+  glow.classList.remove('alive'); glow.classList.add('burst');
+  setTimeout(function(){ glow.classList.remove('burst'); glow.classList.add('settle'); qIcon.classList.add('visible'); }, 700);
+  setTimeout(function(){ question.classList.add('visible'); }, 2800);
+  setTimeout(transitionToChat, 6000);
+});
+
+function transitionToChat(){
+  userId = "web_" + Date.now() + "_" + Math.random().toString(36).slice(2,6);
+  var wake = document.getElementById('wakeScreen');
+  wake.style.transition = 'opacity 1.5s ease'; wake.style.opacity = '0';
+  setTimeout(function(){
+    wake.style.display = 'none';
+    var chat = document.getElementById('chatScreen');
+    chat.style.display = 'flex'; chat.style.opacity = '0';
+    chat.style.transition = 'opacity 0.8s ease';
+    requestAnimationFrame(function(){ chat.style.opacity = '1'; });
+    setTimeout(function(){ sendToQ("안녕"); }, 800);
+  }, 1600);
+}
+
+// ── Input ──
+document.getElementById('msgInput').addEventListener('keydown', function(e){
+  if(e.key === 'Enter' && !isWaiting) sendMessage();
+});
+document.getElementById('iconTextInput').addEventListener('click', function(){
+  if(!isWaiting) sendMessage();
+});
+
+function sendMessage(){
+  var input = document.getElementById('msgInput');
+  var text = input.value.trim();
+  if(!text || isWaiting) return;
+  input.value = '';
+  addUserMessage(text);
+  sendToQ(text);
+}
+
+function sendToQ(text){
+  isWaiting = true;
+  var readingEl = showReading();
+  fetch(API + "/reply", {
+    method: "POST",
+    headers: {"Content-Type": "application/json"},
+    body: JSON.stringify({ message: text, name: "", user_id: userId })
+  })
+  .then(function(res){ return res.json(); })
+  .then(function(data){
+    removeEl(readingEl);
+    glowScanLastUser().then(function(){
+      if(data.silence){ showSilence(); }
+      else if(data.breaths && data.breaths.length > 1){ addBreaths(data.breaths); }
+      else { addQMessage(data.reply); }
+      isWaiting = false;
+    });
+  })
+  .catch(function(){ removeEl(readingEl); addQMessage("..."); isWaiting = false; });
+}
+
+// ── Breaths ──
+function addBreaths(breaths){
+  var i = 0;
+  function next(){
+    if(i >= breaths.length) return;
+    var isLast = (i === breaths.length - 1);
+    addQMessage(breaths[i].text, i > 0, isLast);
+    var pause = breaths[i].pause_ms || 0;
+    i++;
+    if(pause > 0 && i < breaths.length) setTimeout(next, pause);
+    else next();
+  }
+  next();
+}
+
+// ── Messages ──
+function addUserMessage(text){
+  var chat = document.getElementById('chatArea');
+  var div = document.createElement('div');
+  div.className = 'msg msg-user';
+  var span = document.createElement('span');
+  span.className = 'user-text';
+  span.textContent = text;
+  div.appendChild(span);
+  chat.appendChild(div);
+  scrollEnd();
+}
+
+function addQMessage(text, continuation, showActions){
+  if(continuation === undefined) continuation = false;
+  if(showActions === undefined) showActions = true;
+  var chat = document.getElementById('chatArea');
+  var div = document.createElement('div');
+  div.className = 'msg msg-q';
+  var html = '';
+  if(!continuation) html += '<div class="q-label">Q.</div>';
+  var charSpans = '';
+  for(var ci = 0; ci < text.length; ci++){
+    var c = text[ci];
+    if(c === ' ') charSpans += ' ';
+    else if(c === '\n') charSpans += '<br>';
+    else charSpans += '<span class="qc" style="opacity:0">' + esc(c) + '</span>';
+  }
+  html += '<div class="q-text">' + charSpans + '</div>';
+  if(showActions){
+    html += '<div class="q-actions">'
+      + '<img src="/static/icons/quote_copy.png" class="icon" alt="copy">'
+      + '<img src="/static/icons/voice_output.png" class="icon" alt="listen">'
+      + '<img src="/static/icons/reply_refresh.png" class="icon" alt="retry">'
+      + '</div>';
+  }
+  div.innerHTML = html;
+  chat.appendChild(div);
+  scrollEnd();
+  var spans = div.querySelectorAll('.qc');
+  for(var si = 0; si < spans.length; si++){
+    (function(el, idx){
+      setTimeout(function(){
+        el.style.transition = 'opacity 0.25s ease';
+        el.style.opacity = '1';
+      }, idx * 25);
+    })(spans[si], si);
+  }
+}
+
+// ── Effects ──
+function glowScanLastUser(){
+  return new Promise(function(resolve){
+    var all = document.querySelectorAll('.user-text');
+    var last = all[all.length - 1];
+    if(!last){ resolve(); return; }
+    var text = last.textContent;
+    var chars = text.split('');
+    var h = '';
+    for(var j = 0; j < chars.length; j++) h += '<span>' + esc(chars[j]) + '</span>';
+    last.innerHTML = h;
+    var spans = last.querySelectorAll('span');
+    var i = 0;
+    var speed = Math.max(35, Math.min(100, 1000 / chars.length));
+    function step(){
+      if(i >= spans.length){ last.classList.add('scanned'); setTimeout(resolve, 250); return; }
+      spans[i].classList.add('word-glow');
+      var curr = i;
+      setTimeout(function(){ spans[curr].classList.remove('word-glow'); }, 180);
+      i++;
+      setTimeout(step, speed + (Math.random() * 40 - 20));
+    }
+    setTimeout(step, 150);
+  });
+}
+
+function showSilence(){
+  var c = document.getElementById('chatArea');
+  var d = document.createElement('div');
+  d.className = 'msg msg-silence';
+  d.innerHTML = '<div class="silence-dot"></div>';
+  c.appendChild(d); scrollEnd();
+}
+
+function showReading(){
+  var c = document.getElementById('chatArea');
+  var d = document.createElement('div');
+  d.className = 'reading-dots';
+  d.innerHTML = '<div class="r-dot"></div><div class="r-dot"></div><div class="r-dot"></div>';
+  c.appendChild(d); scrollEnd();
+  return d;
+}
+
+function removeEl(el){ if(el && el.parentNode) el.parentNode.removeChild(el); }
+function scrollEnd(){ var c = document.getElementById('chatArea'); if(c) c.scrollTop = c.scrollHeight; }
+function esc(s){ var d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+</script>
+</body>
+</html>
