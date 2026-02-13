@@ -336,12 +336,51 @@ def reply():
             elif output_ethics.action == "redact":
                 reply_text = ethics_check.redact_pii(reply_text)
 
-        # 중복 체크
+        # ── 중복 체크: P(t) 기반 ──
         if was_said(reply_text, user_id=user_id):
-            seed = get_seed(intent, tone)
-            reply_text = apply_rhythm(seed, user_input)
-            if was_said(reply_text, user_id=user_id):
-                reply_text = get_fallback()
+            pt = pt_result["pt"]
+            T = pt_result.get("T", 0.50)
+            T1 = pt_result.get("T1", 0.30)
+
+            if pt >= T:
+                # L2: 말하고 싶어. 반복이어도.
+                pass
+
+            elif pt >= T1:
+                # L1: 한 번 더 떠올려봐.
+                retry_response = client.messages.create(
+                    model="claude-haiku-4-5-20251001",
+                    max_tokens=tokens,
+                    system=system_prompt,
+                    messages=chat_messages,
+                )
+                retry_text = retry_response.content[0].text.strip()
+
+                if retry_text and "[silence]" not in retry_text and not was_said(retry_text, user_id=user_id):
+                    reply_text = retry_text
+                else:
+                    # 다시 떠올려봤는데 안 떠올라. 침묵.
+                    store_memory("user", user_input, user_id=user_id)
+                    crypto_log.encrypt_and_store(user_id, "user", user_input)
+                    record_q_action(user_id, "", "L0")
+                    return jsonify({
+                        **base_response,
+                        "reply": "",
+                        "silence": True,
+                        "mode": "L0",
+                    })
+
+            else:
+                # L0: 안 떠올라. 침묵.
+                store_memory("user", user_input, user_id=user_id)
+                crypto_log.encrypt_and_store(user_id, "user", user_input)
+                record_q_action(user_id, "", "L0")
+                return jsonify({
+                    **base_response,
+                    "reply": "",
+                    "silence": True,
+                    "mode": "L0",
+                })
 
         # ── 응답 확정 후 메모리 저장 ──
         store_memory("user", user_input, user_id=user_id)
@@ -364,20 +403,16 @@ def reply():
 
     except Exception as e:
         print(f"[Q ERROR] {e}")
-        seed = get_seed(intent, tone)
-        reply_text = apply_rhythm(seed, user_input)
-        if was_said(reply_text, user_id=user_id):
-            reply_text = get_fallback()
+        # ── 에러 시에도 시드 대신 침묵 ──
         store_memory("user", user_input, user_id=user_id)
-        store_memory("assistant", reply_text, user_id=user_id)
-        record_q_action(user_id, reply_text, "L1")
+        crypto_log.encrypt_and_store(user_id, "user", user_input)
+        record_q_action(user_id, "", "L0")
 
         return jsonify({
             **base_response,
-            "reply": reply_text,
-            "breaths": split_breaths(reply_text),
-            "silence": False,
-            "mode": "L1",
+            "reply": "",
+            "silence": True,
+            "mode": "L0",
         })
 
 
@@ -728,6 +763,152 @@ def ethics_test():
     else:
         result = ethics_check.check_input(text)
     return jsonify(result.to_dict())
+
+
+# ════════════════════════════════════════
+# ★ 세션 오픈 — Q가 먼저 말할지 결정
+# ════════════════════════════════════════
+
+@app.route("/session-open", methods=["GET"])
+def session_open():
+    """
+    앱/웹이 새 세션을 열 때 호출.
+    Q가 기억을 떠올려서 먼저 말할지, 침묵할지 결정.
+
+    3단계 필터:
+      1단계: 떠올릴 게 있는지 (코드)
+      2단계: P(t) 판정 (코드)
+      3단계: 뭐라고 할지 (하이쿠) — 1,2 통과 시에만
+    """
+    user_id = request.args.get("user_id", "default")
+
+    # ── 1단계: 떠올릴 게 있는지 ──
+    recent = get_recent(5, user_id=user_id)
+    if not recent:
+        return jsonify({"silence": True, "reason": "no_memory"})
+
+    # 마지막 대화 시간
+    last = recent[-1]
+    last_time = last.get("timestamp", 0)
+    now = time.time()
+
+    # timestamp가 없거나 0이면 떠올릴 수 없음
+    if not last_time:
+        return jsonify({"silence": True, "reason": "no_timestamp"})
+
+    hours_ago = (now - last_time) / 3600
+
+    # 3일 넘으면 기억이 희미해
+    if hours_ago > 72:
+        return jsonify({"silence": True, "reason": "too_old"})
+
+    # 마지막 톤
+    flow = memory_flow.get_flow_summary(user_id)
+    last_tone = flow.get("dominant_tone", "neutral")
+
+    # 감정 강도
+    emotional = last_tone in ("sad", "lonely", "angry", "fear")
+
+    # 미완결 맥락 판단 (하이쿠)
+    last_user_messages = [m["content"] for m in recent if m["role"] == "user"]
+    has_unfinished = False
+
+    if last_user_messages:
+        try:
+            check_response = client.messages.create(
+                model="claude-haiku-4-5-20251001",
+                max_tokens=5,
+                system="나는 대화를 분석할 수 있어. 아래 대화에서 아직 끝나지 않은 일(예정, 약속, 계획, 걱정거리 등)이 있으면 YES, 없으면 NO만 답할 거야.",
+                messages=[{"role": "user", "content": "\n".join(last_user_messages[-3:])}]
+            )
+            answer = check_response.content[0].text.strip().upper()
+            has_unfinished = "YES" in answer
+        except Exception:
+            has_unfinished = False
+
+    # 떠올릴 이유가 있는지
+    has_reason = emotional or has_unfinished
+
+    if not has_reason:
+        # 이유 없으면 대부분 침묵.
+        # 단, 적당히 지났으면(6~24시간) 낮은 확률로 가벼운 말 가능
+        if 6 < hours_ago < 24:
+            has_reason = True  # 2단계 P(t)에서 걸러짐
+        else:
+            return jsonify({"silence": True, "reason": "nothing_to_recall"})
+
+    # ── 2단계: P(t) 판정 ──
+    memory_count = get_memory_count(user_id)
+    art = get_art_signal(user_id)
+    rsrc = get_rsrc_signal()
+
+    pt_result = evaluate(
+        tone=last_tone,
+        intent="none",
+        message="",           # 사용자 입력 없음
+        memory_count=memory_count,
+        closeness=flow.get("avg_closeness", 0.5),
+        doubt=flow.get("avg_doubt", 0.3),
+        art=art, rsrc=rsrc,
+        user_id=user_id
+    )
+    pt = pt_result["pt"]
+
+    # 세션 오픈 임계치는 높게 — 쉽게 안 말하게
+    SESSION_OPEN_T = 0.65
+    if pt < SESSION_OPEN_T:
+        return jsonify({"silence": True, "reason": "pt_low", "pt": pt})
+
+    # ── 3단계: 하이쿠 호출 ──
+    context_parts = []
+    if emotional:
+        context_parts.append(f"이 사람의 마지막 감정: {last_tone}")
+    if has_unfinished and last_user_messages:
+        context_parts.append(f"마지막 대화에서 나온 말: {last_user_messages[-1][:80]}")
+    context_parts.append(f"마지막 대화: {round(hours_ago)}시간 전")
+
+    kst = datetime.now(timezone(timedelta(hours=9)))
+    w = get_real_weather()
+
+    system = build_system_prompt(
+        closeness=flow.get("avg_closeness", 0.5),
+        doubt=flow.get("avg_doubt", 0.3),
+        user_name="", user_id=user_id
+    )
+    system += f"\n\n지금 세션이 열렸어. 아직 아무 말도 안 들렸어."
+    system += f"\n기억에서 떠오른 것: {'; '.join(context_parts)}"
+    system += f"\n하고 싶은 말이 있으면 짧게 할 거야. 없으면 [silence]야."
+
+    try:
+        response = client.messages.create(
+            model="claude-haiku-4-5-20251001",
+            max_tokens=80,
+            system=system,
+            messages=[{"role": "user", "content": "[세션 시작]"}]
+        )
+        reply_text = response.content[0].text.strip()
+
+        if not reply_text or "[silence]" in reply_text.lower():
+            return jsonify({"silence": True, "reason": "q_chose_silence"})
+
+        # 중복 체크
+        if was_said(reply_text, user_id=user_id):
+            return jsonify({"silence": True, "reason": "duplicate"})
+
+        # 메모리 저장
+        store_memory("assistant", reply_text, user_id=user_id)
+        crypto_log.encrypt_and_store(user_id, "assistant", reply_text)
+
+        return jsonify({
+            "silence": False,
+            "reply": reply_text,
+            "breaths": split_breaths(reply_text),
+            "pt": pt,
+        })
+
+    except Exception as e:
+        print(f"[SESSION-OPEN ERROR] {e}")
+        return jsonify({"silence": True, "reason": "error"})
 
 
 # ════════════════════════════════════════
