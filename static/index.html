@@ -5,25 +5,25 @@
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
 <title>Q</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@200;300;400&family=Source+Serif+4:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@200;300;400&family=Merriweather:wght@300;400;700&display=swap" rel="stylesheet">
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 :root{--bg:#000;--text:#e8e8e8;--text-dim:rgba(255,255,255,0.30);--text-dim2:rgba(255,255,255,0.15);--text-user:rgba(255,255,255,0.65);--glow-color:rgba(255,255,255,0.6)}
 body{background:var(--bg);color:var(--text);font-family:'Noto Serif KR',serif;font-weight:300;height:100dvh;display:flex;flex-direction:column;overflow:hidden;-webkit-font-smoothing:antialiased}
 .icon{display:inline-block;object-fit:contain;pointer-events:auto;-webkit-user-drag:none}
 #introScreen{position:fixed;inset:0;background:#000;display:flex;align-items:center;justify-content:center;z-index:200}
-.intro-text{position:absolute;font-family:'Source Serif 4','Noto Serif KR',serif;font-size:24px;font-weight:400;color:rgba(255,255,255,0);letter-spacing:5px;white-space:nowrap;transition:color 1.8s ease,transform 1.5s ease;transform:translateY(4px)}
+.intro-text{position:absolute;font-family:'Merriweather','Noto Serif KR',serif;font-size:24px;font-weight:300;color:rgba(255,255,255,0);letter-spacing:5px;white-space:nowrap;transition:color 1.8s ease,transform 1.5s ease;transform:translateY(4px)}
 .intro-text.visible{color:rgba(255,255,255,0.85);transform:translateY(0)}
 .intro-text.fade{color:rgba(255,255,255,0);transform:translateY(-4px)}
 .intro-glow{position:absolute;width:250px;height:250px;border-radius:50%;background:radial-gradient(circle,rgba(255,255,255,0.18) 0%,rgba(255,255,255,0.04) 40%,transparent 70%);opacity:0;pointer-events:none;transition:opacity 2s ease,transform 2s ease;transform:scale(0.5)}
 .intro-glow.visible{opacity:1;transform:scale(1)}
-.intro-q-icon{width:48px;height:48px;opacity:0;z-index:2;transition:opacity 2s ease,transform 1.5s ease;transform:scale(0.8)}
+.intro-q-icon{width:240px;height:240px;opacity:0;z-index:2;transition:opacity 2s ease,transform 1.5s ease;transform:scale(0.8)}
 .intro-q-icon.visible{opacity:0.9;transform:scale(1)}
-.intro-input-wrap{position:absolute;display:flex;align-items:baseline;gap:0;opacity:0;transition:opacity 1.8s ease,transform 1.5s ease;transform:translateY(4px);z-index:3}
+.intro-input-wrap{position:absolute;display:flex;align-items:baseline;gap:12px;opacity:0;transition:opacity 1.8s ease,transform 1.5s ease;transform:translateY(4px);z-index:3}
 .intro-input-wrap.visible{opacity:1;transform:translateY(0)}
 .intro-input-wrap.fade{opacity:0;transform:translateY(-4px)}
-.intro-input-label{font-family:'Source Serif 4','Noto Serif KR',serif;font-size:24px;font-weight:400;color:rgba(255,255,255,0.85);letter-spacing:5px}
-.intro-input-field{background:transparent;border:none;border-bottom:1px solid rgba(255,255,255,0.3);outline:none;font-family:'Source Serif 4','Noto Serif KR',serif;font-size:24px;font-weight:400;color:rgba(255,255,255,0.85);letter-spacing:3px;width:180px;padding-bottom:4px;caret-color:rgba(255,255,255,0.4)}
+.intro-input-label{font-family:'Merriweather','Noto Serif KR',serif;font-size:24px;font-weight:300;color:rgba(255,255,255,0.85);letter-spacing:5px}
+.intro-input-field{background:transparent;border:none;border-bottom:1px solid rgba(255,255,255,0.3);outline:none;font-family:'Merriweather','Noto Serif KR',serif;font-size:24px;font-weight:300;color:rgba(255,255,255,0.85);letter-spacing:3px;width:180px;padding-bottom:4px;caret-color:rgba(255,255,255,0.4)}
 .intro-input-field::placeholder{color:transparent}
 #wakeScreen{position:fixed;inset:0;background:#000;display:none;flex-direction:column;align-items:center;justify-content:center;z-index:100;cursor:default}
 .wake-glow{position:absolute;width:200px;height:200px;border-radius:50%;background:radial-gradient(circle,rgba(255,255,255,0.22) 0%,rgba(255,255,255,0.06) 40%,transparent 70%);opacity:0;pointer-events:none;animation:glowBreathe 4s ease-in-out infinite}
