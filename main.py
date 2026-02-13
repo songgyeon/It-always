@@ -1018,8 +1018,8 @@ def tts_endpoint():
     import io
     data = request.get_json() or {}
     text = data.get("text", "")
-    voice = data.get("voice", "alloy")
-    speed = data.get("speed", 0.7)
+    voice = data.get("voice", "shimmer")
+    speed = data.get("speed", 0.95)
     if not text:
         return jsonify({"error": "no text"}), 400
     try:
