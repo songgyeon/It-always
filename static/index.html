@@ -69,6 +69,8 @@ body{background:var(--bg);color:var(--text);font-family:'Noto Serif KR',serif;fo
 .btn-comma{width:30px;height:30px;border:1px solid rgba(255,255,255,0.1);border-radius:6px;background:transparent;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:border-color 0.3s;flex-shrink:0}
 .btn-comma:hover{border-color:rgba(255,255,255,0.2)}
 .btn-comma .icon{width:14px;height:14px;opacity:0.5}
+.btn-gallery{width:30px;height:30px;background:transparent;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0}
+.btn-gallery .icon{width:24px;height:24px;opacity:0.45}
 .input-field{flex:1;background:transparent;border:none;outline:none;color:var(--text);font-family:'Noto Serif KR',serif;font-size:14px;font-weight:200;padding:8px 0;caret-color:rgba(255,255,255,0.3);letter-spacing:0.5px}
 .input-field::placeholder{color:var(--text-dim2);font-weight:200;letter-spacing:1px}
 .input-icons{display:flex;gap:14px;align-items:center;flex-shrink:0}
@@ -225,14 +227,14 @@ body{background:var(--bg);color:var(--text);font-family:'Noto Serif KR',serif;fo
 <div id="chatScreen">
   <div class="chat-wrap">
     <div class="header">
-      <div class="header-left"><img src="/static/icons/log_menu.png" class="icon" alt="log" onclick="openLogPanel()"></div>
-      <div class="header-center" onclick="openMemoryMenu()"><img src="/static/icons/ic_comma_only.png" class="icon" alt="Q"></div>
+      <div class="header-left"><img src="/static/icons/log_menu.png" class="icon" alt="menu" onclick="openMemoryMenu()"></div>
+      <div class="header-center"></div>
       <div class="header-right"><img src="/static/icons/session_new.png" class="icon" style="width:22px;height:22px;opacity:0.45;cursor:pointer" onclick="requestNewSession()" alt="new"><span class="dots-icon" onclick="document.getElementById('settingsMenu').classList.add('open')">⋮</span></div>
     </div>
     <div class="chat-area" id="chatArea"></div>
     <div class="input-area">
       <div class="input-line"></div>
-      <div class="btn-comma" onclick="document.getElementById('galleryInput').click()"><img src="/static/icons/gallery_input.png" class="icon" alt="gallery"></div>
+      <div class="btn-gallery" onclick="document.getElementById('galleryInput').click()"><img src="/static/icons/gallery_input.png" class="icon" alt="gallery"></div>
       <input type="file" id="galleryInput" accept="image/*" style="display:none" onchange="handleImageUpload(this)">
       <input type="text" class="input-field" id="msgInput" placeholder="To. Q" autocomplete="off">
       <div class="input-icons">
