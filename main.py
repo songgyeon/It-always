@@ -950,6 +950,8 @@ def tts_endpoint():
     import io
     data = request.get_json() or {}
     text = data.get("text", "")
+    voice = data.get("voice", "alloy")
+    speed = data.get("speed", 0.7)
     if not text:
         return jsonify({"error": "no text"}), 400
     try:
@@ -957,7 +959,7 @@ def tts_endpoint():
         resp = req.post(
             "https://api.openai.com/v1/audio/speech",
             headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
-            json={"model": "tts-1", "voice": "onyx", "input": text, "speed": 0.85},
+            json={"model": "tts-1", "voice": voice, "input": text, "speed": speed},
             timeout=30
         )
         if resp.status_code != 200:
