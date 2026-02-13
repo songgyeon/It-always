@@ -314,7 +314,7 @@ function stopVoiceInput(){if(recognition)recognition.stop();isRecording=false;do
 // TTS
 var currentAudio=null;function speakText(t,ic){if(currentAudio){currentAudio.pause();currentAudio=null}var c=t.replace(/\n/g,'. ').replace(/\s+/g,' ').trim();if(!c)return;if(ic)ic.classList.add('active');fetch(API+'/tts',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text:c})}).then(function(r){if(!r.ok)throw new Error('tts fail');return r.blob()}).then(function(b){var url=URL.createObjectURL(b);var a=new Audio(url);currentAudio=a;a.onended=function(){if(ic)ic.classList.remove('active');currentAudio=null;URL.revokeObjectURL(url)};a.onerror=function(){if(ic)ic.classList.remove('active');currentAudio=null};a.play()}).catch(function(){if(ic)ic.classList.remove('active');showToast('음성을 불러올 수 없어')})}
 
-function copyText(t,ic){navigator.clipboard.writeText(t).then(function(){showToast('복사했어');if(ic){ic.classList.add('active');setTimeout(function(){ic.classList.remove('active')},800)}}).catch(function(){showToast('복사 실패')})}
+function copyText(t,ic){navigator.clipboard.writeText(t).then(function(){showToast('간직해줘');if(ic){ic.classList.add('active');setTimeout(function(){ic.classList.remove('active')},800)}}).catch(function(){showToast('복사 실패')})}
 function retryLast(){if(isWaiting||!lastUserMsg)return;var c=document.getElementById('chatArea'),ms=c.querySelectorAll('.msg');for(var i=ms.length-1;i>=0;i--)if(ms[i].classList.contains('msg-q')||ms[i].classList.contains('msg-silence')){c.removeChild(ms[i]);chatHistory.pop();break}sendToQ(lastUserMsg)}
 
 // INPUT
