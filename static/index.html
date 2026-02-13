@@ -28,8 +28,8 @@ body{background:var(--bg);color:var(--text);font-family:'Noto Serif KR',serif;fo
 #wakeScreen{position:fixed;inset:0;background:#000;display:none;flex-direction:column;align-items:center;justify-content:center;z-index:100;cursor:default}
 .wake-glow{position:absolute;width:200px;height:200px;border-radius:50%;background:radial-gradient(circle,rgba(255,255,255,0.22) 0%,rgba(255,255,255,0.06) 40%,transparent 70%);opacity:0;pointer-events:none;animation:glowBreathe 4s ease-in-out infinite}
 @keyframes glowBreathe{0%,100%{opacity:0.10;transform:scale(0.7)}50%{opacity:0.30;transform:scale(1.05)}}
-.wake-question{font-size:14px;font-weight:200;color:rgba(255,255,255,0);letter-spacing:1px;z-index:2;transition:color 2s ease,transform 1.5s ease;transform:translateY(8px)}
-.wake-question.visible{color:rgba(255,255,255,0.45);transform:translateY(0)}
+.wake-question{font-size:18px;font-weight:300;color:rgba(255,255,255,0);letter-spacing:2px;z-index:2;transition:color 2s ease,transform 1.5s ease;transform:translateY(8px)}
+.wake-question.visible{color:rgba(255,255,255,0.7);transform:translateY(0)}
 #chatScreen{display:none;flex:1;flex-direction:column;height:100dvh}
 .chat-wrap{max-width:720px;width:100%;margin:0 auto;display:flex;flex-direction:column;flex:1;overflow:hidden}
 .header{display:flex;align-items:center;justify-content:space-between;padding:14px 24px;min-height:50px}
