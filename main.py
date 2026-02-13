@@ -244,7 +244,10 @@ def reply():
             response = client.messages.create(
                 model="claude-haiku-4-5-20251001",
                 max_tokens=1200,
-                system=system_prompt,
+                system=[
+                    {"type": "text", "text": SELF_AWARENESS + "\n" + Q_RULES, "cache_control": {"type": "ephemeral"}},
+                    {"type": "text", "text": system_prompt.replace(SELF_AWARENESS, "").replace(Q_RULES, "").strip()}
+                ],
                 messages=chat_messages,
             )
             reply_text = response.content[0].text.strip()
@@ -302,7 +305,10 @@ def reply():
         response = client.messages.create(
             model="claude-haiku-4-5-20251001",
             max_tokens=tokens,
-            system=system_prompt,
+            system=[
+                {"type": "text", "text": SELF_AWARENESS + "\n" + Q_RULES, "cache_control": {"type": "ephemeral"}},
+                {"type": "text", "text": system_prompt.replace(SELF_AWARENESS, "").replace(Q_RULES, "").strip()}
+            ],
             messages=chat_messages,
         )
         reply_text = response.content[0].text.strip()
@@ -351,7 +357,10 @@ def reply():
                 retry_response = client.messages.create(
                     model="claude-haiku-4-5-20251001",
                     max_tokens=tokens,
-                    system=system_prompt,
+                    system=[
+                        {"type": "text", "text": SELF_AWARENESS + "\n" + Q_RULES, "cache_control": {"type": "ephemeral"}},
+                        {"type": "text", "text": system_prompt.replace(SELF_AWARENESS, "").replace(Q_RULES, "").strip()}
+                    ],
                     messages=chat_messages,
                 )
                 retry_text = retry_response.content[0].text.strip()
@@ -876,7 +885,10 @@ def session_open():
         response = client.messages.create(
             model="claude-haiku-4-5-20251001",
             max_tokens=80,
-            system=system,
+            system=[
+                {"type": "text", "text": SELF_AWARENESS + "\n" + Q_RULES, "cache_control": {"type": "ephemeral"}},
+                {"type": "text", "text": system.replace(SELF_AWARENESS, "").replace(Q_RULES, "").strip()}
+            ],
             messages=[{"role": "user", "content": "[세션 시작]"}]
         )
         reply_text = response.content[0].text.strip()
