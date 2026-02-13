@@ -31,7 +31,7 @@ body{background:var(--bg);color:var(--text);font-family:'Noto Serif KR',serif;fo
 .wake-question{font-size:18px;font-weight:300;color:rgba(255,255,255,0);letter-spacing:2px;z-index:2;transition:color 2s ease,transform 1.5s ease;transform:translateY(8px)}
 .wake-question.visible{color:rgba(255,255,255,0.7);transform:translateY(0)}
 #chatScreen{display:none;flex:1;flex-direction:column;height:100dvh}
-.chat-wrap{max-width:720px;width:100%;margin:0 auto;display:flex;flex-direction:column;flex:1;overflow:hidden}
+.chat-wrap{width:100%;margin:0 auto;display:flex;flex-direction:column;flex:1;overflow:hidden}
 .header{display:flex;align-items:center;justify-content:space-between;padding:14px 24px;min-height:50px}
 .header-left{display:flex;align-items:center}
 .header-left .icon{width:22px;height:22px;opacity:0.75;cursor:pointer;transition:opacity 0.3s}
@@ -312,7 +312,7 @@ function toggleVoiceInput(){if(!('webkitSpeechRecognition' in window)&&!('Speech
 function stopVoiceInput(){if(recognition)recognition.stop();isRecording=false;document.getElementById('iconVoiceInput').classList.remove('recording')}
 
 // TTS
-function speakText(t,ic){if(currentSpeech){speechSynthesis.cancel();currentSpeech=null}if(!('speechSynthesis' in window)){showToast('TTS를 지원하지 않아');return}var c=t.replace(/\n/g,'. ').replace(/\s+/g,' ').trim();var u=new SpeechSynthesisUtterance(c);u.lang='ko-KR';u.rate=parseFloat(settings.ttsRate)||0.85;var v=speechSynthesis.getVoices(),kv=v.find(function(x){return x.lang.startsWith('ko')});if(kv)u.voice=kv;if(ic)ic.classList.add('active');u.onend=function(){if(ic)ic.classList.remove('active');currentSpeech=null};u.onerror=function(){if(ic)ic.classList.remove('active');currentSpeech=null};currentSpeech=u;speechSynthesis.speak(u)}
+var currentAudio=null;function speakText(t,ic){if(currentAudio){currentAudio.pause();currentAudio=null}var c=t.replace(/\n/g,'. ').replace(/\s+/g,' ').trim();if(!c)return;if(ic)ic.classList.add('active');fetch(API+'/tts',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text:c})}).then(function(r){if(!r.ok)throw new Error('tts fail');return r.blob()}).then(function(b){var url=URL.createObjectURL(b);var a=new Audio(url);currentAudio=a;a.onended=function(){if(ic)ic.classList.remove('active');currentAudio=null;URL.revokeObjectURL(url)};a.onerror=function(){if(ic)ic.classList.remove('active');currentAudio=null};a.play()}).catch(function(){if(ic)ic.classList.remove('active');showToast('음성을 불러올 수 없어')})}
 
 function copyText(t,ic){navigator.clipboard.writeText(t).then(function(){showToast('복사했어');if(ic){ic.classList.add('active');setTimeout(function(){ic.classList.remove('active')},800)}}).catch(function(){showToast('복사 실패')})}
 function retryLast(){if(isWaiting||!lastUserMsg)return;var c=document.getElementById('chatArea'),ms=c.querySelectorAll('.msg');for(var i=ms.length-1;i>=0;i--)if(ms[i].classList.contains('msg-q')||ms[i].classList.contains('msg-silence')){c.removeChild(ms[i]);chatHistory.pop();break}sendToQ(lastUserMsg)}
@@ -345,7 +345,7 @@ function showReading(){var c=document.getElementById('chatArea'),d=document.crea
 function removeEl(e){if(e&&e.parentNode)e.parentNode.removeChild(e)}
 function scrollEnd(){var c=document.getElementById('chatArea');if(c)c.scrollTop=c.scrollHeight}
 function esc(s){var d=document.createElement('div');d.textContent=s;return d.innerHTML}
-if('speechSynthesis' in window)speechSynthesis.onvoiceschanged=function(){speechSynthesis.getVoices()};
+
 window.addEventListener('beforeunload',function(){saveCurrentSession()});
 </script>
 </body>
