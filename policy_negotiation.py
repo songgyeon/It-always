@@ -16,9 +16,14 @@ v6: 가중치 정규화 시 w_Art, w_R 포함
 
 import copy
 import hashlib
+import hmac
 import json
+import os
 import time
 from threading import Lock
+
+# ─── 서명 키 (api_r과 동일 키 사용) ───
+_SIGN_KEY = os.getenv("Q_SIGN_KEY", "q-default-sign-key-change-me").encode()
 
 # ─── 가중치 키 목록 (정규화 대상, v6: 7변수) ───
 W_KEYS = ["w_E", "w_S", "w_M", "w_Env", "w_C", "w_Art", "w_R"]
@@ -60,7 +65,13 @@ PRESETS = {
 
 # ─── 사용자별 정책 저장소 ───
 _user_policies = {}
+_policy_change_log = {}  # user_id → [{ts, changes, signature}, ...]
 _lock = Lock()
+
+
+def _sign_policy_change(payload: str) -> str:
+    """정책 변경 로그 HMAC-SHA256 서명 (명세서 청구항 13)"""
+    return hmac.new(_SIGN_KEY, payload.encode(), hashlib.sha256).hexdigest()
 
 
 def _get_policy(user_id: str) -> dict:
@@ -124,11 +135,23 @@ def negotiate(user_id: str, request: dict) -> dict:
                     val = max(5, min(300, int(val)))
                 policy[key] = val
 
-        policy["updated_at"] = time.strftime("%Y-%m-%dT%H:%M:%S+09:00")
+        ts = time.strftime("%Y-%m-%dT%H:%M:%S+09:00")
+        policy["updated_at"] = ts
+
+        # ── 서명된 정책 변경 로그 기록 (명세서 청구항 13) ──
+        changes = {k: policy[k] for k in policy if k not in ("created_at", "updated_at")}
+        sign_payload = f"{user_id}|{ts}|{json.dumps(changes, sort_keys=True, ensure_ascii=False)}"
+        signature = _sign_policy_change(sign_payload)
+
+        log_entry = {"ts": ts, "changes": changes, "signature": signature}
+        if user_id not in _policy_change_log:
+            _policy_change_log[user_id] = []
+        _policy_change_log[user_id].append(log_entry)
 
         return {
             "status": "negotiated",
             "policy": copy.deepcopy(policy),
+            "change_log_signature": signature,
         }
 
 
@@ -180,10 +203,18 @@ def get_context_modifier(user_id: str) -> dict:
     return modifier
 
 
+def get_change_log(user_id: str = "default") -> list:
+    """서명된 정책 변경 이력 조회 (명세서 청구항 13)"""
+    with _lock:
+        return list(_policy_change_log.get(user_id, []))
+
+
 def reset(user_id: str = None):
     """정책 리셋"""
     with _lock:
         if user_id:
             _user_policies.pop(user_id, None)
+            _policy_change_log.pop(user_id, None)
         else:
             _user_policies.clear()
+            _policy_change_log.clear()

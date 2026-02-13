@@ -187,7 +187,7 @@ def reply():
     user_id = data.get("user_id", "default")
 
     if not user_input.strip():
-        return jsonify({"reply": "", "mode": "L0", "pt": 0.0, "silence": True})
+        return jsonify({"reply": "", "mode": "L0a", "pt": 0.0, "silence": True})
 
     # Step 1: 분석
     state = analyze(user_input)
@@ -274,8 +274,8 @@ def reply():
             "crisis": True,
         })
 
-    # ── L0: 침묵 ──
-    if mode == "L0":
+    # ── L0 (L0a/L0b/L0c): 침묵 ──
+    if mode.startswith("L0"):
         store_memory("user", user_input, user_id=user_id)
         crypto_log.encrypt_and_store(user_id, "user", user_input)
         record_q_action(user_id, "", "L0")
@@ -322,7 +322,7 @@ def reply():
                 **base_response,
                 "reply": "",
                 "silence": True,
-                "mode": "L0",
+                "mode": "L0a",
             })
 
         # ── 윤리 체크 (출력) ──
@@ -336,7 +336,7 @@ def reply():
                     **base_response,
                     "reply": "",
                     "silence": True,
-                    "mode": "L0",
+                    "mode": "L0a",
                     "ethics_blocked": True,
                 })
             elif output_ethics.action == "redact":
@@ -376,7 +376,7 @@ def reply():
                         **base_response,
                         "reply": "",
                         "silence": True,
-                        "mode": "L0",
+                        "mode": "L0a",
                     })
 
             else:
@@ -388,7 +388,7 @@ def reply():
                     **base_response,
                     "reply": "",
                     "silence": True,
-                    "mode": "L0",
+                    "mode": "L0a",
                 })
 
         # ── 응답 확정 후 메모리 저장 ──
@@ -421,7 +421,7 @@ def reply():
             **base_response,
             "reply": "",
             "silence": True,
-            "mode": "L0",
+            "mode": "L0a",
         })
 
 
@@ -749,6 +749,62 @@ def crypto_destroy():
 @app.route("/sync-status", methods=["GET"])
 def sync_status():
     return jsonify(group_sync.get_sync_status())
+
+
+# ════════════════════════════════════════
+# ★ 투명성 대시보드 (명세서 청구항 17)
+# ════════════════════════════════════════
+
+@app.route("/dashboard", methods=["GET"])
+def dashboard():
+    """
+    투명성 대시보드 API (명세서 청구항 17)
+    모드 전환 비율, 임계치 이력, 침묵 사유 히스토그램, 정책 변경 이력
+    """
+    user_id = request.args.get("user_id", "default")
+
+    # 모드 전환 비율
+    sync = group_sync.get_sync_status()
+    total = sync["total_messages"] or 1
+    silence_ratio = sync["silence_ratio"]
+
+    # 사용자 상태
+    status = get_user_status(user_id)
+
+    # 온라인 학습 파라미터 이력
+    params = online_learning.get_params(user_id)
+
+    # 정책 변경 이력
+    policy_log = policy_negotiation.get_change_log(user_id)
+
+    # 암호화 로그 상태
+    crypto_status = {
+        "log_count": crypto_log.get_log_count(user_id),
+        "log_hash": crypto_log.get_log_hash(user_id),
+        "destroyed": crypto_log.is_destroyed(user_id),
+    }
+
+    return jsonify({
+        "user_id": user_id,
+        "mode_ratios": {
+            "collective_silence_ratio": silence_ratio,
+            "collective_temperature": sync["collective_temperature"],
+            "total_messages": sync["total_messages"],
+            "total_silences": sync["total_silences"],
+            "active_users": sync["active_users"],
+        },
+        "current_params": params,
+        "user_status": {
+            "last_mode": status.get("last_mode"),
+            "message_count": status.get("message_count"),
+            "silence_count": status.get("silence_count"),
+            "prev_pt": status.get("prev_pt"),
+            "recent_tones": status.get("recent_tones"),
+        },
+        "policy": status.get("policy"),
+        "policy_change_log": policy_log[-10:],  # 최근 10건
+        "crypto_log": crypto_status,
+    })
 
 
 # ════════════════════════════════════════

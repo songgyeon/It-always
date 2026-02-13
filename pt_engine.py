@@ -356,10 +356,33 @@ def compute_pt(tone: str, intent: str, message: str,
 # 모드 결정 (v5 유지, 동적 임계치)
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-def decide_mode(pt: float, user_id: str = "default") -> str:
+def _classify_l0_submode(user_id: str, rsrc: float = 1.0,
+                          ethics_forced: bool = False) -> str:
+    """
+    L0 하위 모드 분류 (명세서 7.6)
+      L0a: 로컬 유지 침묵 — 통신 차단, 내부 갱신 유지
+      L0b: 초저전력 침묵 — 장기 비활성 또는 자원 고갈
+      L0c: 강제 침묵 — 윤리/법적 트리거
+    """
+    if ethics_forced:
+        return "L0c"
+
+    state = _get_state(user_id)
+    # 장기 비활성(10분 이상) 또는 자원 부족(0.2 이하) → L0b
+    idle = time.time() - state["last_input_time"] if state["last_input_time"] > 0 else 0
+    if idle > 600 or rsrc <= 0.2:
+        return "L0b"
+
+    return "L0a"
+
+
+def decide_mode(pt: float, user_id: str = "default",
+                rsrc: float = 1.0, ethics_forced: bool = False) -> str:
     now = time.time()
     state = _get_state(user_id)
     last = state["last_mode"]
+    # L0 하위 모드도 L0으로 취급
+    last_base = "L0" if last.startswith("L0") else last
 
     # 동적 임계치
     params = online_learning.get_params(user_id)
@@ -368,33 +391,33 @@ def decide_mode(pt: float, user_id: str = "default") -> str:
     t1 = params.get("T1", T1)
 
     # 톤 시프트 → 히스테리시스 리셋 (Q가 다시 말할 이유)
-    if last == "L0" and memory_flow.is_tone_shifting(user_id):
+    if last_base == "L0" and memory_flow.is_tone_shifting(user_id):
         state["last_mode"] = "L1"
-        last = "L1"
+        last_base = "L1"
 
     # 정책 cooldown 오버라이드
     policy = policy_negotiation.get_policy(user_id)
     rearm = policy.get("cooldown_override") or T_REARM
 
     # 재무장
-    if last == "L0" and (now - state["last_l0_time"]) < rearm:
+    if last_base == "L0" and (now - state["last_l0_time"]) < rearm:
         state["silence_count"] += 1
-        return "L0"
+        return _classify_l0_submode(user_id, rsrc, ethics_forced)
 
     # 히스테리시스
-    if last == "L2":
+    if last_base == "L2":
         if pt < t - DELTA_H / 2:
             mode = "L0" if pt < t1 - DELTA_H / 2 else "L1"
         else:
             mode = "L2"
-    elif last == "L1":
+    elif last_base == "L1":
         if pt >= t + DELTA_H / 2:
             mode = "L2"
         elif pt < t1 - DELTA_H / 2:
             mode = "L0"
         else:
             mode = "L1"
-    elif last == "L0":
+    elif last_base == "L0":
         if pt >= t + DELTA_H / 2:
             mode = "L2"
         elif pt >= t1 + DELTA_H / 2:
@@ -413,9 +436,13 @@ def decide_mode(pt: float, user_id: str = "default") -> str:
     if mode == "L1" and group_sync.should_amplify_silence():
         mode = "L0"
 
-    if mode == "L0" and last != "L0":
-        state["last_l0_time"] = now
+    # L0이면 하위 모드 분류
     if mode == "L0":
+        mode = _classify_l0_submode(user_id, rsrc, ethics_forced)
+
+    if mode.startswith("L0") and not last_base.startswith("L0"):
+        state["last_l0_time"] = now
+    if mode.startswith("L0"):
         state["silence_count"] += 1
     else:
         state["silence_count"] = 0
@@ -497,8 +524,8 @@ def evaluate(tone: str, intent: str, message: str,
     pt = compute_pt(tone, intent, message, memory_count,
                     closeness, doubt, art, rsrc, user_id)
 
-    # ── 3. 모드 결정 ──
-    mode = decide_mode(pt, user_id)
+    # ── 3. 모드 결정 (v6.2: L0 하위 모드 + rsrc 전달) ──
+    mode = decide_mode(pt, user_id, rsrc=rsrc)
 
     # ── 4. 맥락 수정자 (정책) ──
     ctx = policy_negotiation.get_context_modifier(user_id)
@@ -517,7 +544,8 @@ def evaluate(tone: str, intent: str, message: str,
 
     # ── 7. 증명 토큰 (L0일 때만) ──
     proof = None
-    if mode == "L0":
+    is_silent = mode.startswith("L0")
+    if is_silent:
         proof = api_r.generate_proof_token(user_id, mode, pt)
 
     return {
@@ -525,8 +553,8 @@ def evaluate(tone: str, intent: str, message: str,
         "T": current_T,
         "T1": current_T1,
         "mode": mode,
-        "should_respond": mode in ("L1", "L2"),
-        "silence": mode == "L0",
+        "should_respond": not is_silent and mode in ("L1", "L2"),
+        "silence": is_silent,
         "crisis": False,
         "ethics": input_ethics.to_dict(),
         "gate_status": gate,

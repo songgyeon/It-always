@@ -18,6 +18,7 @@ v6: 비활성 사용자 정리 (메모리 누수 방지)
 """
 
 import time
+import random
 from collections import deque
 from threading import Lock
 
@@ -38,6 +39,12 @@ ACTIVITY_TIMEOUT = 3600            # 1시간 비활동 시 비활성 사용자
 _CLEANUP_INTERVAL = 300            # 정리 주기 (5분)
 _last_cleanup = 0
 
+# ─── 명세서 5.9: TTL·레이트리밋·차등프라이버시 ───
+SIGMA_TTL = 2.0            # σ 요약치 TTL (초) — 명세서: TTL ≤ 2초
+RATE_LIMIT_PER_SEC = 1.0   # 전송율 상한 — 명세서: ≤ 1 msg/s
+DP_SIGMA = 0.02            # 차등프라이버시 노이즈 σ_dp
+_user_last_record = {}     # user_id → 마지막 record 시각 (레이트리밋용)
+
 
 def _cleanup_inactive():
     """비활성 사용자 정리 (v6: 메모리 누수 방지)"""
@@ -57,15 +64,27 @@ def _cleanup_inactive():
 
 
 def record_interaction(user_id: str, pt: float, mode: str):
-    """사용자 상호작용 기록"""
+    """사용자 상호작용 기록 (명세서 5.9: 레이트리밋 + 차등프라이버시 적용)"""
     with _lock:
+        now = time.time()
+
+        # 레이트리밋: 사용자당 1 msg/s 이하
+        last = _user_last_record.get(user_id, 0)
+        if now - last < (1.0 / RATE_LIMIT_PER_SEC):
+            return  # 초과 시 무시
+        _user_last_record[user_id] = now
+
         _global_state["total_messages"] += 1
-        if mode == "L0":
+        if mode.startswith("L0"):
             _global_state["total_silences"] += 1
 
-        _global_state["active_users"][user_id] = time.time()
-        _global_state["recent_pts"].append(pt)
-        _global_state["recent_modes"].append(mode)
+        _global_state["active_users"][user_id] = now
+
+        # 차등프라이버시 노이즈 주입 (pt에 노이즈 추가 후 기록)
+        noisy_pt = pt + random.gauss(0, DP_SIGMA)
+        noisy_pt = max(0.0, min(1.0, noisy_pt))
+        _global_state["recent_pts"].append((noisy_pt, now))
+        _global_state["recent_modes"].append((mode, now))
 
         # 주기적 정리
         _cleanup_inactive()
@@ -73,23 +92,35 @@ def record_interaction(user_id: str, pt: float, mode: str):
 
 def get_collective_temperature() -> float:
     """
-    집단 감정 온도: 전체 사용자의 평균 P(t)
+    집단 감정 온도: TTL 이내 사용자의 평균 P(t)
     높을수록 활발, 낮을수록 침묵 경향
+    (명세서 5.9: σ TTL ≤ 2초 적용)
     """
     with _lock:
-        pts = list(_global_state["recent_pts"])
+        now = time.time()
+        # TTL 필터: SIGMA_TTL 이내의 pt만 사용 (단, 최소 직전 30초 데이터 보장)
+        ttl = max(SIGMA_TTL, 30.0)
+        pts = [p for p, ts in _global_state["recent_pts"] if now - ts < ttl]
+        if not pts:
+            # TTL 내 데이터 없으면 전체 사용
+            pts = [p for p, _ in _global_state["recent_pts"]]
         if not pts:
             return 0.5
         return round(sum(pts) / len(pts), 3)
 
 
 def get_silence_ratio() -> float:
-    """집단 침묵률: 최근 모드 중 L0 비율"""
+    """집단 침묵률: TTL 이내 최근 모드 중 L0 비율"""
     with _lock:
-        modes = list(_global_state["recent_modes"])
+        now = time.time()
+        ttl = max(SIGMA_TTL, 30.0)
+        modes = [m for m, ts in _global_state["recent_modes"] if now - ts < ttl]
+        if not modes:
+            modes = [m for m, _ in _global_state["recent_modes"]]
         if not modes:
             return 0.0
-        return round(modes.count("L0") / len(modes), 3)
+        l0_count = sum(1 for m in modes if m.startswith("L0"))
+        return round(l0_count / len(modes), 3)
 
 
 def get_active_user_count() -> int:

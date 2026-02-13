@@ -41,9 +41,11 @@ def _get_or_create_key(user_id: str) -> bytes:
     return _user_keys[user_id]
 
 
-def _chain_hash(prev_hash: str, data: str) -> str:
-    """해시 체인: 이전 해시 + 현재 데이터 → 새 해시"""
-    payload = f"{prev_hash}|{data}"
+def _chain_hash(prev_hash: str, data: str, ts: str = "") -> str:
+    """해시 체인: 이전 해시 + 타임스탬프 + 현재 데이터 → 새 해시 (명세서 5.7)"""
+    if not ts:
+        ts = time.strftime("%Y-%m-%dT%H:%M:%S+09:00")
+    payload = f"{prev_hash}|{ts}|{data}"
     return hashlib.sha256(payload.encode()).hexdigest()[:32]
 
 
@@ -94,9 +96,10 @@ def encrypt_and_store(user_id: str, role: str, content: str) -> dict:
             _user_logs[user_id] = []
         _user_logs[user_id].append(encrypted_entry)
 
-        # 해시 체인 갱신
+        # 해시 체인 갱신 (단조 증가 타임스탬프 포함, 명세서 5.7)
+        ts = log_entry["ts"]
         prev = _user_hash_chain.get(user_id, "0" * 32)
-        new_hash = _chain_hash(prev, content)
+        new_hash = _chain_hash(prev, content, ts)
         _user_hash_chain[user_id] = new_hash
 
         return {
