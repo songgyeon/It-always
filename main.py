@@ -186,13 +186,13 @@ def ask_q(messages, dynamic_prompt, model="claude-haiku-4-5-20251001", max_token
 
     # 2. 실패 시 GPT-4o (백업)
     except Exception as e:
-        print(f"⚠️ [CLAUDE ERROR] {e} -> Switching to GPT-4o")
+        print(f"⚠️ [CLAUDE ERROR] {e} -> Switching to GPT-4o-mini")
         try:
             full_system = f"{SELF_AWARENESS}\n{Q_RULES}\n{dynamic_prompt}"
             gpt_messages = [{"role": "system", "content": full_system}] + messages
 
             response = oa_client.chat.completions.create(
-                model="gpt-4o-mini"
+                model="gpt-4o-mini",
                 messages=gpt_messages,
                 max_tokens=max_tokens,
                 temperature=temp
