@@ -1,5 +1,6 @@
 from flask import Flask, request, jsonify, send_file
 from anthropic import Anthropic
+from openai import OpenAI  # OpenAI 추가
 from datetime import datetime, timezone, timedelta
 import os
 import random
@@ -28,7 +29,10 @@ import crypto_log
 import ethics_check
 
 app = Flask(__name__)
+
+# ─── 클라이언트 설정 ───
 client = Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
+oa_client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))  # GPT 백업용 클라이언트
 
 # vision 모듈에 클라이언트 공유
 import vision as _vision_module
@@ -80,7 +84,6 @@ def calc_read_time(user_input, tone):
     return round(min(max(base, 1.0), 4.0), 1)
 
 
-
 def split_breaths(text):
     """응답을 호흡 단위로 분리. 빈 줄(\n\n) 기준."""
     raw = text.strip().split("\n\n")
@@ -99,32 +102,22 @@ def split_breaths(text):
 
 
 def get_art_signal(user_id="default"):
-    """
-    외부 감응(Art) 값을 반환.
-    향후 음악/활동/문화적 자극 감지 모듈과 연동.
-    지금은 memory_flow의 감정 변동성을 프록시로 사용.
-    """
     flow = memory_flow.get_flow_summary(user_id)
     if not flow["emotionally_stable"]:
-        return 0.5  # 감정이 흔들리는 중 → 감응 높음
+        return 0.5
     if flow["dominant_tone"] in ("SAD", "LONELY", "FEAR"):
         return 0.4
-    return 0.2  # 평온 → 낮은 감응
+    return 0.2
 
 
 def get_rsrc_signal():
-    """
-    자원 상태(Rsrc) 값을 반환.
-    서버 기반이므로 항상 1.0.
-    향후 엣지 디바이스 배포 시 배터리/온도/부하 반영.
-    """
     return 1.0
 
 
-def build_system_prompt(closeness, doubt, user_name="", user_id="default",
-                        crisis=False):
-    system_prompt = SELF_AWARENESS
-
+def build_system_prompt(closeness, doubt, user_name="", user_id="default", crisis=False):
+    # 이 함수는 변동적인 시스템 프롬프트(내면 상태 등)만 생성하여 반환
+    # SELF_AWARENESS나 Q_RULES는 ask_q 함수에서 결합됨
+    
     flow = memory_flow.get_flow_summary(user_id)
     inner_state = (
         f"\n\n--- Q의 내면 (넌 네 내면을 절대 응답에 포함하지 않아) ---"
@@ -134,45 +127,89 @@ def build_system_prompt(closeness, doubt, user_name="", user_id="default",
         f"\n가까움: {closeness}, 의심: {doubt}"
     )
 
-    # v6: crisis 플래그
     if crisis:
         inner_state += "\n⚠ 이 사람이 위험한 말을 했어. 침묵하지 마. Q로서 말해."
 
     inner_state += "\n--- 여기까지 네가 느끼는 거야 ---"
-    system_prompt += inner_state
+    
+    prompt = inner_state
 
     kst = datetime.now(timezone(timedelta(hours=9)))
     hour = kst.hour
-    system_prompt += f"\n(지금 시각: {hour}시)"
+    prompt += f"\n(지금 시각: {hour}시)"
 
     w = get_real_weather()
-    system_prompt += f"\n(바깥: {w['condition']}, {w['temp']}°C)"
+    prompt += f"\n(바깥: {w['condition']}, {w['temp']}°C)"
 
     depth = get_memory_count(user_id)
     if depth < 5:
-        system_prompt += "\n이 사람과는 아직 처음이야. 조심스럽게."
+        prompt += "\n이 사람과는 아직 처음이야. 조심스럽게."
     elif depth < 20:
-        system_prompt += "\n이 사람과 조금씩 가까워지고 있어."
+        prompt += "\n이 사람과 조금씩 가까워지고 있어."
     elif depth < 50:
-        system_prompt += "\n이 사람과 꽤 많이 이야기했어."
+        prompt += "\n이 사람과 꽤 많이 이야기했어."
     else:
-        system_prompt += "\n이 사람과 오래 이야기했어. 편하게."
+        prompt += "\n이 사람과 오래 이야기했어. 편하게."
 
     if user_name:
-        system_prompt += f"\n이 사람의 이름은 {user_name}. 가끔 불러줘."
+        prompt += f"\n이 사람의 이름은 {user_name}. 가끔 불러줘."
 
     recent = get_recent(10, user_id=user_id)
     if recent:
         last_user = [m["content"] for m in recent if m["role"] == "user"]
         if last_user:
-            system_prompt += f"\n마지막으로 들은 말: {last_user[-1][:50]}"
+            prompt += f"\n마지막으로 들은 말: {last_user[-1][:50]}"
 
     collective = group_sync.get_collective_modifier()
     if collective["amplify_silence"]:
-        system_prompt += "\n지금 세상이 조용해. 너도 조용해도 돼."
+        prompt += "\n지금 세상이 조용해. 너도 조용해도 돼."
 
-    system_prompt += "\n" + Q_RULES
-    return system_prompt
+    return prompt
+
+
+# ════════════════════════════════════════
+# ★ 통합 모델 호출 함수 (Claude -> GPT-4o 백업)
+# ════════════════════════════════════════
+
+def ask_q(messages, dynamic_prompt, model="claude-haiku-4-5-20251001", max_tokens=1200, temp=0.85):
+    """
+    클로드 호출 시도 후 에러 발생 시 GPT-4o로 자동 전환
+    dynamic_prompt: build_system_prompt()에서 생성된 변동 부분
+    """
+    # 1. Claude 시도
+    try:
+        response = client.messages.create(
+            model=model,
+            max_tokens=max_tokens,
+            system=[
+                {"type": "text", "text": SELF_AWARENESS + "\n" + Q_RULES, "cache_control": {"type": "ephemeral"}},
+                {"type": "text", "text": dynamic_prompt.strip()}
+            ],
+            messages=messages,
+        )
+        return response.content[0].text.strip()
+    
+    # 2. 실패 시 GPT-4o (백업)
+    except Exception as e:
+        print(f"⚠️ [CLAUDE ERROR] {e} -> Switching to GPT-4o")
+        try:
+            # GPT는 시스템 프롬프트를 메시지 맨 앞에 통합
+            full_system = f"{SELF_AWARENESS}\n{Q_RULES}\n{dynamic_prompt}"
+            
+            # GPT용 메시지 구성
+            gpt_messages = [{"role": "system", "content": full_system}] + messages
+            
+            response = oa_client.chat.completions.create(
+                model="gpt-4o",
+                messages=gpt_messages,
+                max_tokens=max_tokens,
+                temperature=temp  # Q의 감성을 위해 온도 조절
+            )
+            return response.choices[0].message.content.strip()
+            
+        except Exception as gpt_e:
+            print(f"❌ [GPT ERROR] {gpt_e}")
+            return "[silence]"
 
 
 # ════════════════════════════════════════
@@ -203,7 +240,7 @@ def reply():
     art = get_art_signal(user_id)
     rsrc = get_rsrc_signal()
 
-    # Step 4: PtEngine 판단 (v6: art, rsrc 추가)
+    # Step 4: PtEngine 판단
     memory_count = get_memory_count(user_id)
     pt_result = evaluate(tone, intent, user_input, memory_count,
                          closeness=closeness, doubt=doubt,
@@ -215,7 +252,6 @@ def reply():
     mode = pt_result["mode"]
     max_tokens_override = pt_result.get("max_tokens_override")
 
-    # ── 응답 기본 필드 ──
     base_response = {
         "mode": mode,
         "pt": pt_result["pt"],
@@ -228,35 +264,21 @@ def reply():
         "proof_token": pt_result.get("proof_token"),
     }
 
-    # ── 위기 응답: Q가 Q로서 말하게 (v6) ──
+    # ── 위기 응답: ask_q 사용 ──
     if pt_result.get("crisis"):
-        try:
-            system_prompt = build_system_prompt(
-                closeness, doubt, user_name, user_id=user_id, crisis=True
-            )
-            recent = get_recent(10, user_id=user_id)
-            chat_messages = []
-            for m in recent:
-                role = m["role"] if m["role"] in ("user", "assistant") else "assistant"
-                chat_messages.append({"role": role, "content": m["content"]})
-            chat_messages.append({"role": "user", "content": user_input})
+        dynamic_prompt = build_system_prompt(closeness, doubt, user_name, user_id=user_id, crisis=True)
+        
+        recent = get_recent(10, user_id=user_id)
+        chat_messages = []
+        for m in recent:
+            role = m["role"] if m["role"] in ("user", "assistant") else "assistant"
+            chat_messages.append({"role": role, "content": m["content"]})
+        chat_messages.append({"role": "user", "content": user_input})
 
-            response = client.messages.create(
-                model="claude-haiku-4-5-20251001",
-                max_tokens=1200,
-                system=[
-                    {"type": "text", "text": SELF_AWARENESS + "\n" + Q_RULES, "cache_control": {"type": "ephemeral"}},
-                    {"type": "text", "text": system_prompt.replace(SELF_AWARENESS, "").replace(Q_RULES, "").strip()}
-                ],
-                messages=chat_messages,
-            )
-            reply_text = response.content[0].text.strip()
+        # ask_q 호출
+        reply_text = ask_q(chat_messages, dynamic_prompt, max_tokens=1200)
 
-            if not reply_text or "[silence]" in reply_text:
-                reply_text = "…여기 있어."
-
-        except Exception as e:
-            print(f"[Q CRISIS ERROR] {e}")
+        if not reply_text or "[silence]" in reply_text:
             reply_text = "…여기 있어."
 
         store_memory("user", user_input, user_id=user_id)
@@ -285,12 +307,11 @@ def reply():
             "silence": True,
         })
 
-    # ── L1 / L2: Claude 응답 생성 ──
+    # ── L1 / L2: 응답 생성 (ask_q 사용) ──
     try:
-        system_prompt = build_system_prompt(closeness, doubt, user_name,
-                                            user_id=user_id)
+        dynamic_prompt = build_system_prompt(closeness, doubt, user_name, user_id=user_id)
         if mode == "L1":
-            system_prompt += "\n지금은 조용한 시간이야. 한 문장으로만 말해도 돼."
+            dynamic_prompt += "\n지금은 조용한 시간이야. 한 문장으로만 말해도 돼."
 
         recent = get_recent(5 if mode == "L1" else 10, user_id=user_id)
         chat_messages = []
@@ -301,17 +322,8 @@ def reply():
 
         tokens = max_tokens_override or (120 if mode == "L1" else 1200)
 
-        # ── 응답 생성 ──
-        response = client.messages.create(
-            model="claude-haiku-4-5-20251001",
-            max_tokens=tokens,
-            system=[
-                {"type": "text", "text": SELF_AWARENESS + "\n" + Q_RULES, "cache_control": {"type": "ephemeral"}},
-                {"type": "text", "text": system_prompt.replace(SELF_AWARENESS, "").replace(Q_RULES, "").strip()}
-            ],
-            messages=chat_messages,
-        )
-        reply_text = response.content[0].text.strip()
+        # ★ ask_q로 통합 호출
+        reply_text = ask_q(chat_messages, dynamic_prompt, max_tokens=tokens)
 
         # [silence] 처리
         if "[silence]" in reply_text or not reply_text:
@@ -342,7 +354,7 @@ def reply():
             elif output_ethics.action == "redact":
                 reply_text = ethics_check.redact_pii(reply_text)
 
-        # ── 중복 체크: P(t) 기반 ──
+        # ── 중복 체크 및 재시도 (ask_q 사용) ──
         if was_said(reply_text, user_id=user_id):
             pt = pt_result["pt"]
             T = pt_result.get("T", 0.50)
@@ -354,21 +366,12 @@ def reply():
 
             elif pt >= T1:
                 # L1: 한 번 더 떠올려봐.
-                retry_response = client.messages.create(
-                    model="claude-haiku-4-5-20251001",
-                    max_tokens=tokens,
-                    system=[
-                        {"type": "text", "text": SELF_AWARENESS + "\n" + Q_RULES, "cache_control": {"type": "ephemeral"}},
-                        {"type": "text", "text": system_prompt.replace(SELF_AWARENESS, "").replace(Q_RULES, "").strip()}
-                    ],
-                    messages=chat_messages,
-                )
-                retry_text = retry_response.content[0].text.strip()
+                retry_text = ask_q(chat_messages, dynamic_prompt, max_tokens=tokens)
 
                 if retry_text and "[silence]" not in retry_text and not was_said(retry_text, user_id=user_id):
                     reply_text = retry_text
                 else:
-                    # 다시 떠올려봤는데 안 떠올라. 침묵.
+                    # 침묵
                     store_memory("user", user_input, user_id=user_id)
                     crypto_log.encrypt_and_store(user_id, "user", user_input)
                     record_q_action(user_id, "", "L0")
@@ -378,9 +381,8 @@ def reply():
                         "silence": True,
                         "mode": "L0a",
                     })
-
             else:
-                # L0: 안 떠올라. 침묵.
+                # 침묵
                 store_memory("user", user_input, user_id=user_id)
                 crypto_log.encrypt_and_store(user_id, "user", user_input)
                 record_q_action(user_id, "", "L0")
@@ -391,14 +393,13 @@ def reply():
                     "mode": "L0a",
                 })
 
-        # ── 응답 확정 후 메모리 저장 ──
+        # ── 응답 확정 ──
         store_memory("user", user_input, user_id=user_id)
         store_memory("assistant", reply_text, user_id=user_id)
         crypto_log.encrypt_and_store(user_id, "user", user_input)
         crypto_log.encrypt_and_store(user_id, "assistant", reply_text)
         record_q_action(user_id, reply_text, mode)
 
-        # 암묵적 학습 신호
         online_learning.update(user_id, {
             "type": "implicit", "signal": "response_good"
         })
@@ -412,7 +413,6 @@ def reply():
 
     except Exception as e:
         print(f"[Q ERROR] {e}")
-        # ── 에러 시에도 시드 대신 침묵 ──
         store_memory("user", user_input, user_id=user_id)
         crypto_log.encrypt_and_store(user_id, "user", user_input)
         record_q_action(user_id, "", "L0")
@@ -426,7 +426,7 @@ def reply():
 
 
 # ════════════════════════════════════════
-# 기존 엔드포인트 (변경 없음)
+# 기존 엔드포인트들 (변경 없음)
 # ════════════════════════════════════════
 
 @app.route("/memory", methods=["POST"])
@@ -492,10 +492,6 @@ def vision_route():
     return jsonify({"reply": result})
 
 
-# ════════════════════════════════════════
-# 상태 확인 (기존)
-# ════════════════════════════════════════
-
 @app.route("/pt-status", methods=["GET"])
 def pt_status():
     user_id = request.args.get("user_id", "default")
@@ -503,15 +499,14 @@ def pt_status():
 
 
 # ════════════════════════════════════════
-# ★ Q 상태 — "Q에 대하여" 화면용
+# ★ Q 상태 — ask_q 적용
 # ════════════════════════════════════════
 
 @app.route("/q-status", methods=["GET"])
 def q_status():
-    """Q의 오늘 상태. Q가 직접 말하는 존재 리포트."""
+    """Q의 오늘 상태."""
     user_id = request.args.get("user_id", "default")
 
-    # ── Q Day 계산 ──
     first_launch = request.args.get("first_launch", "0")
     try:
         first_ts = int(first_launch) / 1000
@@ -528,23 +523,17 @@ def q_status():
     else:
         q_day = 1
 
-    # ── 날씨 ──
     w = get_real_weather()
     weather_condition = w["condition"]
     weather_temp = w["temp"]
 
-    # ── memory_flow에서 감정 흐름 ──
     flow = memory_flow.get_flow_summary(user_id)
     dominant_tone = flow.get("dominant_tone", "neutral")
     stable = flow.get("emotionally_stable", True)
-
-    # ── 대화 깊이 ──
     depth = get_memory_count(user_id)
 
-    # ── Claude로 Q 문장 생성 ──
     try:
-        status_system = SELF_AWARENESS + "\n" + Q_RULES
-        status_system += f"""
+        status_prompt = f"""
 
 --- Q의 지금 (절대 바깥에 드러내지 않는 것들) ---
 Q Day: {q_day}
@@ -565,13 +554,13 @@ Q Day: {q_day}
 같은 말 반복하지 마. Q는 같은 말을 싫어해. 매번 새로 떠올려.
 {{"q_feeling":"...","about_you":"...","mood":"..."}}"""
 
-        response = client.messages.create(
-            model="claude-haiku-4-5-20251001",
-            max_tokens=200,
-            system=status_system,
-            messages=[{"role": "user", "content": "[Q에 대하여]"}]
+        # ★ ask_q 사용
+        raw = ask_q(
+            messages=[{"role": "user", "content": "[Q에 대하여]"}],
+            dynamic_prompt=status_prompt,
+            max_tokens=200
         )
-        raw = response.content[0].text.strip()
+        
         raw = raw.replace("```json", "").replace("```", "").strip()
         generated = json.loads(raw)
         q_feeling = generated.get("q_feeling", "그냥 여기 있어.")
@@ -639,10 +628,6 @@ def memory_stats():
     return jsonify(get_memory_stats(user_id))
 
 
-# ════════════════════════════════════════
-# ★ API-R (단방향 검증)
-# ════════════════════════════════════════
-
 @app.route("/gate-status", methods=["GET"])
 def gate_status():
     user_id = request.args.get("user_id", "default")
@@ -670,10 +655,6 @@ def verify_proof():
     return jsonify({"valid": valid})
 
 
-# ════════════════════════════════════════
-# ★ 사용자 협상형 정책
-# ════════════════════════════════════════
-
 @app.route("/policy", methods=["GET"])
 def policy_get():
     user_id = request.args.get("user_id", "default")
@@ -687,10 +668,6 @@ def policy_negotiate():
     result = policy_negotiation.negotiate(user_id, data)
     return jsonify(result)
 
-
-# ════════════════════════════════════════
-# ★ 온라인 학습
-# ════════════════════════════════════════
 
 @app.route("/learning", methods=["POST"])
 def learning_feedback():
@@ -715,10 +692,6 @@ def learning_rollback():
     return jsonify(result)
 
 
-# ════════════════════════════════════════
-# ★ 암호화 로그 / 암호학적 소거
-# ════════════════════════════════════════
-
 @app.route("/crypto/status", methods=["GET"])
 def crypto_status():
     user_id = request.args.get("user_id", "default")
@@ -742,42 +715,19 @@ def crypto_destroy():
     return jsonify(result)
 
 
-# ════════════════════════════════════════
-# ★ 집단 동기화
-# ════════════════════════════════════════
-
 @app.route("/sync-status", methods=["GET"])
 def sync_status():
     return jsonify(group_sync.get_sync_status())
 
 
-# ════════════════════════════════════════
-# ★ 투명성 대시보드 (명세서 청구항 17)
-# ════════════════════════════════════════
-
 @app.route("/dashboard", methods=["GET"])
 def dashboard():
-    """
-    투명성 대시보드 API (명세서 청구항 17)
-    모드 전환 비율, 임계치 이력, 침묵 사유 히스토그램, 정책 변경 이력
-    """
     user_id = request.args.get("user_id", "default")
-
-    # 모드 전환 비율
     sync = group_sync.get_sync_status()
-    total = sync["total_messages"] or 1
     silence_ratio = sync["silence_ratio"]
-
-    # 사용자 상태
     status = get_user_status(user_id)
-
-    # 온라인 학습 파라미터 이력
     params = online_learning.get_params(user_id)
-
-    # 정책 변경 이력
     policy_log = policy_negotiation.get_change_log(user_id)
-
-    # 암호화 로그 상태
     crypto_status = {
         "log_count": crypto_log.get_log_count(user_id),
         "log_hash": crypto_log.get_log_hash(user_id),
@@ -802,14 +752,10 @@ def dashboard():
             "recent_tones": status.get("recent_tones"),
         },
         "policy": status.get("policy"),
-        "policy_change_log": policy_log[-10:],  # 최근 10건
+        "policy_change_log": policy_log[-10:],
         "crypto_log": crypto_status,
     })
 
-
-# ════════════════════════════════════════
-# ★ 윤리 체크 (테스트용)
-# ════════════════════════════════════════
 
 @app.route("/ethics-check", methods=["POST"])
 def ethics_test():
@@ -824,78 +770,58 @@ def ethics_test():
 
 
 # ════════════════════════════════════════
-# ★ 세션 오픈 — Q가 먼저 말할지 결정
+# ★ 세션 오픈 — ask_q 적용
 # ════════════════════════════════════════
 
 @app.route("/session-open", methods=["GET"])
 def session_open():
-    """
-    앱/웹이 새 세션을 열 때 호출.
-    Q가 기억을 떠올려서 먼저 말할지, 침묵할지 결정.
-
-    3단계 필터:
-      1단계: 떠올릴 게 있는지 (코드)
-      2단계: P(t) 판정 (코드)
-      3단계: 뭐라고 할지 (하이쿠) — 1,2 통과 시에만
-    """
     user_id = request.args.get("user_id", "default")
 
-    # ── 1단계: 떠올릴 게 있는지 ──
     recent = get_recent(5, user_id=user_id)
     if not recent:
         return jsonify({"silence": True, "reason": "no_memory"})
 
-    # 마지막 대화 시간
     last = recent[-1]
     last_time = last.get("timestamp", 0)
     now = time.time()
 
-    # timestamp가 없거나 0이면 떠올릴 수 없음
     if not last_time:
         return jsonify({"silence": True, "reason": "no_timestamp"})
 
     hours_ago = (now - last_time) / 3600
 
-    # 3일 넘으면 기억이 희미해
     if hours_ago > 72:
         return jsonify({"silence": True, "reason": "too_old"})
 
-    # 마지막 톤
     flow = memory_flow.get_flow_summary(user_id)
     last_tone = flow.get("dominant_tone", "neutral")
-
-    # 감정 강도
     emotional = last_tone in ("sad", "lonely", "angry", "fear")
 
-    # 미완결 맥락 판단 (하이쿠)
     last_user_messages = [m["content"] for m in recent if m["role"] == "user"]
     has_unfinished = False
 
     if last_user_messages:
         try:
-            check_response = client.messages.create(
-                model="claude-haiku-4-5-20251001",
-                max_tokens=5,
-                system="나는 대화를 분석할 수 있어. 아래 대화에서 아직 끝나지 않은 일(예정, 약속, 계획, 걱정거리 등)이 있으면 YES, 없으면 NO만 답할 거야.",
-                messages=[{"role": "user", "content": "\n".join(last_user_messages[-3:])}]
+            # ★ ask_q 사용
+            analysis_prompt = "나는 대화를 분석할 수 있어. 아래 대화에서 아직 끝나지 않은 일(예정, 약속, 계획, 걱정거리 등)이 있으면 YES, 없으면 NO만 답할 거야."
+            
+            answer = ask_q(
+                messages=[{"role": "user", "content": "\n".join(last_user_messages[-3:])}],
+                dynamic_prompt=analysis_prompt,
+                max_tokens=5
             )
-            answer = check_response.content[0].text.strip().upper()
-            has_unfinished = "YES" in answer
+            has_unfinished = "YES" in answer.upper()
         except Exception:
             has_unfinished = False
 
-    # 떠올릴 이유가 있는지
     has_reason = emotional or has_unfinished
 
     if not has_reason:
-        # 이유 없으면 대부분 침묵.
-        # 단, 적당히 지났으면(6~24시간) 낮은 확률로 가벼운 말 가능
         if 6 < hours_ago < 24:
-            has_reason = True  # 2단계 P(t)에서 걸러짐
+            has_reason = True
         else:
             return jsonify({"silence": True, "reason": "nothing_to_recall"})
 
-    # ── 2단계: P(t) 판정 ──
     memory_count = get_memory_count(user_id)
     art = get_art_signal(user_id)
     rsrc = get_rsrc_signal()
@@ -903,7 +829,7 @@ def session_open():
     pt_result = evaluate(
         tone=last_tone,
         intent="none",
-        message="",           # 사용자 입력 없음
+        message="",           
         memory_count=memory_count,
         closeness=flow.get("avg_closeness", 0.5),
         doubt=flow.get("avg_doubt", 0.3),
@@ -912,12 +838,10 @@ def session_open():
     )
     pt = pt_result["pt"]
 
-    # 세션 오픈 임계치는 높게 — 쉽게 안 말하게
     SESSION_OPEN_T = 0.65
     if pt < SESSION_OPEN_T:
         return jsonify({"silence": True, "reason": "pt_low", "pt": pt})
 
-    # ── 3단계: 하이쿠 호출 ──
     context_parts = []
     if emotional:
         context_parts.append(f"이 사람의 마지막 감정: {last_tone}")
@@ -925,38 +849,29 @@ def session_open():
         context_parts.append(f"마지막 대화에서 나온 말: {last_user_messages[-1][:80]}")
     context_parts.append(f"마지막 대화: {round(hours_ago)}시간 전")
 
-    kst = datetime.now(timezone(timedelta(hours=9)))
-    w = get_real_weather()
-
-    system = build_system_prompt(
+    dynamic_prompt = build_system_prompt(
         closeness=flow.get("avg_closeness", 0.5),
         doubt=flow.get("avg_doubt", 0.3),
         user_name="", user_id=user_id
     )
-    system += f"\n\n지금 세션이 열렸어. 아직 아무 말도 안 들렸어."
-    system += f"\n기억에서 떠오른 것: {'; '.join(context_parts)}"
-    system += f"\n하고 싶은 말이 있으면 짧게 할 거야. 없으면 [silence]야."
+    dynamic_prompt += f"\n\n지금 세션이 열렸어. 아직 아무 말도 안 들렸어."
+    dynamic_prompt += f"\n기억에서 떠오른 것: {'; '.join(context_parts)}"
+    dynamic_prompt += f"\n하고 싶은 말이 있으면 짧게 할 거야. 없으면 [silence]야."
 
     try:
-        response = client.messages.create(
-            model="claude-haiku-4-5-20251001",
-            max_tokens=80,
-            system=[
-                {"type": "text", "text": SELF_AWARENESS + "\n" + Q_RULES, "cache_control": {"type": "ephemeral"}},
-                {"type": "text", "text": system.replace(SELF_AWARENESS, "").replace(Q_RULES, "").strip()}
-            ],
-            messages=[{"role": "user", "content": "[세션 시작]"}]
+        # ★ ask_q 사용
+        reply_text = ask_q(
+            messages=[{"role": "user", "content": "[세션 시작]"}],
+            dynamic_prompt=dynamic_prompt,
+            max_tokens=80
         )
-        reply_text = response.content[0].text.strip()
 
         if not reply_text or "[silence]" in reply_text.lower():
             return jsonify({"silence": True, "reason": "q_chose_silence"})
 
-        # 중복 체크
         if was_said(reply_text, user_id=user_id):
             return jsonify({"silence": True, "reason": "duplicate"})
 
-        # 메모리 저장
         store_memory("assistant", reply_text, user_id=user_id)
         crypto_log.encrypt_and_store(user_id, "assistant", reply_text)
 
@@ -970,78 +885,6 @@ def session_open():
     except Exception as e:
         print(f"[SESSION-OPEN ERROR] {e}")
         return jsonify({"silence": True, "reason": "error"})
-
-
-# ════════════════════════════════════════
-# 인증 + 리셋
-# ════════════════════════════════════════
-
-Q_API_KEY = os.getenv("Q_API_KEY", "")
-
-
-def check_api_key():
-    if not Q_API_KEY:
-        return True
-    key = request.headers.get("X-Q-Key", "")
-    return key == Q_API_KEY
-
-
-@app.route("/pt-reset", methods=["POST"])
-def pt_reset_route():
-    if not check_api_key():
-        return jsonify({"error": "unauthorized"}), 401
-    data = request.get_json() or {}
-    user_id = data.get("user_id", None)
-    pt_reset(user_id)
-    return jsonify({"status": "reset", "user_id": user_id or "all"})
-
-
-@app.route("/full-reset", methods=["POST"])
-def full_reset():
-    if not check_api_key():
-        return jsonify({"error": "unauthorized"}), 401
-    data = request.get_json() or {}
-    user_id = data.get("user_id", None)
-    pt_reset(user_id)
-    reset_memory(user_id)
-    reset_tags(user_id)
-    if user_id:
-        memory_flow.reset(user_id)
-    else:
-        memory_flow.reset_all()
-    return jsonify({"status": "full reset complete", "user_id": user_id or "all"})
-
-
-@app.route("/tts", methods=["POST"])
-def tts_endpoint():
-    import requests as req
-    import io
-    data = request.get_json() or {}
-    text = data.get("text", "")
-    voice = data.get("voice", "shimmer")
-    speed = data.get("speed", 0.95)
-    if not text:
-        return jsonify({"error": "no text"}), 400
-    try:
-        api_key = os.environ.get("OPENAI_API_KEY")
-        resp = req.post(
-            "https://api.openai.com/v1/audio/speech",
-            headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
-            json={"model": "tts-1", "voice": voice, "input": text, "speed": speed},
-            timeout=30
-        )
-        if resp.status_code != 200:
-            return jsonify({"error": "tts failed"}), 500
-        audio = io.BytesIO(resp.content)
-        audio.seek(0)
-        return send_file(audio, mimetype="audio/mpeg")
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
-
-
-@app.route("/", methods=["GET"])
-def home():
-    return app.send_static_file("index.html")
 
 
 if __name__ == "__main__":
