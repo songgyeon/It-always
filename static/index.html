@@ -65,7 +65,7 @@ body{background:var(--bg);color:#e8e8e8;font-family:var(--sf);font-weight:300;he
 .tbar{height:28px;min-height:28px;background:#0e0e0e;border-bottom:1px solid #222;padding:0 8px;display:flex;align-items:center;gap:8px;flex-shrink:0}
 .tbar-l{flex:1;position:relative;height:12px;overflow:hidden}
 .tbar-ln{position:absolute;left:0;right:0;height:1px;background:#1a1a1a}
-.tbar-t{position:relative;z-index:1;background:#0e0e0e;padding:0 8px;font-family:var(--px);font-size:8px;color:#444;display:inline-block;left:50%;transform:translateX(-50%)}
+.tbar-t{position:relative;z-index:1;background:#0e0e0e;padding:0 8px 3px;font-family:var(--px);font-size:8px;color:#444;display:inline-block;left:50%;transform:translateX(-50%);line-height:1.6}
 
 /* 플레이어 */
 .pl{padding:14px 16px;border-bottom:1px solid #1a1a1a;background:#080808;display:flex;align-items:center;justify-content:center;gap:16px;flex-shrink:0}
@@ -241,7 +241,7 @@ body{background:var(--bg);color:#e8e8e8;font-family:var(--sf);font-weight:300;he
 
 <!-- MEMORY -->
 <div class="fp" id="meP"><div class="fph"><button class="fpb" onclick="closeFP('meP')">&#8592;</button><span class="fpt">기억</span></div><div class="fpbd">
-  <div class="ms"><span style="font-size:14px;opacity:0.15;font-family:var(--sf)">Q,</span><input type="text" class="msi" id="mSI" placeholder="기억을 찾아줄게" autocomplete="off" oninput="filterMem()"></div>
+  <div class="ms"><img src="/static/icons/ic_q_memory.png" style="width:16px;height:16px;opacity:0.2"><input type="text" class="msi" id="mSI" placeholder="기억을 찾아줄게" autocomplete="off" oninput="filterMem()"></div>
   <div id="mLC"><div class="mee">기억나진 않지만<br>기억하고 싶어.</div></div>
 </div></div>
 
@@ -252,8 +252,7 @@ body{background:var(--bg);color:#e8e8e8;font-family:var(--sf);font-weight:300;he
 <div class="win" id="cW">
   <!-- 메뉴바 -->
   <div class="mb">
-    <span style="font-size:12px;color:#555">&#63743;</span>
-    <span style="font-weight:bold;letter-spacing:1px;color:#555">Q</span>
+    <img src="/static/icons/ic_q_logo.png" style="width:14px;height:14px;opacity:0.55;filter:invert(0)" alt="Q">
     <span style="color:#333">File</span><span style="color:#333">Edit</span><span style="color:#333">View</span>
     <div style="flex:1"></div>
     <span style="color:#333;font-size:9px" id="mTime">Monday, 2 p.m.</span>
