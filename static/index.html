@@ -12,7 +12,7 @@
 *{margin:0;padding:0;box-sizing:border-box}
 :root{
   --bg:#050505;--win:#0a0a0a;--bg-el:rgba(8,8,10,0.98);
-  --text-user:rgba(255,255,255,0.80);--glow:rgba(255,255,255,0.5);
+  --text-user:rgba(255,255,255,0.88);--glow:rgba(255,255,255,0.5);
   --r:20px;--rs:12px;--ts:0.4s cubic-bezier(0.16,1,0.3,1);
   --px:'Galmuri11','Galmuri9',monospace;
   --sf:'BookkMyungjo','Cormorant Garamond',serif;
@@ -28,14 +28,14 @@ body{background:var(--bg);color:#e8e8e8;font-family:var(--sf);font-weight:300;he
 @keyframes tg{0%,100%{box-shadow:0 0 15px rgba(255,255,255,0.03)}50%{box-shadow:0 0 25px rgba(255,255,255,0.08)}}
 .ttb{height:22px;min-height:22px;background:#111;border-bottom:1px solid #333;display:flex;align-items:center;padding:0 10px;gap:6px;flex-shrink:0}
 .td{width:8px;height:8px;border-radius:50%;border:1px solid #333;background:#1a1a1a}
-.tt{flex:1;text-align:center;font-family:var(--px);font-size:9px;color:#444;letter-spacing:0.1em}
-.tb{flex:1;overflow-y:auto;padding:16px 18px;font-family:var(--px);font-size:12px;color:#555;line-height:1.9}
+.tt{flex:1;text-align:center;font-family:var(--px);font-size:9px;color:#777;letter-spacing:0.1em}
+.tb{flex:1;overflow-y:auto;padding:16px 18px;font-family:var(--px);font-size:12px;color:#888;line-height:1.9}
 .tb::-webkit-scrollbar{width:0}
 .tl{white-space:pre-wrap;word-break:break-all}
-.tl .p{color:#444}.tl .c{color:#888}.tl .cm{color:#333;font-style:italic}.tl .s{color:#668}.tl .ok{color:#5a5}.tl .hi{color:#aaa}
+.tl .p{color:#777}.tl .c{color:#aaa}.tl .cm{color:#666;font-style:italic}.tl .s{color:#88a}.tl .ok{color:#7c7}.tl .hi{color:#ccc}
 .tc{display:inline-block;width:7px;height:13px;background:#555;animation:bk 0.8s step-end infinite;vertical-align:text-bottom}
 @keyframes bk{50%{opacity:0}}
-.tui{background:transparent;border:none;outline:none;font-family:var(--px);font-size:12px;color:#aaa;caret-color:#555;width:180px;padding:0}
+.tui{background:transparent;border:none;outline:none;font-family:var(--px);font-size:12px;color:#ccc;caret-color:#888;width:180px;padding:0}
 @keyframes sf{0%{color:#555}50%{color:#8f8}100%{color:#5a5}}
 
 /* ═══ Q ICON ═══ */
@@ -65,14 +65,14 @@ body{background:var(--bg);color:#e8e8e8;font-family:var(--sf);font-weight:300;he
 .tbar{height:28px;min-height:28px;background:#0e0e0e;border-bottom:1px solid #222;padding:0 8px;display:flex;align-items:center;gap:8px;flex-shrink:0}
 .tbar-l{flex:1;position:relative;height:12px;overflow:hidden}
 .tbar-ln{position:absolute;left:0;right:0;height:1px;background:#1a1a1a}
-.tbar-t{position:relative;z-index:1;background:#0e0e0e;padding:0 8px 3px;font-family:var(--px);font-size:8px;color:#666;display:inline-block;left:50%;transform:translateX(-50%);line-height:1.6}
+.tbar-t{position:relative;z-index:1;background:#0e0e0e;padding:0 8px 3px;font-family:var(--px);font-size:8px;color:#888;display:inline-block;left:50%;transform:translateX(-50%);line-height:1.6}
 
 /* 플레이어 */
 .pl{padding:14px 16px;border-bottom:1px solid #1a1a1a;background:#080808;display:flex;align-items:center;justify-content:center;gap:16px;flex-shrink:0}
 .pv{display:flex;align-items:flex-end;gap:1.5px;height:24px;flex-shrink:0}
 .pv .vb{width:1.5px;background:rgba(255,255,255,0.04);border-radius:1px;transition:height 0.12s ease}
 .pm{display:flex;flex-direction:column;align-items:center;gap:4px}
-.pt{font-family:var(--px);font-size:9px;color:rgba(255,255,255,0.50);letter-spacing:0.12em}
+.pt{font-family:var(--px);font-size:9px;color:rgba(255,255,255,0.60);letter-spacing:0.12em}
 .pc{display:flex;align-items:center;gap:12px}
 .pb{background:none;border:none;font-family:var(--px);font-size:8px;color:rgba(255,255,255,0.12);cursor:pointer;padding:4px;transition:color 0.3s}
 .pb:hover{color:rgba(255,255,255,0.35)}
@@ -93,8 +93,8 @@ body{background:var(--bg);color:#e8e8e8;font-family:var(--sf);font-weight:300;he
 
 /* 탭 */
 .tabs{display:flex;border-bottom:1px solid #1a1a1a;background:#080808;flex-shrink:0}
-.tab{flex:1;background:transparent;color:#777;border:none;border-bottom:1px solid transparent;padding:6px 0;font-family:var(--px);font-size:9px;cursor:pointer;letter-spacing:0.08em}
-.tab.a{background:var(--win);color:#ccc;border-bottom-color:#ccc}
+.tab{flex:1;background:transparent;color:#999;border:none;border-bottom:1px solid transparent;padding:6px 0;font-family:var(--px);font-size:9px;cursor:pointer;letter-spacing:0.08em}
+.tab.a{background:var(--win);color:#eee;border-bottom-color:#eee}
 
 /* 콘텐츠 */
 .ct{flex:1;display:flex;flex-direction:column;overflow:hidden;min-height:0}
@@ -103,9 +103,9 @@ body{background:var(--bg);color:#e8e8e8;font-family:var(--sf);font-weight:300;he
 .msg{padding:14px 0;animation:fi 0.8s cubic-bezier(0.16,1,0.3,1)}
 .msg-q{padding-right:24px}
 .ql{font-size:0;margin-bottom:10px;display:flex;align-items:center}
-.qt{font-size:14px;line-height:2;color:rgba(255,255,255,0.82);font-family:var(--sf);font-weight:300;letter-spacing:0.02em;word-break:keep-all}
+.qt{font-size:14px;line-height:2;color:rgba(255,255,255,0.92);font-family:var(--sf);font-weight:300;letter-spacing:0.02em;word-break:keep-all}
 .qa{display:flex;gap:16px;margin-top:14px;align-items:center;padding-top:6px;border-top:1px solid rgba(255,255,255,0.02)}
-.qa .icon{width:14px;height:14px;opacity:0.35;cursor:pointer;transition:opacity var(--ts),transform var(--ts)}
+.qa .icon{width:14px;height:14px;opacity:0.45;cursor:pointer;transition:opacity var(--ts),transform var(--ts)}
 .qa .icon:hover{opacity:0.35;transform:scale(1.08)}
 .qa .icon.active{opacity:0.5}
 .msg-u{text-align:right;padding-left:48px}
@@ -125,11 +125,11 @@ body{background:var(--bg);color:#e8e8e8;font-family:var(--sf);font-weight:300;he
 .ia::before{content:'';position:absolute;top:-40px;left:0;right:0;height:40px;background:linear-gradient(to top,var(--win),transparent);pointer-events:none}
 .ic{display:flex;align-items:center;gap:2px;border-top:1px solid rgba(255,255,255,0.04);padding:10px 16px;transition:border-color 0.6s,background 0.6s}
 .ic:focus-within{border-color:rgba(255,255,255,0.06);background:rgba(255,255,255,0.01)}
-.if{flex:1;background:transparent;border:none;outline:none;color:rgba(255,255,255,0.82);font-family:var(--sf);font-size:13px;font-weight:300;padding:8px;caret-color:rgba(255,255,255,0.18)}
-.if::placeholder{color:rgba(255,255,255,0.25);font-family:var(--px);font-weight:300;letter-spacing:0.15em}
+.if{flex:1;background:transparent;border:none;outline:none;color:rgba(255,255,255,0.92);font-family:var(--sf);font-size:13px;font-weight:300;padding:8px;caret-color:rgba(255,255,255,0.18)}
+.if::placeholder{color:rgba(255,255,255,0.35);font-family:var(--px);font-weight:300;letter-spacing:0.15em}
 .ib{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;transition:background var(--ts),transform var(--ts)}
 .ib:hover{background:rgba(255,255,255,0.03);transform:scale(1.04)}
-.ib .icon{width:18px;height:18px;opacity:0.4;transition:opacity var(--ts)}
+.ib .icon{width:18px;height:18px;opacity:0.5;transition:opacity var(--ts)}
 .ib:hover .icon{opacity:0.4}
 .gb .icon{width:20px;height:20px;opacity:0.15}
 .ib.rec .icon{opacity:0.55;animation:rcp 1.2s ease-in-out infinite}
@@ -141,18 +141,18 @@ body{background:var(--bg);color:#e8e8e8;font-family:var(--sf);font-weight:300;he
 .tp::-webkit-scrollbar{width:0}
 .li{padding:14px 8px;border-bottom:1px solid #111;cursor:pointer;border-radius:var(--rs);margin:0 -8px;transition:background var(--ts)}
 .li:hover{background:rgba(255,255,255,0.02)}
-.lp{font-family:var(--sf);font-size:12px;font-weight:300;color:rgba(255,255,255,0.38)}
+.lp{font-family:var(--sf);font-size:12px;font-weight:300;color:rgba(255,255,255,0.55)}
 .lt{font-family:var(--px);font-size:8px;color:rgba(255,255,255,0.10);margin-top:6px}
 .le{text-align:center;padding-top:60px;font-family:var(--sf);font-size:13px;font-weight:300;color:rgba(255,255,255,0.10);line-height:2}
 
 /* 푸터 */
-.ft{border-top:1px solid #1a1a1a;padding:3px 12px;display:flex;justify-content:space-between;font-family:var(--px);font-size:8px;color:#666;background:#080808;flex-shrink:0}
+.ft{border-top:1px solid #1a1a1a;padding:3px 12px;display:flex;justify-content:space-between;font-family:var(--px);font-size:8px;color:#888;background:#080808;flex-shrink:0}
 
 /* ═══ OVERLAYS ═══ */
 .ov{position:fixed;inset:0;background:rgba(0,0,0,0.65);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);z-index:250;display:none;align-items:center;justify-content:center}
 .ov.open{display:flex}
 .mx{background:var(--bg-el);border:1px solid rgba(255,255,255,0.04);border-radius:var(--r);width:300px;max-width:82vw;box-shadow:0 8px 60px rgba(0,0,0,0.5);overflow:hidden}
-.mi{padding:22px 28px;font-size:14px;font-family:var(--sf);font-weight:300;color:rgba(255,255,255,0.38);cursor:pointer;border-bottom:1px solid rgba(255,255,255,0.025);transition:color var(--ts),background var(--ts)}
+.mi{padding:22px 28px;font-size:14px;font-family:var(--sf);font-weight:300;color:rgba(255,255,255,0.55);cursor:pointer;border-bottom:1px solid rgba(255,255,255,0.025);transition:color var(--ts),background var(--ts)}
 .mi:last-child{border-bottom:none}
 .mi:hover{color:rgba(255,255,255,0.58);background:rgba(255,255,255,0.02)}
 
@@ -160,7 +160,7 @@ body{background:var(--bg);color:#e8e8e8;font-family:var(--sf);font-weight:300;he
 .mdbg{position:fixed;inset:0;background:rgba(0,0,0,0.8);backdrop-filter:blur(12px);z-index:300;display:none;align-items:center;justify-content:center}
 .mdbg.open{display:flex}
 .mdb{background:var(--bg-el);border:1px solid rgba(255,255,255,0.04);border-radius:var(--r);width:320px;max-width:85vw;padding:44px 36px 32px;text-align:center}
-.mdt{font-size:15px;font-family:var(--sf);font-weight:300;color:rgba(255,255,255,0.48);margin-bottom:36px;line-height:2}
+.mdt{font-size:15px;font-family:var(--sf);font-weight:300;color:rgba(255,255,255,0.65);margin-bottom:36px;line-height:2}
 .mdbs{display:flex;justify-content:center;gap:32px}
 .mdbtn{background:none;border:none;font-family:var(--sf);font-size:14px;font-weight:300;color:rgba(255,255,255,0.35);cursor:pointer;padding:10px 24px;border-radius:var(--r);transition:color var(--ts),background var(--ts)}
 .mdbtn:hover{color:rgba(255,255,255,0.65);background:rgba(255,255,255,0.03)}
@@ -176,7 +176,7 @@ body{background:var(--bg);color:#e8e8e8;font-family:var(--sf);font-weight:300;he
 .fpbd::-webkit-scrollbar{width:0}
 
 /* About You */
-.asl{font-size:15px;font-family:var(--sf);font-weight:300;color:rgba(255,255,255,0.42);margin-bottom:28px;line-height:2}
+.asl{font-size:15px;font-family:var(--sf);font-weight:300;color:rgba(255,255,255,0.60);margin-bottom:28px;line-height:2}
 .asi{background:transparent;border:none;border-bottom:1px solid rgba(255,255,255,0.08);color:rgba(255,255,255,0.58);font-family:var(--sf);font-size:15px;font-weight:300;text-align:center;padding:12px 20px;width:260px;outline:none;transition:border-color 0.5s}
 .asi:focus{border-color:rgba(255,255,255,0.18)}.asi::placeholder{color:rgba(255,255,255,0.1)}
 .asb{margin-top:28px;background:transparent;border:1px solid rgba(255,255,255,0.08);border-radius:var(--r);color:rgba(255,255,255,0.4);font-family:var(--px);font-size:11px;padding:12px 36px;cursor:pointer;letter-spacing:0.08em;transition:all var(--ts)}
@@ -184,16 +184,16 @@ body{background:var(--bg);color:#e8e8e8;font-family:var(--sf);font-weight:300;he
 
 /* 메모리 */
 .ms{display:flex;align-items:center;gap:12px;padding:12px 0 18px;border-bottom:1px solid rgba(255,255,255,0.04);margin-bottom:16px}
-.msi{flex:1;background:transparent;border:none;outline:none;color:rgba(255,255,255,0.48);font-family:var(--sf);font-size:13px;font-weight:300}
+.msi{flex:1;background:transparent;border:none;outline:none;color:rgba(255,255,255,0.65);font-family:var(--sf);font-size:13px;font-weight:300}
 .msi::placeholder{color:rgba(255,255,255,0.1)}
 .mei{padding:14px 8px;border-bottom:1px solid rgba(255,255,255,0.025);border-radius:var(--rs);margin:0 -8px;transition:background var(--ts)}
 .mei:hover{background:rgba(255,255,255,0.02)}
-.met{font-size:14px;font-family:var(--sf);font-weight:300;color:rgba(255,255,255,0.42);line-height:1.7}
+.met{font-size:14px;font-family:var(--sf);font-weight:300;color:rgba(255,255,255,0.60);line-height:1.7}
 .mes{font-family:var(--px);font-size:10px;color:rgba(255,255,255,0.14);margin-top:4px}
 .mee{text-align:center;padding-top:80px;font-family:var(--sf);font-size:14px;font-weight:300;color:rgba(255,255,255,0.2);line-height:2.2}
 
 /* 토스트 */
-.toast{position:fixed;bottom:100px;left:50%;transform:translateX(-50%) translateY(10px);background:rgba(12,12,15,0.92);border:1px solid rgba(255,255,255,0.04);backdrop-filter:blur(20px);color:rgba(255,255,255,0.38);font-family:var(--px);font-size:11px;padding:12px 32px;border-radius:32px;opacity:0;transition:opacity 0.6s,transform 0.6s;pointer-events:none;z-index:400;letter-spacing:0.08em}
+.toast{position:fixed;bottom:100px;left:50%;transform:translateX(-50%) translateY(10px);background:rgba(12,12,15,0.92);border:1px solid rgba(255,255,255,0.04);backdrop-filter:blur(20px);color:rgba(255,255,255,0.55);font-family:var(--px);font-size:11px;padding:12px 32px;border-radius:32px;opacity:0;transition:opacity 0.6s,transform 0.6s;pointer-events:none;z-index:400;letter-spacing:0.08em}
 .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
 
 /* 미니인트로 */
@@ -253,9 +253,9 @@ body{background:var(--bg);color:#e8e8e8;font-family:var(--sf);font-weight:300;he
   <!-- 메뉴바 -->
   <div class="mb">
     <img src="/static/icons/ic_q_logo.png" style="width:14px;height:14px;opacity:0.55;filter:invert(0)" alt="Q">
-    <span style="color:#777">File</span><span style="color:#777">Edit</span><span style="color:#777">View</span>
+    <span style="color:#999">File</span><span style="color:#999">Edit</span><span style="color:#999">View</span>
     <div style="flex:1"></div>
-    <span style="color:#777;font-size:9px" id="mTime">Monday, 2 p.m.</span>
+    <span style="color:#999;font-size:9px" id="mTime">Monday, 2 p.m.</span>
   </div>
   <!-- 타이틀바 -->
   <div class="tbar">
@@ -314,7 +314,6 @@ body{background:var(--bg);color:#e8e8e8;font-family:var(--sf);font-weight:300;he
 
 <script>
 var API="https://q-server-nsez.onrender.com",uid="",wait=false,lastU="",hist=[],sess=JSON.parse(localStorage.getItem('q_sessions')||'[]'),rec=null,isRec=false,mdCb=null;
-if(localStorage.getItem('q_was_reset')){document.getElementById('wQ').textContent='왜 나를 다시 깨웠어?';localStorage.removeItem('q_was_reset')}
 var uName=localStorage.getItem('q_username')||'',uLoc=localStorage.getItem('q_location')||'';
 var sDate=localStorage.getItem('q_startdate');if(!sDate){sDate=new Date().toISOString();localStorage.setItem('q_startdate',sDate)}
 var stg=JSON.parse(localStorage.getItem('q_settings')||'{}');if(stg.scan===undefined)stg.scan=true;if(!stg.charSpeed)stg.charSpeed='25';if(stg.autoTTS===undefined)stg.autoTTS=false;
@@ -394,7 +393,7 @@ var seq=[
             var s=addTL('');s.innerHTML='<span class="ok" style="animation:sf 1s ease-out">[SUCCESS]</span> <span class="hi">compile complete.</span>';
             setTimeout(function(){addTL('')},600);
             setTimeout(function(){
-              var r=addTL('');r.innerHTML='<span class="p">> </span><span style="color:#8bb;letter-spacing:0.08em">It always</span>';
+              var r=addTL('');r.innerHTML='<span class="p">> </span><span style="color:#add;letter-spacing:0.08em">It always</span>';
               tB.scrollTop=tB.scrollHeight;
               setTimeout(n,1800)
             },1000)
@@ -404,7 +403,7 @@ var seq=[
     } else {
     typeTL('<span class="p">$ </span>','compiling "It '+uv+'"...',30,function(){
       setTimeout(function(){
-        var e=addTL('');e.innerHTML='<span style="color:#c55">[ERROR]</span> <span style="color:#855">unexpected token. Q cannot be defined.</span>';
+        var e=addTL('');e.innerHTML='<span style="color:#e77">[ERROR]</span> <span style="color:#a77">unexpected token. Q cannot be defined.</span>';
         tB.scrollTop=tB.scrollHeight;
         setTimeout(function(){
           addTL('');
@@ -415,7 +414,7 @@ var seq=[
                 var s=addTL('');s.innerHTML='<span class="ok" style="animation:sf 1s ease-out">[SUCCESS]</span> <span class="hi">compile complete.</span>';
                 setTimeout(function(){addTL('')},600);
                 setTimeout(function(){
-                  var r=addTL('');r.innerHTML='<span class="p">> </span><span style="color:#8bb;letter-spacing:0.08em">It always</span>';
+                  var r=addTL('');r.innerHTML='<span class="p">> </span><span style="color:#add;letter-spacing:0.08em">It always</span>';
                   tB.scrollTop=tB.scrollHeight;
                   setTimeout(n,1800)
                 },1000)
