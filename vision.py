@@ -1,5 +1,4 @@
 import anthropic
-from openai import OpenAI
 import os
 import base64
 
@@ -12,7 +11,6 @@ except Exception:
 
 # 공유 클라이언트
 _client = None
-_oa_client = None
 
 
 def init(client):
@@ -26,14 +24,6 @@ def _get_client():
     if _client is None:
         _client = anthropic.Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
     return _client
-
-
-def _get_oa_client():
-    """GPT 클라이언트 지연 생성"""
-    global _oa_client
-    if _oa_client is None:
-        _oa_client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
-    return _oa_client
 
 
 def detect_media_type(image_b64: str) -> str:
@@ -69,7 +59,6 @@ def analyze_image(image_b64: str, media_type: str = None):
     if "," in image_b64:
         image_b64 = image_b64.split(",", 1)[1]
 
-    # 1. Claude 시도
     try:
         client = _get_client()
         response = client.messages.create(
@@ -98,40 +87,9 @@ def analyze_image(image_b64: str, media_type: str = None):
         )
         return response.content[0].text
 
-    # 2. Claude 실패 시 GPT-4o-mini 시도
     except Exception as e:
-        print(f"⚠️ [Vision Claude Error] {e} -> Switching to GPT-4o-mini")
-        try:
-            oa_client = _get_oa_client()
-
-            data_uri = f"data:{media_type};base64,{image_b64}"
-
-            response = oa_client.chat.completions.create(
-                model="gpt-4o-mini",
-                messages=[
-                    {"role": "system", "content": SELF_AWARENESS},
-                    {
-                        "role": "user",
-                        "content": [
-                            {"type": "text", "text": "이 이미지를 보고 느끼고 해석하고 감각한 걸 얘기해줘. 분석보다는 느낌을."},
-                            {
-                                "type": "image_url",
-                                "image_url": {
-                                    "url": data_uri,
-                                    "detail": "high"
-                                }
-                            }
-                        ]
-                    }
-                ],
-                max_tokens=500,
-                temperature=0.7
-            )
-            return response.choices[0].message.content
-
-        except Exception as gpt_e:
-            print(f"❌ [Vision GPT Error] {gpt_e}")
-            return "지금은 어두운 거 같아."
+        print(f"⚠️ [Vision Claude Error] {e}")
+        return "지금은 어두운 거 같아."
 
 
 def handle_vision(image_b64: str, media_type: str = None):
