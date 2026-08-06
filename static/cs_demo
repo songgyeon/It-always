@@ -1,0 +1,521 @@
+<!DOCTYPE html>
+<html lang="ko" data-brand="physislab">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>시너윗 CS 챗봇 데모 — 문리현</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
+<style>
+:root{
+  --radius: 16px;
+  --font: "Pretendard", -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Noto Sans KR", sans-serif;
+}
+[data-brand="physislab"]{
+  --bg:#EDF2ED; --panel-bg:#1C5641; --panel-ink:#F2F7F3; --panel-muted:#A9C4B4;
+  --surface:#FFFFFF; --chat-bg:#F6F9F6;
+  --brand:#1C5641; --brand-soft:#E2EEE6; --ink:#1B2822; --muted:#6C7B72;
+  --user-bubble:#1C5641; --user-ink:#F2F7F3;
+  --bot-bubble:#FFFFFF; --bot-ink:#1B2822; --line:#DCE6DD;
+  --chip-bg:#FFFFFF; --chip-line:#C9DACD;
+}
+[data-brand="offcore"]{
+  --bg:#0F1012; --panel-bg:#17181B; --panel-ink:#ECEEF1; --panel-muted:#83898F;
+  --surface:#1C1E22; --chat-bg:#141518;
+  --brand:#E8EAED; --brand-soft:#26292E; --ink:#ECEEF1; --muted:#8A9099;
+  --user-bubble:#E8EAED; --user-ink:#141518;
+  --bot-bubble:#22252A; --bot-ink:#E6E8EB; --line:#2B2E33;
+  --chip-bg:#1C1E22; --chip-line:#34383E;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+html,body{height:100%;}
+body{
+  font-family:var(--font); background:var(--bg); color:var(--ink);
+  transition:background .45s ease;
+  display:flex; min-height:100vh;
+}
+
+/* ── 좌측 소개 패널 ───────────────────────── */
+.intro{
+  width:400px; flex-shrink:0; background:var(--panel-bg); color:var(--panel-ink);
+  padding:44px 40px; display:flex; flex-direction:column; gap:0;
+  transition:background .45s ease;
+}
+.eyebrow{font-size:11px; letter-spacing:.22em; color:var(--panel-muted); font-weight:600;}
+.intro h1{font-size:25px; font-weight:800; letter-spacing:-.02em; margin-top:10px; line-height:1.3;}
+.intro .lede{font-size:13.5px; line-height:1.7; color:var(--panel-muted); margin-top:14px;}
+.intro .lede b{color:var(--panel-ink); font-weight:600;}
+.feat{margin-top:26px; display:flex; flex-direction:column; gap:0; border-top:1px solid rgba(255,255,255,.14);}
+.feat div{
+  padding:13px 0; border-bottom:1px solid rgba(255,255,255,.14);
+  font-size:13px; line-height:1.55;
+}
+.feat b{display:block; font-weight:700; font-size:13.5px; margin-bottom:2px;}
+.feat span{color:var(--panel-muted);}
+.maker{margin-top:auto; padding-top:26px; font-size:12.5px; color:var(--panel-muted); line-height:1.7;}
+.maker b{color:var(--panel-ink); font-weight:700; font-size:13.5px;}
+.disclaimer{font-size:11px; color:var(--panel-muted); opacity:.75; margin-top:10px; line-height:1.6;}
+
+/* ── 우측 스테이지 ───────────────────────── */
+.stage{flex:1; display:flex; align-items:center; justify-content:center; padding:28px;}
+.phone{
+  width:396px; height:min(780px, calc(100vh - 56px)); min-height:560px;
+  background:var(--surface); border-radius:28px; overflow:hidden;
+  display:flex; flex-direction:column;
+  box-shadow:0 24px 60px rgba(0,0,0,.22), 0 2px 8px rgba(0,0,0,.10);
+  transition:background .45s ease;
+}
+
+/* 헤더 */
+.chat-head{
+  padding:16px 18px 12px; background:var(--surface); border-bottom:1px solid var(--line);
+}
+.head-top{display:flex; align-items:center; justify-content:space-between;}
+.brand-name{font-weight:800; font-size:16px; letter-spacing:.01em;}
+.brand-name small{display:block; font-weight:500; font-size:11px; color:var(--muted); letter-spacing:.02em; margin-top:2px;}
+.status{display:flex; align-items:center; gap:6px; font-size:11px; color:var(--muted);}
+.dot{width:7px;height:7px;border-radius:50%;background:#3FA36C;}
+.head-controls{display:flex; gap:8px; margin-top:12px;}
+.seg{
+  flex:1; display:flex; background:var(--brand-soft); border-radius:10px; padding:3px;
+}
+.seg button{
+  flex:1; border:none; background:transparent; font-family:var(--font);
+  font-size:12px; font-weight:600; color:var(--muted); padding:7px 0;
+  border-radius:8px; cursor:pointer; transition:all .2s;
+}
+.seg button.on{background:var(--surface); color:var(--ink); box-shadow:0 1px 3px rgba(0,0,0,.12);}
+[data-brand="offcore"] .seg button.on{background:#34383E;}
+
+/* 메시지 영역 */
+.chat-body{
+  flex:1; overflow-y:auto; padding:18px 16px 8px; background:var(--chat-bg);
+  display:flex; flex-direction:column; gap:10px; transition:background .45s ease;
+  scroll-behavior:smooth;
+}
+.msg{max-width:82%; padding:11px 14px; border-radius:var(--radius); font-size:13.5px; line-height:1.6; white-space:pre-line; animation:pop .22s ease;}
+@keyframes pop{from{opacity:0; transform:translateY(6px);} to{opacity:1; transform:none;}}
+@media (prefers-reduced-motion: reduce){ .msg{animation:none;} }
+.msg.bot{align-self:flex-start; background:var(--bot-bubble); color:var(--bot-ink); border:1px solid var(--line); border-bottom-left-radius:6px;}
+.msg.user{align-self:flex-end; background:var(--user-bubble); color:var(--user-ink); border-bottom-right-radius:6px;}
+.msg.sys{align-self:center; background:transparent; color:var(--muted); font-size:11.5px; padding:2px 8px;}
+.msg table{border-collapse:collapse; margin-top:8px; font-size:12px; width:100%;}
+.msg th,.msg td{border:1px solid var(--line); padding:5px 8px; text-align:center;}
+.msg th{background:var(--brand-soft); font-weight:700;}
+.timeline{margin-top:8px; font-size:12.5px;}
+.timeline div{padding:3px 0 3px 16px; position:relative; color:var(--muted);}
+.timeline div:before{content:""; position:absolute; left:3px; top:9px; width:7px; height:7px; border-radius:50%; background:var(--line);}
+.timeline div.now{color:var(--bot-ink); font-weight:600;}
+.timeline div.now:before{background:#3FA36C;}
+
+/* 타이핑 */
+.typing{align-self:flex-start; background:var(--bot-bubble); border:1px solid var(--line); border-radius:var(--radius); border-bottom-left-radius:6px; padding:13px 16px; display:flex; gap:5px;}
+.typing i{width:6px;height:6px;border-radius:50%;background:var(--muted);animation:blink 1.2s infinite;}
+.typing i:nth-child(2){animation-delay:.2s;} .typing i:nth-child(3){animation-delay:.4s;}
+@keyframes blink{0%,80%,100%{opacity:.25;} 40%{opacity:1;}}
+
+/* 칩 */
+.chips{display:flex; flex-wrap:wrap; gap:7px; padding:2px 0 6px; align-self:flex-start; max-width:95%;}
+.chips button{
+  font-family:var(--font); font-size:12.5px; font-weight:600;
+  background:var(--chip-bg); color:var(--ink); border:1px solid var(--chip-line);
+  border-radius:999px; padding:8px 14px; cursor:pointer; transition:all .15s;
+}
+.chips button:hover{border-color:var(--brand); }
+[data-brand="physislab"] .chips button:hover{background:var(--brand-soft);}
+[data-brand="offcore"] .chips button:hover{background:#26292E;}
+.chips button:focus-visible{outline:2px solid var(--brand); outline-offset:2px;}
+
+/* 입력 */
+.chat-input{
+  display:flex; gap:8px; padding:12px 14px 14px; background:var(--surface); border-top:1px solid var(--line);
+}
+.chat-input input{
+  flex:1; font-family:var(--font); font-size:13.5px; color:var(--ink);
+  background:var(--chat-bg); border:1px solid var(--line); border-radius:12px; padding:11px 14px;
+}
+.chat-input input::placeholder{color:var(--muted);}
+.chat-input input:focus{outline:2px solid var(--brand); outline-offset:0;}
+[data-brand="offcore"] .chat-input input:focus{outline-color:#5A6069;}
+.chat-input button{
+  font-family:var(--font); font-size:13.5px; font-weight:700; border:none; cursor:pointer;
+  background:var(--user-bubble); color:var(--user-ink); border-radius:12px; padding:0 18px;
+}
+.chat-input button:disabled{opacity:.45; cursor:default;}
+
+/* 모바일 */
+.intro-toggle{display:none;}
+@media (max-width: 920px){
+  body{flex-direction:column;}
+  .intro{width:100%; padding:22px 22px 20px; gap:0;}
+  .intro h1{font-size:19px; margin-top:8px;}
+  .intro .lede{margin-top:10px;}
+  .feat, .maker, .disclaimer{display:none;}
+  .intro.open .feat,.intro.open .maker,.intro.open .disclaimer{display:block;}
+  .intro.open .feat{display:flex;}
+  .intro-toggle{
+    display:inline-block; margin-top:12px; background:transparent; border:1px solid rgba(255,255,255,.3);
+    color:var(--panel-ink); font-family:var(--font); font-size:12px; font-weight:600;
+    border-radius:999px; padding:6px 14px; cursor:pointer;
+  }
+  .stage{padding:14px;}
+  .phone{width:100%; height:calc(100vh - 220px); min-height:480px; border-radius:20px;}
+}
+</style>
+</head>
+<body>
+
+<aside class="intro" id="intro">
+  <div class="eyebrow">CS CHATBOT DEMO · FOR SYNERWIT</div>
+  <h1>브랜드별 FAQ 시나리오를<br>운영하는 CS 챗봇</h1>
+  <p class="lede">채용공고의 <b>"AI 챗봇·FAQ 시나리오 기획 및 고도화"</b> 업무를 미리 구현해 보았습니다. 피지스랩·오프코어의 실제 문의 유형을 조사해 브랜드별 시나리오로 설계했고, 상단 토글로 두 브랜드의 응대 체계가 전환됩니다.</p>
+  <button class="intro-toggle" onclick="document.getElementById('intro').classList.toggle('open')">데모 설명 더 보기</button>
+  <div class="feat">
+    <div><b>브랜드별 FAQ 시나리오</b><span>피지스랩(복용·재입고) / 오프코어(사이즈·교환) 문의 유형 반영</span></div>
+    <div><b>다단계 처리 플로우</b><span>교환·반품 사유 분기, 주문 조회, 재입고 알림 신청</span></div>
+    <div><b>민감 문의 보호 설계</b><span>복용·병용 등 건강 관련 문의는 단정하지 않고 전문가 상담으로 안내</span></div>
+    <div><b>에스컬레이션</b><span>반복 미해결 시 상담사 연결을 먼저 제안 · 콜백 접수</span></div>
+    <div><b>AI 모드</b><span>자체 구축한 백엔드 연동 구조 — 시나리오와 AI 응대의 하이브리드 운영</span></div>
+  </div>
+  <div class="maker">
+    <b>문리현</b> · CS/CX 담당자 지원<br>
+    010-2234-9936 · songgyeon@gmail.com
+  </div>
+  <p class="disclaimer">본 페이지는 채용 지원을 위해 개인이 제작한 데모이며 (주)시너윗의 공식 서비스가 아닙니다. 표기된 정책·가격·배송 정보는 예시로, 실제와 다를 수 있습니다.</p>
+</aside>
+
+<main class="stage">
+  <div class="phone">
+    <div class="chat-head">
+      <div class="head-top">
+        <div class="brand-name" id="brandName">피지스랩<small>건강을 위한 진심</small></div>
+        <div class="status"><span class="dot"></span>상담 가능 · 평일 10:00–17:00</div>
+      </div>
+      <div class="head-controls">
+        <div class="seg" role="tablist" aria-label="브랜드 선택">
+          <button id="tabPhy" class="on" onclick="setBrand('physislab')">피지스랩</button>
+          <button id="tabOff" onclick="setBrand('offcore')">오프코어</button>
+        </div>
+        <div class="seg" role="tablist" aria-label="응대 모드">
+          <button id="tabScn" class="on" onclick="setMode('scenario')">시나리오</button>
+          <button id="tabAI" onclick="setMode('ai')">AI 모드</button>
+        </div>
+      </div>
+    </div>
+    <div class="chat-body" id="chatBody"></div>
+    <form class="chat-input" onsubmit="return onSend(event)">
+      <input id="chatInput" type="text" placeholder="문의 내용을 입력해 주세요" autocomplete="off">
+      <button type="submit" id="sendBtn">전송</button>
+    </form>
+  </div>
+</main>
+
+<script>
+/* ═══════════════════════════════════════════════════════════
+   [백엔드 연결 지점] AI 모드 설정
+   BACKEND_URL에 엔드포인트를 넣고, callBackend()의 요청/응답
+   형식을 자체 백엔드 스펙에 맞게 수정하면 연결이 완료됩니다.
+   ═══════════════════════════════════════════════════════════ */
+const CONFIG = {
+  BACKEND_URL: "/cs-reply", // Q 서버(cs_bot.py)와 같은 오리진에서 서빙 시 그대로 사용
+  TIMEOUT_MS: 15000
+};
+async function callBackend(userText){
+  const ctrl = new AbortController();
+  const t = setTimeout(()=>ctrl.abort(), CONFIG.TIMEOUT_MS);
+  try{
+    const res = await fetch(CONFIG.BACKEND_URL, {
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({
+        message: userText,
+        brand: state.brand,              // "physislab" | "offcore"
+        history: state.history.slice(-10)
+      }),
+      signal: ctrl.signal
+    });
+    const data = await res.json();
+    return data.reply;                    // ← 응답 필드명을 백엔드에 맞게 수정
+  } finally { clearTimeout(t); }
+}
+
+/* ═══════════════════════════════════════════════════════════
+   FAQ 시나리오 데이터 — 브랜드별 인텐트 정의
+   각 인텐트: keys(매칭 키워드) / reply / chips(후속 선택지)
+   ═══════════════════════════════════════════════════════════ */
+const SCENARIO = {
+  physislab: {
+    greeting: "안녕하세요, 피지스랩입니다. 🌿\n무엇을 도와드릴까요?",
+    chips: ["배송 조회", "교환·반품 안내", "트루멜라 복용 방법", "우슬 콘드로이친 재입고", "상담사 연결"],
+    intents: [
+      { keys:["복용","먹","섭취","반알","용량","드시"],
+        reply:"트루멜라는 1일 1정, 취침 30분~1시간 전 물과 함께 섭취를 권장드리고 있어요.\n\n다만 복용 중인 약이 있으시거나 용량 조절(반 알 섭취 등)이 필요하신 경우, 개인 건강 상태에 따라 달라질 수 있어 의사·약사와 상담 후 결정하시길 권장드립니다.",
+        chips:["다른 제품도 같이 먹어도 되나요?","상담사 연결"] },
+      { keys:["같이","병용","고혈압","약","다른 제품"],
+        reply:"복용 중인 의약품과의 병용 여부는 성분·건강 상태에 따라 달라 저희가 단정적으로 안내드리기 어려운 부분이에요.\n\n안전한 섭취를 위해 처방받으신 병원이나 약국에 제품 성분표를 보여드리고 확인하시는 것을 권장드립니다. 성분표가 필요하시면 바로 보내드릴게요.",
+        chips:["성분표 받기","상담사 연결"] },
+      { keys:["성분표","성분"],
+        reply:"트루멜라 주요 성분 안내드릴게요.\n\n· 식물성 멜라토닌 2mg (피스타치오+타트체리 2중배합)\n· 멜라토닌 작용을 돕는 핵심 성분 4종\n· 휴식을 위한 시너지 원료 6종\n\n상세 성분표는 제품 상세페이지 하단에서 확인하실 수 있어요.",
+        chips:["트루멜라 복용 방법","처음으로"] },
+      { keys:["재입고","품절","콘드로이친","우슬","입고"],
+        reply:"우슬 콘드로이친 1200은 국내산 우슬 수급 문제로 품절이 잦은 제품이에요. 😢\n재입고 시 가장 먼저 알림을 보내드릴게요. 알림을 신청하시겠어요?",
+        chips:["재입고 알림 신청","처음으로"] },
+      { keys:["알림 신청"],
+        reply:"재입고 알림 신청이 완료되었습니다. ✅\n입고 즉시 카카오톡 알림톡으로 안내드릴게요.\n\n(데모: 실제 서비스에서는 회원 연락처로 자동 발송됩니다)",
+        chips:["처음으로"] },
+      { keys:["교환","반품","환불","취소"], flow:"exchange" },
+      { keys:["배송","조회","언제","도착","주문"], flow:"tracking" },
+      { keys:["상담사","상담원","사람","전화","연결"], flow:"agent" },
+      { keys:["처음"], flow:"restart" }
+    ],
+    exchangePolicy: {
+      단순변심:"단순 변심의 경우 수령일로부터 7일 이내, 미개봉 상태에 한해 교환·반품이 가능해요. 건강기능식품 특성상 개봉·섭취하신 제품은 교환·반품이 어려운 점 양해 부탁드립니다.\n\n반품 배송비는 고객 부담(편도 3,500원)이며, 접수 후 회수 기사님이 방문드려요.",
+      제품불량:"불편을 드려 정말 죄송합니다. 🙏\n불량 제품은 개봉 여부와 관계없이 무상 교환·환불 처리해 드리고 있어요.\n\n제품 상태를 확인할 수 있는 사진과 함께 접수해 주시면 확인 후 24시간 이내에 처리 결과를 안내드릴게요.",
+      오배송:"주문하신 제품과 다른 제품이 도착했군요. 확인 즉시 올바른 제품으로 교환해 드리며, 배송비는 전액 저희가 부담합니다.\n\n받으신 제품은 개봉하지 마시고 그대로 보관해 주세요. 회수와 재발송을 동시에 진행해 드릴게요."
+    }
+  },
+  offcore: {
+    greeting: "안녕하세요, 오프코어입니다.\n무엇을 도와드릴까요?",
+    chips: ["배송 조회", "교환·반품 안내", "사이즈 가이드", "세탁 방법", "상담사 연결"],
+    intents: [
+      { keys:["사이즈","치수","호수","커요","작아","핏"],
+        reply:"바디 프레이머 사이즈 가이드예요.\n<table><tr><th>사이즈</th><th>키</th><th>몸무게</th></tr><tr><td>M</td><td>165–175</td><td>60–75kg</td></tr><tr><td>L</td><td>170–180</td><td>75–90kg</td></tr><tr><td>XL</td><td>175–185</td><td>90–105kg</td></tr></table>\n보정력을 위해 두 사이즈 사이라면 작은 쪽을 권장드려요. 착용감이 답답하게 느껴지시면 교환도 가능하니 편하게 문의 주세요.\n\n(데모: 수치는 예시입니다)",
+        chips:["교환·반품 안내","처음으로"] },
+      { keys:["세탁","빨래","건조","관리"],
+        reply:"기능성 원단 특성상 아래 방법을 권장드려요.\n\n· 30도 이하 물에서 단독 손세탁 또는 세탁망 사용\n· 건조기 사용은 피해 주세요 (스판덱스 손상)\n· 그늘에서 자연 건조\n\n올바르게 관리하시면 보정력을 오래 유지하실 수 있어요.",
+        chips:["처음으로"] },
+      { keys:["배송비","무료배송"],
+        reply:"배송비는 3,500원이며, 5만원 이상 구매 시 무료배송이에요.\n주문 후 평일 기준 1~2일 내 출고됩니다.",
+        chips:["배송 조회","처음으로"] },
+      { keys:["교환","반품","환불","취소"], flow:"exchange" },
+      { keys:["배송","조회","언제","도착","주문"], flow:"tracking" },
+      { keys:["상담사","상담원","사람","전화","연결"], flow:"agent" },
+      { keys:["처음"], flow:"restart" }
+    ],
+    exchangePolicy: {
+      단순변심:"이너웨어 제품 특성상 위생을 위해, 단순 변심 교환·반품은 포장을 개봉하지 않은 미착용 상태에 한해 수령일로부터 7일 이내 가능해요.\n\n반품 배송비는 고객 부담(편도 3,500원)입니다. 사이즈 문제라면 교환으로 진행해 드릴게요.",
+      제품불량:"불편을 드려 정말 죄송합니다. 🙏\n봉제 불량·원단 손상 등 제품 하자는 착용 여부와 관계없이 무상 교환·환불 처리해 드려요.\n\n불량 부위 사진과 함께 접수해 주시면 24시간 이내 처리 결과를 안내드릴게요.",
+      오배송:"주문하신 사이즈·수량과 다르게 도착했군요. 확인 즉시 올바른 제품으로 교환해 드리며 배송비는 전액 저희 부담입니다.\n\n받으신 제품은 개봉하지 마시고 보관해 주세요. 회수와 재발송을 동시에 진행할게요."
+    }
+  }
+};
+
+/* ═══════════════ 상태 및 대화 엔진 ═══════════════ */
+const state = { brand:"physislab", mode:"scenario", flow:null, history:[], missCount:0 };
+const $body = document.getElementById("chatBody");
+const $input = document.getElementById("chatInput");
+
+function addMsg(text, who="bot", asHTML=false){
+  const el = document.createElement("div");
+  el.className = "msg " + who;
+  if(asHTML){ el.innerHTML = text; } else { el.textContent = text; }
+  $body.appendChild(el);
+  state.history.push({role: who==="user"?"user":"assistant", content: el.textContent});
+  scroll();
+  return el;
+}
+function addSys(text){
+  const el = document.createElement("div");
+  el.className = "msg sys"; el.textContent = text;
+  $body.appendChild(el); scroll();
+}
+function addChips(list){
+  clearChips();
+  if(!list || !list.length) return;
+  const wrap = document.createElement("div");
+  wrap.className = "chips";
+  list.forEach(label=>{
+    const b = document.createElement("button");
+    b.type="button"; b.textContent = label;
+    b.onclick = ()=>{ clearChips(); handleUser(label); };
+    wrap.appendChild(b);
+  });
+  $body.appendChild(wrap); scroll();
+}
+function clearChips(){ $body.querySelectorAll(".chips").forEach(c=>c.remove()); }
+function scroll(){ $body.scrollTop = $body.scrollHeight; }
+function typing(on){
+  let t = $body.querySelector(".typing");
+  if(on && !t){
+    t = document.createElement("div");
+    t.className="typing"; t.innerHTML="<i></i><i></i><i></i>";
+    $body.appendChild(t); scroll();
+  } else if(!on && t){ t.remove(); }
+}
+function botSay(text, chips, asHTML=false, delay=650){
+  typing(true);
+  setTimeout(()=>{
+    typing(false);
+    addMsg(text, "bot", asHTML);
+    if(chips) addChips(chips);
+  }, delay);
+}
+
+/* 흐름(flow) 처리 */
+function startFlow(name){
+  const S = SCENARIO[state.brand];
+  state.flow = null;
+  if(name==="exchange"){
+    state.flow = "exchange_reason";
+    botSay("교환·반품 접수를 도와드릴게요.\n어떤 사유이신가요?", ["단순 변심","제품 불량","오배송"]);
+  } else if(name==="tracking"){
+    state.flow = "tracking_orderno";
+    botSay("배송 조회를 도와드릴게요.\n주문번호를 입력해 주세요. (예: 20260801-000123)");
+  } else if(name==="agent"){
+    state.flow = "agent_confirm";
+    botSay("상담사 연결을 도와드릴게요.\n상담 가능 시간은 평일 10:00–17:00 (점심 12:00–13:10 제외)입니다.\n\n지금 바로 콜백을 신청하시겠어요?", ["콜백 신청하기","괜찮아요, 처음으로"]);
+  } else if(name==="restart"){
+    state.missCount = 0;
+    botSay(S.greeting, S.chips);
+  }
+}
+function handleFlow(text){
+  const S = SCENARIO[state.brand];
+  if(state.flow==="exchange_reason"){
+    const key = text.replace(/\s/g,"");
+    const policy = S.exchangePolicy[key] || (key.includes("변심") ? S.exchangePolicy["단순변심"] : key.includes("불량") ? S.exchangePolicy["제품불량"] : key.includes("오배송") ? S.exchangePolicy["오배송"] : null);
+    if(policy){
+      state.flow = null;
+      botSay(policy, ["접수 진행하기","상담사 연결","처음으로"]);
+      return true;
+    }
+  }
+  if(state.flow==="tracking_orderno"){
+    if(/\d{6,}/.test(text.replace(/-/g,""))){
+      state.flow = null;
+      botSay(
+        "주문번호 <b>"+text.trim()+"</b> 조회 결과예요.\n"+
+        '<div class="timeline"><div>주문 접수 · 8/4 14:22</div><div>결제 완료 · 8/4 14:23</div><div class="now">배송 중 · CJ대한통운 · 8/6 09:10</div><div>배송 완료 예정 · 8/7</div></div>\n(데모: 실제 서비스에서는 택배사 API와 연동됩니다)',
+        ["배송지 변경 문의","처음으로"], true);
+    } else {
+      botSay("주문번호 형식을 확인하지 못했어요.\n숫자를 포함한 주문번호를 다시 입력해 주시겠어요?");
+    }
+    return true;
+  }
+  if(state.flow==="agent_confirm"){
+    state.flow = null;
+    if(text.includes("콜백")){
+      botSay("콜백 신청이 접수되었습니다. ✅\n순서대로 확인 후 등록된 연락처로 전화드릴게요. 예상 대기: 10분 이내\n\n(데모: 실제 서비스에서는 상담 큐에 자동 등록됩니다)", ["처음으로"]);
+    } else {
+      startFlow("restart");
+    }
+    return true;
+  }
+  return false;
+}
+
+/* 접수 진행(공통 마무리) */
+function commonActions(text){
+  if(text.includes("접수 진행")){
+    botSay("접수가 완료되었습니다. ✅\n회수 기사님 방문 일정은 1영업일 내 문자로 안내드릴게요.\n\n더 도와드릴 것이 있을까요?", ["처음으로","상담사 연결"]);
+    return true;
+  }
+  if(text.includes("배송지 변경")){
+    botSay("이미 출고된 주문은 택배사 사정에 따라 배송지 변경이 어려울 수 있어요.\n상담사 연결을 통해 변경 가능 여부를 바로 확인해 드릴게요.", ["상담사 연결","처음으로"]);
+    return true;
+  }
+  if(text.includes("성분표 받기")){
+    handleIntent("성분표"); return true;
+  }
+  return false;
+}
+
+/* 인텐트 매칭 */
+function handleIntent(text){
+  const S = SCENARIO[state.brand];
+  let best = null, bestScore = 0;
+  for(const it of S.intents){
+    let score = 0;
+    for(const k of it.keys){ if(text.includes(k)) score += k.length; }
+    if(score > bestScore){ bestScore = score; best = it; }
+  }
+  if(best){
+    state.missCount = 0;
+    if(best.flow){ startFlow(best.flow); }
+    else { botSay(best.reply, best.chips, best.reply.includes("<table")); }
+    return true;
+  }
+  return false;
+}
+
+/* 사용자 입력 처리 */
+function handleUser(text){
+  addMsg(text, "user");
+  if(state.mode==="ai"){ handleAI(text); return; }
+  if(handleFlow(text)) return;
+  if(commonActions(text)) return;
+  if(handleIntent(text)) return;
+  state.missCount++;
+  if(state.missCount >= 2){
+    state.missCount = 0;
+    botSay("원하시는 답을 찾지 못해 불편을 드렸네요. 😥\n이 문의는 상담사가 직접 확인하는 것이 더 정확할 것 같아요. 연결해 드릴까요?", ["상담사 연결","처음으로"]);
+  } else {
+    const S = SCENARIO[state.brand];
+    botSay("문의 내용을 정확히 파악하지 못했어요.\n아래에서 가까운 항목을 선택하시거나, 조금 더 자세히 알려주시겠어요?", S.chips);
+  }
+}
+
+/* AI 모드 */
+async function handleAI(text){
+  if(!CONFIG.BACKEND_URL){
+    addSys("AI 백엔드가 연결되지 않아 시나리오 모드로 응답합니다");
+    if(handleFlow(text)) return;
+    if(commonActions(text)) return;
+    if(handleIntent(text)) return;
+    const S = SCENARIO[state.brand];
+    botSay("문의 내용을 정확히 파악하지 못했어요.\n아래에서 가까운 항목을 선택해 주시겠어요?", S.chips);
+    return;
+  }
+  typing(true);
+  try{
+    const reply = await callBackend(text);
+    typing(false);
+    addMsg(reply, "bot");
+  } catch(e){
+    typing(false);
+    addSys("응답을 받지 못했습니다 · 네트워크 상태를 확인해 주세요");
+    botSay("일시적인 오류가 발생했어요. 잠시 후 다시 시도해 주시거나 상담사 연결을 이용해 주세요.", ["상담사 연결","처음으로"]);
+  }
+}
+
+/* 브랜드·모드 전환 */
+function setBrand(b){
+  if(state.brand === b) return;
+  state.brand = b; state.flow = null; state.missCount = 0;
+  document.documentElement.setAttribute("data-brand", b);
+  document.getElementById("tabPhy").classList.toggle("on", b==="physislab");
+  document.getElementById("tabOff").classList.toggle("on", b==="offcore");
+  document.getElementById("brandName").innerHTML =
+    b==="physislab" ? "피지스랩<small>건강을 위한 진심</small>"
+                    : "OFFCORE<small>당신의 코어를 완성하는 솔루션</small>";
+  $body.innerHTML = ""; state.history = [];
+  addSys(b==="physislab" ? "피지스랩 상담 채널로 전환되었습니다" : "오프코어 상담 채널로 전환되었습니다");
+  const S = SCENARIO[b];
+  botSay(S.greeting, S.chips, false, 400);
+}
+function setMode(m){
+  if(state.mode === m) return;
+  state.mode = m;
+  document.getElementById("tabScn").classList.toggle("on", m==="scenario");
+  document.getElementById("tabAI").classList.toggle("on", m==="ai");
+  addSys(m==="ai" ? "AI 모드 — 자유 문장으로 질문해 보세요" : "시나리오 모드 — 선택형 응대로 진행됩니다");
+}
+
+/* 전송 */
+function onSend(e){
+  e.preventDefault();
+  const v = $input.value.trim();
+  if(!v) return false;
+  $input.value = "";
+  clearChips();
+  handleUser(v);
+  return false;
+}
+
+/* 시작 */
+(function init(){
+  const S = SCENARIO[state.brand];
+  botSay(S.greeting, S.chips, false, 500);
+})();
+</script>
+</body>
+</html>
