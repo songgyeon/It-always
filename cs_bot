@@ -1,0 +1,138 @@
+# cs_bot.py — 시너윗 CS 챗봇 데모 백엔드
+# ─────────────────────────────────────────────────────────
+# Q 서버에 얹는 독립 모듈. Q의 인격·메모리·PtEngine과 완전히
+# 분리되어 있으며, Anthropic 클라이언트만 공유한다.
+#
+# 설치 (main.py에 2줄 추가):
+#   import cs_bot
+#   cs_bot.register(app, client)     # client = Anthropic(...) 아래에
+#
+# 엔드포인트:
+#   POST /cs-reply  → {"message", "brand", "history"} 받아 {"reply"} 반환
+#   GET  /cs-demo   → static/cs_demo.html 서빙 (같은 오리진 = CORS 불필요)
+# ─────────────────────────────────────────────────────────
+
+import os
+from flask import request, jsonify, send_file
+
+_BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
+MODEL = "claude-haiku-4-5-20251001"
+MAX_TOKENS = 500
+TEMPERATURE = 0.3
+
+# ─── 브랜드 지식 (시나리오 데이터와 동일 소스) ───
+BRAND_CONTEXT = {
+    "physislab": """
+[브랜드] 피지스랩 — "건강을 위한 진심". 건강기능식품 브랜드.
+[주요 제품]
+- 트루멜라: 식물성 멜라토닌 2mg (피스타치오+타트체리 2중배합), 1일 1정,
+  취침 30분~1시간 전 섭취 권장. 멜라토닌 작용을 돕는 핵심 성분 4종,
+  휴식 시너지 원료 6종 함유.
+- 우슬 콘드로이친 1200: 관절 건강. 국내산 우슬 수급 문제로 품절이 잦음.
+  품절 시 재입고 알림 신청 안내.
+[교환·반품]
+- 단순 변심: 수령일로부터 7일 이내, 미개봉 상태만 가능. 반품 배송비
+  고객 부담(편도 3,500원). 개봉·섭취한 건강기능식품은 교환·반품 불가.
+- 제품 불량: 개봉 여부 무관 무상 교환·환불. 사진 접수 후 24시간 내 안내.
+- 오배송: 배송비 전액 회사 부담, 회수와 재발송 동시 진행.
+""",
+    "offcore": """
+[브랜드] 오프코어(OFFCORE) — "당신의 코어를 완성하는 솔루션".
+남성 기능성 이너웨어(보정 나시) 브랜드.
+[주요 제품]
+- 바디 프레이머: 3중 결합 바디 프레이밍, AIR-메쉬 통풍, 1등급 스판덱스,
+  1mm 심리스 마감. 판매가 29,900원.
+- 사이즈: M(165–175cm/60–75kg), L(170–180/75–90), XL(175–185/90–105).
+  두 사이즈 사이면 보정력을 위해 작은 쪽 권장.
+- 세탁: 30도 이하 단독 손세탁 또는 세탁망, 건조기 금지, 그늘 자연 건조.
+[배송] 배송비 3,500원, 5만원 이상 무료. 평일 1~2일 내 출고.
+[교환·반품]
+- 단순 변심: 이너웨어 위생 특성상 미개봉·미착용 + 수령 7일 이내만 가능.
+  반품 배송비 고객 부담(편도 3,500원).
+- 제품 불량: 착용 여부 무관 무상 교환·환불. 사진 접수 후 24시간 내 안내.
+- 오배송: 배송비 전액 회사 부담, 회수와 재발송 동시 진행.
+""",
+}
+
+SYSTEM_PROMPT = """당신은 이커머스 브랜드의 고객센터 AI 상담원입니다.
+
+[응대 원칙]
+1. 한국어 존댓말로, 2~4문장 이내로 간결하고 따뜻하게 답합니다.
+2. 아래 브랜드 정보에 있는 내용만 사실로 안내합니다. 정보에 없는
+   정책·가격·재고는 지어내지 말고 "상담사 연결을 통해 정확히
+   확인해 드리겠다"고 안내합니다.
+3. 복용법·약물 병용 등 건강 관련 질문에는 일반 정보만 안내하고,
+   개인 건강 상태에 대한 판단은 하지 않으며 반드시 의사·약사 상담을
+   권장합니다.
+4. 고객이 불만·불편을 표현하면 먼저 공감하고 사과한 뒤 해결 절차를
+   안내합니다.
+5. 상담사 연결 요청 시: 상담 가능 시간은 평일 10:00–17:00이며 콜백
+   신청이 가능하다고 안내합니다.
+6. 이 서비스는 채용 지원용 데모이므로, 주문 조회·접수 등 실제 처리가
+   필요한 요청에는 절차를 안내하되 "데모 환경에서는 실제 처리가
+   되지 않는다"는 점을 자연스럽게 덧붙입니다.
+
+[브랜드 정보]
+{brand_context}
+"""
+
+FALLBACK = "일시적인 오류로 답변을 드리지 못했어요. 잠시 후 다시 시도해 주시거나 상담사 연결을 이용해 주세요."
+
+
+def register(app, client):
+    """Flask app에 CS 데모 라우트를 등록한다. Q 모듈과 무관하게 동작."""
+
+    def _cors(resp):
+        # 프론트를 다른 곳(GitHub Pages 등)에 올릴 경우를 대비한 CORS 허용.
+        # /cs-demo(같은 오리진)로만 쓸 거면 없어도 무방하다.
+        resp.headers["Access-Control-Allow-Origin"] = "*"
+        resp.headers["Access-Control-Allow-Headers"] = "Content-Type"
+        resp.headers["Access-Control-Allow-Methods"] = "POST, OPTIONS"
+        return resp
+
+    @app.route("/cs-reply", methods=["POST", "OPTIONS"])
+    def cs_reply():
+        if request.method == "OPTIONS":
+            return _cors(app.make_response(("", 204)))
+
+        data = request.get_json(silent=True) or {}
+        message = (data.get("message") or "").strip()
+        brand = data.get("brand", "physislab")
+        history = data.get("history") or []
+
+        if not message:
+            return _cors(jsonify({"reply": "문의 내용을 입력해 주세요."}))
+        if brand not in BRAND_CONTEXT:
+            brand = "physislab"
+
+        # 히스토리 정제: role/content만 통과, 최근 10턴, 빈 내용 제거
+        messages = []
+        for m in history[-10:]:
+            role = m.get("role")
+            content = (m.get("content") or "").strip()
+            if role in ("user", "assistant") and content:
+                messages.append({"role": role, "content": content})
+        # 마지막이 이번 user 메시지와 중복이면 제거 후 추가
+        if messages and messages[-1]["role"] == "user" and messages[-1]["content"] == message:
+            messages.pop()
+        messages.append({"role": "user", "content": message})
+
+        try:
+            response = client.messages.create(
+                model=MODEL,
+                max_tokens=MAX_TOKENS,
+                temperature=TEMPERATURE,
+                system=SYSTEM_PROMPT.format(brand_context=BRAND_CONTEXT[brand]),
+                messages=messages,
+            )
+            reply = response.content[0].text.strip()
+        except Exception as e:
+            print(f"⚠️ [CS-BOT ERROR] {e}")
+            reply = FALLBACK
+
+        return _cors(jsonify({"reply": reply, "brand": brand}))
+
+    @app.route("/cs-demo", methods=["GET"])
+    def cs_demo():
+        return send_file(os.path.join(_BASE_DIR, "static", "cs_demo.html"))
